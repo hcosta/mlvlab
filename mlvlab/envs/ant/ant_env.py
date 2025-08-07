@@ -8,14 +8,20 @@ import numpy as np
 class LostAntEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
-    def __init__(self, render_mode=None, grid_size=10):
+    def __init__(self,
+                 render_mode=None,
+                 grid_size=10,
+                 reward_food=100,
+                 reward_obstacle=-100,
+                 reward_move=-1
+                 ):
         super().__init__()
 
-        # (La inicialización es idéntica a lost_ant_env.py)
+        # Los valores ahora vienen de los parámetros, con un valor por defecto
         self.GRID_SIZE = grid_size
-        self.REWARD_FOOD = 100
-        self.REWARD_OBSTACLE = -100
-        self.REWARD_MOVE = -1
+        self.REWARD_FOOD = reward_food
+        self.REWARD_OBSTACLE = reward_obstacle
+        self.REWARD_MOVE = reward_move
 
         self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Box(
@@ -100,12 +106,12 @@ class LostAntEnv(gym.Env):
         if terminated:
             reward = self.REWARD_FOOD
             # Volumen de 0-100, como espera el player.py
-            info['play_sound'] = {'filename': 'blip.wav', 'volume': 100}
+            info['play_sound'] = {'filename': 'blip.wav', 'volume': 20}
         elif self.ant_pos.tolist() in self.obstacles:
             reward = self.REWARD_OBSTACLE
             # La hormiga es devuelta a su posición anterior
             self.ant_pos = old_pos
-            info['play_sound'] = {'filename': 'crash.wav', 'volume': 50}
+            info['play_sound'] = {'filename': 'crash.wav', 'volume': 10}
         else:
             reward = self.REWARD_MOVE
 

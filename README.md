@@ -53,12 +53,14 @@ mlv help mlvlab/ant-v1
 Puedes usar los entornos de MLV-Lab en tus propios proyectos de Python como cualquier otra librería de Gymnasium.
 
 ### 1. Instalación en tu Proyecto
+
 ```bash
 # Crea tu entorno virtual y luego instala las dependencias
 pip install mlvlab numpy
 ```
 
 ### 2. Uso en tu Código
+
 ```python
 import gymnasium as gym
 import mlvlab  # ¡Importante! Esto registra los entornos "mlvlab/..."
