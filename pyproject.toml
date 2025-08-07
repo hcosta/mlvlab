@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlvlab"
+version = "0.1.0"
+description = "Ecosistema de aprendizaje de IA Visual de MLVisual."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "gymnasium>=0.28.0",
+    "pygame>=2.1.0",
+    "numpy>=1.20.0",
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "moviepy>=2.2.1", # Necesario para mlv train
+    "importlib-metadata>=4.8.0; python_version < '3.10'", # Para los entry points en Python < 3.10
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0.0",      # Para testing
+    "black>=22.3.0",      # Formateador de código
+    "isort>=5.10.0",      # Ordenador de imports
+]
+
+# Esta sección es CRUCIAL: Define el comando 'mlv' en la terminal.
+[project.scripts]
+mlv = "mlvlab.cli.main:run_app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+# Asegura que los archivos de assets (sonidos) se incluyan en el paquete distribuido.
+[tool.setuptools.package-data]
+mlvlab = ["envs/*/assets/*"]
+
