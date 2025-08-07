@@ -190,7 +190,7 @@ def evaluate(
 def help_env(
     env_id: str = typer.Argument(..., help="ID del entorno a inspeccionar.")
 ):
-    """Muestra la ficha técnica y la ruta al README del entorno."""
+    """Muestra la ficha técnica y un enlace a la documentación del entorno."""
     try:
         env = gym.make(env_id)
         spec = gym.spec(env_id)
@@ -202,28 +202,31 @@ def help_env(
         console.print(
             f"[bold cyan]Action Space:[/bold cyan]\n{env.action_space}\n")
 
-        # --- Lógica para encontrar y mostrar la ruta relativa al README ---
-        readme_path_abs = None
+        # --- LÓGICA PARA CONSTRUIR LA URL DINÁMICA AL README ---
         try:
+            # 1. Define la URL base de tu repositorio
+            base_repo_url = "https://github.com/hcosta/mlvlab/tree/master"
+
+            # 2. Extrae la ruta del módulo del entry point
+            #    Ej: "mlvlab.envs.ant.ant_env:LostAntEnv" -> "mlvlab.envs.ant.ant_env"
             entry_point = spec.entry_point
             module_path_str = entry_point.split(':')[0]
-            module_spec = importlib.util.find_spec(module_path_str)
-            if module_spec and module_spec.origin:
-                env_dir = Path(module_spec.origin).parent
-                potential_readme = env_dir / "README.md"
-                if potential_readme.exists():
-                    readme_path_abs = potential_readme
-        except Exception:
-            pass
 
-        if readme_path_abs:
-            try:
-                display_path = readme_path_abs.relative_to(Path.cwd())
-            except ValueError:
-                display_path = readme_path_abs
+            # 3. Convierte la ruta del módulo a una ruta de directorio
+            #    Ej: "mlvlab.envs.ant.ant_env" -> "mlvlab/envs/ant"
+            path_parts = module_path_str.split('.')
+            # Nos quedamos con todo menos el último elemento (el nombre del fichero _env.py)
+            relative_path = "/".join(path_parts[:-1])
+
+            # 4. Construye la URL final
+            readme_url = f"{base_repo_url}/{relative_path}/README.md"
 
             console.print(
-                f"[bold cyan]For more details, check the README:[/bold cyan]\n[green]{display_path.as_posix()}[/green]\n")
+                f"[bold cyan]For more details, check the README:[/bold cyan]\n[green]{readme_url}[/green]\n")
+
+        except Exception:
+            # Si algo falla, simplemente no mostramos el enlace
+            pass
 
         env.close()
 
