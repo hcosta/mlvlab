@@ -1,4 +1,4 @@
-# MLV-Lab: Un Ecosistema para el Aprendizaje Visual de IA
+# MLV-Lab: Ecosistema para el Aprendizaje Visual de IA
 
 [![PyPI Version](https://img.shields.io/badge/pypi-v0.1.0-brightgreen)](https://pypi.org/project/mlvlab/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
