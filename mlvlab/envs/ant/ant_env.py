@@ -30,7 +30,7 @@ class LostAntEnv(gym.Env):
 
         self.ant_pos = None
         self.food_pos = None
-        self.obstacles = []
+        self.obstacles = set()
 
         self.render_mode = render_mode
         self.window = None
@@ -44,10 +44,12 @@ class LostAntEnv(gym.Env):
         """Genera y establece las posiciones de la comida y los obstáculos."""
         self.food_pos = self.np_random.integers(
             0, self.GRID_SIZE, size=2, dtype=np.int32)
-        self.obstacles = [
-            self.np_random.integers(0, self.GRID_SIZE, size=2).tolist() for _ in range(self.GRID_SIZE)
-        ]
-        while self.food_pos.tolist() in self.obstacles:
+        # Conjunto de obstáculos para membership O(1)
+        self.obstacles = {
+            tuple(self.np_random.integers(0, self.GRID_SIZE, size=2).tolist())
+            for _ in range(self.GRID_SIZE)
+        }
+        while tuple(self.food_pos.tolist()) in self.obstacles:
             self.food_pos = self.np_random.integers(
                 0, self.GRID_SIZE, size=2, dtype=np.int32)
 
@@ -55,7 +57,9 @@ class LostAntEnv(gym.Env):
         """Busca una posición inicial aleatoria para la hormiga."""
         self.ant_pos = self.np_random.integers(
             0, self.GRID_SIZE, size=2, dtype=np.int32)
-        while self.ant_pos.tolist() in self.obstacles or np.array_equal(self.ant_pos, self.food_pos):
+        while tuple(self.ant_pos.tolist()) in self.obstacles or (
+            self.ant_pos[0] == self.food_pos[0] and self.ant_pos[1] == self.food_pos[1]
+        ):
             self.ant_pos = self.np_random.integers(
                 0, self.GRID_SIZE, size=2, dtype=np.int32)
 
@@ -77,46 +81,56 @@ class LostAntEnv(gym.Env):
 
     def _get_obs(self):
         # Devolver una copia para prevenir el "Bug de Observación Mutable"
-        return np.copy(self.ant_pos)
+        return np.array((int(self.ant_pos[0]), int(self.ant_pos[1])), dtype=np.int32)
 
     def _get_info(self):
         return {"food_pos": self.food_pos}
 
     def step(self, action):
-        # Guardamos la posición anterior por si choca
-        old_pos = np.copy(self.ant_pos)
+        # Guardamos coordenadas previas
+        ax, ay = int(self.ant_pos[0]), int(self.ant_pos[1])
+        prev_ax, prev_ay = ax, ay
         info = self._get_info()
 
         # 1. Mueve la hormiga
         if action == 0:
-            self.ant_pos[1] -= 1  # Arriba
+            ay -= 1  # Arriba
         elif action == 1:
-            self.ant_pos[1] += 1  # Abajo
+            ay += 1  # Abajo
         elif action == 2:
-            self.ant_pos[0] -= 1  # Izquierda
+            ax -= 1  # Izquierda
         elif action == 3:
-            self.ant_pos[0] += 1  # Derecha
+            ax += 1  # Derecha
 
-        # 2. Asegura que la hormiga esté dentro de los límites
-        self.ant_pos = np.clip(self.ant_pos, 0, self.GRID_SIZE - 1)
+        # 2. Clamp a límites
+        if ax < 0:
+            ax = 0
+        elif ax >= self.GRID_SIZE:
+            ax = self.GRID_SIZE - 1
+        if ay < 0:
+            ay = 0
+        elif ay >= self.GRID_SIZE:
+            ay = self.GRID_SIZE - 1
 
         # 3. Evalúa el resultado
-        terminated = np.array_equal(self.ant_pos, self.food_pos)
+        terminated = (
+            ax == int(self.food_pos[0]) and ay == int(self.food_pos[1]))
         truncated = False
 
         if terminated:
             reward = self.REWARD_FOOD
             # Volumen de 0-100, como espera el player.py
             info['play_sound'] = {'filename': 'blip.wav', 'volume': 10}
-        elif self.ant_pos.tolist() in self.obstacles:
+        elif (ax, ay) in self.obstacles:
             reward = self.REWARD_OBSTACLE
             # La hormiga es devuelta a su posición anterior
-            self.ant_pos = old_pos
+            ax, ay = prev_ax, prev_ay
             info['play_sound'] = {'filename': 'crash.wav', 'volume': 5}
         else:
             reward = self.REWARD_MOVE
-
-        return self._get_obs(), reward, terminated, truncated, info
+        # Actualizar posición
+        self.ant_pos[0], self.ant_pos[1] = ax, ay
+        return np.array((ax, ay), dtype=np.int32), reward, terminated, truncated, info
 
     def _render_frame(self):
         # --- SECCIÓN VISUAL (AISLADA) ---

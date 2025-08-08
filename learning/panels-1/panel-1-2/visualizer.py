@@ -2,7 +2,7 @@
 import random
 import time
 import ast  # Necesario para la lógica de audio robusta
-from threading import Lock
+from threading import Lock, Thread
 from nicegui import ui, app
 try:
     # Para tipado y callbacks de desconexión por cliente
@@ -80,6 +80,8 @@ SIM = {
     'current_episode_reward': 0.0,
     'last_sound': None,
     'last_turbo': False,
+    'stop': False,
+    'thread': None,
 }
 ENV_LOCK = Lock()
 
@@ -97,89 +99,108 @@ def startup_handler():
         SIM['last_check_time'] = time.time()
         SIM['steps_at_last_check'] = 0
         SIM['last_step_time'] = time.time()
-    # Bucle global de simulación (único)
+    # Bucle global de simulación (único) en hilo dedicado
 
-    def simulation_tick_global():
-        # Control de pausa y reset global
-        cmd = app_state.get('command')
-        if cmd == 'pause':
-            return
-        if cmd == 'reset':
-            # Reiniciar simulación con NUEVA semilla y resetear agente y métricas
-            new_seed = random.randint(0, 1_000_000_000)
-            SIM['seed'] = new_seed
-            with ENV_LOCK:
-                SIM['obs'], SIM['info'] = env.reset(seed=new_seed)
-            SIM['current_episode_reward'] = 0.0
-            SIM['total_steps'] = 0
-            SIM['step_accum'] = 0.0
-            agent.reset()
-            app_state.update({
-                'episodes_completed': 0,
-                'reward_history': [],
-                'steps_per_second': 0,
-                'epsilon': 1.0,
-                'current_episode_reward': 0,
-                'command': 'run',
-            })
-            return
-        now = time.time()
-        dt = now - SIM['last_step_time']
-        # Detectar cambio de turbo y resetear integrador
-        turbo = bool(app_state.get('turbo_mode'))
-        if turbo != SIM['last_turbo']:
-            SIM['step_accum'] = 0.0
-            SIM['last_step_time'] = now
-            dt = 0.0
-            SIM['last_turbo'] = turbo
-        else:
-            SIM['last_step_time'] = now
-
-        spm = max(0, int(app_state['speed_multiplier']))
-        # Modo turbo: desactiva límite lineal y apunta a ~20k pasos/s
-        if turbo:
-            steps_to_do = max(
-                1, min(20000, int(20000 * dt) if dt > 0 else 5000))
-        else:
-            SIM['step_accum'] += spm * dt
-            steps_to_do = int(SIM['step_accum'])
-        if steps_to_do <= 0:
-            return
-        steps_to_do = min(steps_to_do, 10000)
-        for _ in range(steps_to_do):
-            if not turbo:
-                SIM['step_accum'] -= 1.0
-            with ENV_LOCK:
-                obs = SIM['obs']
-                state = get_state_from_pos(obs[0], obs[1], GRID_SIZE)
-                action = agent.choose_action(state, app_state['epsilon'])
-                next_obs, reward, terminated, truncated, info = env.step(
-                    action)
-                SIM['obs'] = next_obs
-                SIM['info'] = info
-            next_state = get_state_from_pos(
-                next_obs[0], next_obs[1], GRID_SIZE)
-            agent.update(state, action, reward, next_state,
-                         app_state['learning_rate'], app_state['discount_factor'])
-            SIM['current_episode_reward'] = round(
-                SIM['current_episode_reward'] + reward, 2)
-            SIM['total_steps'] += 1
-            if 'play_sound' in info and (app_state['speed_multiplier'] <= 50) and not app_state.get('turbo_mode'):
-                SIM['last_sound'] = info['play_sound']
-            if terminated or truncated:
-                app_state['episodes_completed'] += 1
-                app_state['reward_history'].append(
-                    SIM['current_episode_reward'])
-                if len(app_state['reward_history']) > app_state['chart_reward_number']:
-                    app_state['reward_history'].pop(0)
+    def simulation_loop():
+        # usar perf_counter para más precisión en dt
+        SIM['last_step_time'] = time.perf_counter()
+        while not SIM['stop']:
+            cmd = app_state.get('command')
+            if cmd == 'pause':
+                time.sleep(0.001)
+                continue
+            if cmd == 'reset':
+                new_seed = random.randint(0, 1_000_000_000)
+                SIM['seed'] = new_seed
                 with ENV_LOCK:
-                    # preservar mapa actual
-                    SIM['obs'], SIM['info'] = env.reset()
+                    SIM['obs'], SIM['info'] = env.reset(seed=new_seed)
                 SIM['current_episode_reward'] = 0.0
-                if app_state['epsilon'] > app_state['min_epsilon']:
-                    app_state['epsilon'] *= app_state['epsilon_decay']
-                break
-    ui.timer(0.001, simulation_tick_global)
+                SIM['total_steps'] = 0
+                SIM['step_accum'] = 0.0
+                agent.reset()
+                app_state.update({
+                    'episodes_completed': 0,
+                    'reward_history': [],
+                    'steps_per_second': 0,
+                    'epsilon': 1.0,
+                    'current_episode_reward': 0,
+                    'command': 'run',
+                })
+                continue
+
+            now = time.perf_counter()
+            dt = now - SIM['last_step_time']
+            turbo = bool(app_state.get('turbo_mode'))
+            if turbo != SIM['last_turbo']:
+                SIM['step_accum'] = 0.0
+                SIM['last_step_time'] = now
+                SIM['last_turbo'] = turbo
+                continue
+            SIM['last_step_time'] = now
+
+            spm = max(0, int(app_state['speed_multiplier']))
+            if turbo:
+                steps_to_do = max(
+                    1, min(120000, int(30000 * dt) if dt > 0 else 10000))
+            else:
+                SIM['step_accum'] += spm * dt
+                steps_to_do = int(SIM['step_accum'])
+            if steps_to_do <= 0:
+                # ceder CPU para no monopolizar
+                time.sleep(0.0005)
+                continue
+            steps_to_do = min(steps_to_do, 40000)
+
+            # micro-batching
+            for _ in range(steps_to_do):
+                if not turbo:
+                    SIM['step_accum'] -= 1.0
+                with ENV_LOCK:
+                    obs = SIM['obs']
+                    state = get_state_from_pos(obs[0], obs[1], GRID_SIZE)
+                    action = agent.choose_action(state, app_state['epsilon'])
+                    next_obs, reward, terminated, truncated, info = env.step(
+                        action)
+                    SIM['obs'] = next_obs
+                    SIM['info'] = info
+                next_state = get_state_from_pos(
+                    next_obs[0], next_obs[1], GRID_SIZE)
+                agent.update(state, action, reward, next_state,
+                             app_state['learning_rate'], app_state['discount_factor'])
+                SIM['current_episode_reward'] = round(
+                    SIM['current_episode_reward'] + reward, 2)
+                SIM['total_steps'] += 1
+                if 'play_sound' in info and (app_state['speed_multiplier'] <= 50) and not turbo:
+                    SIM['last_sound'] = info['play_sound']
+                if terminated or truncated:
+                    app_state['episodes_completed'] += 1
+                    app_state['reward_history'].append(
+                        SIM['current_episode_reward'])
+                    if len(app_state['reward_history']) > app_state['chart_reward_number']:
+                        app_state['reward_history'].pop(0)
+                    with ENV_LOCK:
+                        SIM['obs'], SIM['info'] = env.reset()
+                    SIM['current_episode_reward'] = 0.0
+                    if app_state['epsilon'] > app_state['min_epsilon']:
+                        app_state['epsilon'] *= app_state['epsilon_decay']
+                    break
+            # breve sleep para dar aire a la UI
+            time.sleep(0.0005)
+
+    SIM['stop'] = False
+    SIM['thread'] = Thread(target=simulation_loop, daemon=True)
+    SIM['thread'].start()
+
+    # Parada limpia al cerrar servidor
+    @app.on_shutdown
+    def _stop_simulation():
+        SIM['stop'] = True
+        t = SIM.get('thread')
+        if t and t.is_alive():
+            try:
+                t.join(timeout=1.0)
+            except Exception:
+                pass
 
 
 @ui.page('/')
