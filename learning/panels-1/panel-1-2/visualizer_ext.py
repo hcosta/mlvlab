@@ -89,7 +89,7 @@ def startup_handler():
     if not SIM['initialized']:
         with ENV_LOCK:
             SIM['obs'], SIM['info'] = env.reset(
-                seed=random.randint(0, 1_000_000_000))
+                seed=random.randint(0, 1_000))
         SIM['initialized'] = True
 
     def simulation_loop():

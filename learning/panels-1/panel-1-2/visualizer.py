@@ -94,7 +94,7 @@ def startup_handler():
     play_sound = setup_audio()
     # Inicializar simulación global si no está
     if not SIM['initialized']:
-        SIM['seed'] = SIM['seed'] or random.randint(0, 1_000_000_000)
+        SIM['seed'] = SIM['seed'] or random.randint(0, 1_000)
         with ENV_LOCK:
             SIM['obs'], SIM['info'] = env.reset(seed=SIM['seed'])
         SIM['initialized'] = True
@@ -112,7 +112,7 @@ def startup_handler():
                 time.sleep(0.001)
                 continue
             if cmd == 'reset':
-                new_seed = random.randint(0, 1_000_000_000)
+                new_seed = random.randint(0, 1_000)
                 SIM['seed'] = new_seed
                 with ENV_LOCK:
                     SIM['obs'], SIM['info'] = env.reset(seed=new_seed)
@@ -221,7 +221,7 @@ def main_interface(client: Client):
         global GLOBAL_SEED, SIM_INITIALIZED
         if not SIM_INITIALIZED:
             if GLOBAL_SEED is None:
-                GLOBAL_SEED = random.randint(0, 1_000_000_000)
+                GLOBAL_SEED = random.randint(0, 1_000)
             obs, info = env.reset(seed=GLOBAL_SEED)
             loop_state['current_seed'] = GLOBAL_SEED
             SIM_INITIALIZED = True

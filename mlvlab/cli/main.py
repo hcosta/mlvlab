@@ -114,7 +114,8 @@ def train(
         f"📂 Trabajando en el directorio: [bold yellow]{run_dir}[/bold yellow]")
 
     try:
-        agent_module = importlib.import_module(f"mlvlab.agents.{agent_type}")
+        agent_module = importlib.import_module(
+            f"mlvlab.agents.{env_id.split('/')[1]}.{agent_type}")
         train_func = getattr(agent_module, "train_agent")
     except (ImportError, AttributeError):
         console.print(
@@ -169,7 +170,8 @@ def evaluate(
     agent_type = config.get("BASELINE", {}).get("agent")
 
     try:
-        agent_module = importlib.import_module(f"mlvlab.agents.{agent_type}")
+        agent_module = importlib.import_module(
+            f"mlvlab.agents.{env_id.split('/')[1]}.{agent_type}")
         eval_func = getattr(agent_module, "eval_agent")
     except (ImportError, AttributeError):
         console.print(
