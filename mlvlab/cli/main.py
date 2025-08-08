@@ -262,6 +262,18 @@ def load_plugins(application: typer.Typer):
 # Función principal que se ejecuta cuando se llama a 'mlv'
 
 
+# --- Nuevo comando: visualización web ---
+@app.command(name="web")
+def web(
+    env_id: str = typer.Argument(..., help="ID del entorno (e.g., mlvlab/ant-v1)."),
+    seed: Optional[int] = typer.Option(None, "--seed", "-s", help="Semilla para reproducibilidad del mapa."),
+    mode: str = typer.Option("2d", "--mode", "-m", help="Modo de visualización: 2d (Pixi.js) o 3d (Three.js)")
+):
+    """Lanza la visualización web (NiceGUI + Pixi.js/Three.js) para el entorno indicado."""
+    from mlvlab.web.app import run_web
+    run_web(env_id=env_id, seed=seed, mode=mode)
+
+
 def run_app():
     load_plugins(app)
     app()

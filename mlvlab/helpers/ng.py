@@ -97,3 +97,18 @@ def frame_to_base64_src(frame: np.ndarray) -> str:
         pil_img.save(buffered, format="PNG")
         b64_img = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/png;base64,{b64_img}"
+
+
+def setup_keyboard(on_key):
+    """Registra un manejador de teclado simple (keydown) en la página actual de NiceGUI."""
+    ui.run_javascript(
+        "window.addEventListener('keydown', (e) => {window._mlv_last_key = e.key;});"
+    )
+    def poll_key():
+        async def _read():
+            key = await ui.run_javascript('return window._mlv_last_key || null;')
+            if key:
+                on_key(key)
+                await ui.run_javascript('window._mlv_last_key = null;')
+        return _read()
+    ui.timer(0.02, poll_key)

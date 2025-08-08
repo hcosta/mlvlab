@@ -74,6 +74,18 @@ class LostAntEnv(gym.Env):
     def set_render_data(self, q_table):
         self.q_table_to_render = q_table
 
+    def get_render_state(self):
+        """Devuelve un diccionario serializable con el estado necesario para renderizar.
+        Pensado para visualizadores WebGL (Pixi.js / Three.js) y otros renderers desacoplados.
+        """
+        return {
+            "grid_size": int(self.GRID_SIZE),
+            "ant": (int(self.ant_pos[0]), int(self.ant_pos[1])) if self.ant_pos is not None else None,
+            "food": (int(self.food_pos[0]), int(self.food_pos[1])) if self.food_pos is not None else None,
+            "obstacles": [(int(o[0]), int(o[1])) for o in self.obstacles],
+            "q_table": self.q_table_to_render.tolist() if isinstance(self.q_table_to_render, np.ndarray) else None,
+        }
+
     def _get_obs(self):
         # Devolver una copia para prevenir el "Bug de Observación Mutable"
         return np.copy(self.ant_pos)
@@ -152,15 +164,18 @@ class LostAntEnv(gym.Env):
                     q_value = np.max(self.q_table_to_render[s, :])
                     norm_q = (q_value - min_q) / (max_q - min_q)
                     heat_color = (0, min(255, int(norm_q * 200)), 0)
-                    pygame.draw.rect(
+                    import pygame as _pg
+                    _pg.draw.rect(
                         self.window, heat_color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
         for obs in self.obstacles:
-            pygame.draw.rect(self.window, COLOR_OBSTACLE,
+            import pygame as _pg
+            _pg.draw.rect(self.window, COLOR_OBSTACLE,
                              (obs[0] * CELL_SIZE, obs[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-        pygame.draw.rect(self.window, COLOR_FOOD, (
+        import pygame as _pg
+        _pg.draw.rect(self.window, COLOR_FOOD, (
             self.food_pos[0] * CELL_SIZE, self.food_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-        pygame.draw.rect(self.window, COLOR_ANT, (
+        _pg.draw.rect(self.window, COLOR_ANT, (
             self.ant_pos[0] * CELL_SIZE, self.ant_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
     def render(self):
