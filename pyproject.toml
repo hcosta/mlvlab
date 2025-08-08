@@ -16,6 +16,8 @@ dependencies = [
     "rich>=13.0.0",
     "moviepy>=2.2.1", # Necesario para mlv train
     "importlib-metadata>=4.8.0; python_version < '3.10'", # Para los entry points en Python < 3.10
+    "nicegui>=1.4.20",
+    "Pillow>=9.0.0",
 ]
 
 [project.optional-dependencies]

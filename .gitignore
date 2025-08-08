@@ -8,6 +8,7 @@ Pipfile.lock
 # learning/
 .venv/
 .nicegui/
+.docs/
 
 data/
 # C extensions
