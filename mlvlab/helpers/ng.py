@@ -103,3 +103,12 @@ def frame_to_base64_src(frame: np.ndarray) -> str:
         pil_img.save(buffered, format="PNG", optimize=False, compress_level=0)
         b64_img = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/png;base64,{b64_img}"
+
+
+def frame_to_webp_bytes(frame: np.ndarray, quality: int = 80) -> bytes:
+    """Convierte un frame (NumPy array RGB) a bytes WebP (mucho más ligero que PNG)."""
+    pil_img = Image.fromarray(frame)
+    with io.BytesIO() as buffered:
+        pil_img.save(buffered, format="WEBP",
+                     quality=int(max(1, min(100, quality))))
+        return buffered.getvalue()

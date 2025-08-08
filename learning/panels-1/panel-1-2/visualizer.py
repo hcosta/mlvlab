@@ -4,6 +4,8 @@ import time
 import ast  # Necesario para la lógica de audio robusta
 from threading import Lock, Thread
 from nicegui import ui, app
+import asyncio
+from starlette.websockets import WebSocket
 try:
     # Para tipado y callbacks de desconexión por cliente
     from nicegui import Client  # type: ignore
@@ -16,7 +18,7 @@ try:
     import mlvlab
     from q_learning import QLearningAgent, get_state_from_pos
     # Asumiendo que los helpers están en la ubicación recomendada
-    from mlvlab.helpers.ng import setup_audio, create_reward_chart, frame_to_base64_src
+    from mlvlab.helpers.ng import setup_audio, create_reward_chart, frame_to_webp_bytes
 except ImportError:
     print("Error: El paquete 'mlvlab', sus helpers o 'q_learning.py' no se encontraron.")
     exit()
@@ -385,8 +387,10 @@ def main_interface(client: Client):
 
             with ui.column().classes('w-full lg:w-2/4 pb-4 lg:pb-0 lg:px-2 items-center'):
                 with ui.card().classes('w-full p-0 bg-black flex justify-center items-center'):
-                    ui.image().props(
-                        'no-transition').classes('max-w-[550px]').bind_source_from(app_state, 'preview_image')
+                    # Canvas para recibir frames por WebSocket binario (WebP)
+                    canvas = ui.element('canvas').classes(
+                        'max-w-[550px]').style('width: 100%; height: auto;')
+                    canvas.props('id=viz_canvas width=900 height=900')
 
             with ui.column().classes('w-full lg:w-1/4 lg:pl-2'):
                 with ui.card().classes('w-full mb-4'):
@@ -415,11 +419,9 @@ def main_interface(client: Client):
             return
         env.unwrapped.set_render_data(q_table=agent.q_table)
         with ENV_LOCK:
-            frame = env.render()
+            # Ya no empujamos PNG/base64 por app_state: los frames irán por WS binario
             pending_sound = SIM.get('last_sound')
             SIM['last_sound'] = None
-        # Actualizar imagen de previsualización
-        app_state["preview_image"] = frame_to_base64_src(frame)
         # Actualizar gráfico si es necesario
         if reward_chart is not None and reward_chart.visible:
             if list(reward_chart.options['series'][0]['data']) != app_state['reward_history']:
@@ -444,9 +446,54 @@ def main_interface(client: Client):
             loop_state['last_check_time'] = now
             loop_state['steps_at_last_check'] = SIM['total_steps']
 
-    # Reducimos la frecuencia de render a 15 Hz para aligerar la conversión PNG
+    # Reducimos la frecuencia de render a 15 Hz para el resto de UI; frames irán por WS
     render_timer = ui.timer(1/15, render_tick)
     active_timers.extend([render_timer])
+
+    # WebSocket binario para enviar frames WebP a cada cliente
+    route = f"/ws/frame/{id(client)}"
+
+    async def frame_ws(websocket: WebSocket):
+        await websocket.accept()
+        try:
+            while True:
+                with ENV_LOCK:
+                    env.unwrapped.set_render_data(q_table=agent.q_table)
+                    frame = env.render()
+                webp = frame_to_webp_bytes(frame, quality=100)
+                await websocket.send_bytes(webp)
+                await asyncio.sleep(1/25)  # ~25 FPS
+        except Exception:
+            pass
+
+    try:
+        app.add_websocket_route(route, frame_ws)
+    except Exception:
+        # Fallback por compatibilidad
+        pass
+
+    # JS para consumir el WS y pintar en canvas
+    ui.run_javascript(f"""
+    (() => {{
+      const canvas = document.getElementById('viz_canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let url = (location.origin.replace(/^http/, 'ws')) + '{route}';
+      const ws = new WebSocket(url);
+      ws.binaryType = 'arraybuffer';
+      ws.onmessage = async (ev) => {{
+        const blob = new Blob([ev.data], {{ type: 'image/webp' }});
+        const img = new Image();
+        img.onload = () => {{
+          try {{
+            canvas.width = img.width; canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+          }} catch (e) {{}}
+        }};
+        img.src = URL.createObjectURL(blob);
+      }};
+    }})();
+    """)
 
     ui.run_javascript("""
 (() => {
