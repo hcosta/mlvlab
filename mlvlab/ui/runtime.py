@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 import time
 from threading import Lock, Thread
 import random
@@ -18,11 +18,12 @@ class SimulationRunner:
       - reset()
     """
 
-    def __init__(self, env: Any, agent: Any, state: StateStore, env_lock: Lock) -> None:
+    def __init__(self, env: Any, agent: Any, state: StateStore, env_lock: Lock, state_from_obs: Optional[Callable[[Any], Any]] = None) -> None:
         self.env = env
         self.agent = agent
         self.state = state
         self.env_lock = env_lock
+        self._state_from_obs = state_from_obs
 
         self._thread: Optional[Thread] = None
         self._stop = False
@@ -54,7 +55,12 @@ class SimulationRunner:
 
     # --- interno --- #
     def _extract_state(self, obs: Any) -> Any:
-        # Si el agente implementa extract_state_from_obs usarlo; en otro caso pasar obs directamente
+        # Prioridad: callable pasado al runner > método del agente > obs sin transformar
+        if callable(self._state_from_obs):
+            try:
+                return self._state_from_obs(obs)
+            except Exception:
+                pass
         extractor = getattr(self.agent, "extract_state_from_obs", None)
         if callable(extractor):
             try:

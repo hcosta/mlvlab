@@ -4,6 +4,7 @@
 
 import numpy as np
 import random
+from typing import Callable, Optional, Any
 
 
 def get_state_from_pos(x, y, grid_size):
@@ -27,13 +28,25 @@ class QLearningAgent:
     Un agente que aprende a tomar decisiones usando el algoritmo Q-Learning.
     """
 
-    def __init__(self, num_states, num_actions):
+    def __init__(self, num_states: int, num_actions: int, state_from_obs: Optional[Callable[..., Any]] = None):
         """
         Inicializa la Q-Table, que almacenará los valores de cada par estado-acción.
+
+        Parámetros
+        - num_states: número total de estados (p. ej., GRID_SIZE * GRID_SIZE)
+        - num_actions: número de acciones del entorno
+        - state_from_obs: (opcional) función para convertir la observación del entorno
+          en el estado usado por el agente. Puede tener firma (obs), (x, y) o (x, y, grid_size).
+          Si se proporciona, quedará disponible también como atributo
+          `extract_state_from_obs` para ser detectada por el framework.
         """
         self.num_states = num_states
         self.num_actions = num_actions
         self.q_table = np.zeros((self.num_states, self.num_actions))
+        if state_from_obs is not None:
+            # exponer con nombre estándar que el framework detecta
+            # type: ignore[attr-defined]
+            self.extract_state_from_obs = state_from_obs
 
     def choose_action(self, state, epsilon):
         """

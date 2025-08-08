@@ -17,12 +17,14 @@ def main():
         reward_move=0,
     )
 
-    agent = QLearningAgent(num_states=grid_size * grid_size,
-                           num_actions=env.action_space.n)
+    agent = QLearningAgent(
+        num_states=grid_size * grid_size,
+        num_actions=env.action_space.n,
+    )
 
-    # Proveer conversión de observación->estado al runner de forma opcional
-    agent.extract_state_from_obs = lambda obs: get_state_from_pos(
-        obs[0], obs[1], grid_size)  # type: ignore[attr-defined]
+    # Asignamos el estado de la observación del entorno al agente
+    # Patrón recomendado para alumnos: asignar la función directamente
+    agent.extract_state_from_obs = get_state_from_pos
 
     view = m.AnalyticsView(
         env=env,

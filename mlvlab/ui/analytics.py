@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Callable
 import time
 from threading import Lock
 
@@ -40,6 +40,7 @@ class AnalyticsView:
         history_size: int = 100,
         dark: bool = False,
         subtitle: Optional[str] = None,
+        state_from_obs: Optional[Callable[..., Any]] = None,
         agent_hparams_defaults: Optional[dict] = None,
     ) -> None:
         self.env = env
@@ -88,16 +89,55 @@ class AnalyticsView:
             }
         )
 
+        # Permitir que el alumno provea una función clara para convertir observaciones a estados
+        provided_fn = state_from_obs if callable(state_from_obs) else getattr(
+            self.agent, 'extract_state_from_obs', None)
         self.runner = SimulationRunner(
             env=self.env,
             agent=self.agent,
             state=self.state,
             env_lock=self.env_lock,
+            state_from_obs=self._build_state_from_obs_adapter(
+                provided_fn) if callable(provided_fn) else None,
         )
 
         self._reward_chart = None  # type: ignore
 
     # -------------------------- Página principal -------------------------- #
+    def _build_state_from_obs_adapter(self, fn: Callable[..., Any]) -> Callable[[Any], Any]:
+        """Adapta funciones flexibles (p.ej., get_state_from_pos(x, y, grid)) a callable(obs)->state.
+
+        - Si la función espera 1 arg: se le pasa `obs` tal cual.
+        - Si espera 2 args: asume (x, y) y los extrae de `obs`.
+        - Si espera 3+ args y tenemos `GRID_SIZE` del entorno, intenta (x, y, grid_size).
+        """
+        try:
+            from inspect import signature
+            sig = signature(fn)
+            num_params = len(sig.parameters)
+        except Exception:
+            num_params = 1
+
+        grid_size = getattr(getattr(self.env, 'unwrapped',
+                            self.env), 'GRID_SIZE', None)
+
+        def adapter(obs: Any) -> Any:
+            try:
+                if num_params <= 1:
+                    return fn(obs)
+                x, y = (int(obs[0]), int(obs[1])) if hasattr(
+                    obs, '__getitem__') and len(obs) >= 2 else (obs, None)
+                if num_params == 2:
+                    return fn(x, y)
+                if num_params >= 3 and grid_size is not None:
+                    return fn(x, y, int(grid_size))
+                # fallback
+                return fn(obs)
+            except Exception:
+                return obs
+
+        return adapter
+
     def _build_page(self) -> None:
         route = "/"
 
