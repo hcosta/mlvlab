@@ -2,7 +2,13 @@
 import random
 import time
 import ast  # Necesario para la lógica de audio robusta
+from threading import Lock
 from nicegui import ui, app
+try:
+    # Para tipado y callbacks de desconexión por cliente
+    from nicegui import Client  # type: ignore
+except Exception:
+    Client = object  # fallback
 import gymnasium as gym
 
 # --- PASO 1: Importar el entorno, el agente y los helpers ---
@@ -16,6 +22,10 @@ except ImportError:
     exit()
 
 # --- PASO 2: Configuración Inicial ---
+
+# Estado global del servidor para una única seed/mapa compartido
+GLOBAL_SEED = None
+SIM_INITIALIZED = False
 
 # CORRECCIÓN 1: Asegurar que GRID_SIZE coincida con la configuración del entorno.
 GRID_SIZE = 15
@@ -44,6 +54,7 @@ app_state = {
     "min_epsilon": 0.1,
     "command": "run",
     "speed_multiplier": 1,
+    "turbo_mode": False,
     "episodes_completed": 0,
     "current_episode_reward": 0,
     "reward_history": [],
@@ -55,32 +66,145 @@ app_state = {
 }
 reward_chart = None
 
+# Simulación global compartida por todos los clientes
+SIM = {
+    'initialized': False,
+    'seed': None,
+    'obs': None,
+    'info': None,
+    'total_steps': 0,
+    'last_check_time': time.time(),
+    'steps_at_last_check': 0,
+    'last_step_time': time.time(),
+    'step_accum': 0.0,
+    'current_episode_reward': 0.0,
+    'last_sound': None,
+    'last_turbo': False,
+}
+ENV_LOCK = Lock()
+
 
 def startup_handler():
     """Inicializa recursos globales como el audio una sola vez."""
     global play_sound
     play_sound = setup_audio()
+    # Inicializar simulación global si no está
+    if not SIM['initialized']:
+        SIM['seed'] = SIM['seed'] or random.randint(0, 1_000_000_000)
+        with ENV_LOCK:
+            SIM['obs'], SIM['info'] = env.reset(seed=SIM['seed'])
+        SIM['initialized'] = True
+        SIM['last_check_time'] = time.time()
+        SIM['steps_at_last_check'] = 0
+        SIM['last_step_time'] = time.time()
+    # Bucle global de simulación (único)
+
+    def simulation_tick_global():
+        # Control de pausa y reset global
+        cmd = app_state.get('command')
+        if cmd == 'pause':
+            return
+        if cmd == 'reset':
+            # Reiniciar simulación con NUEVA semilla y resetear agente y métricas
+            new_seed = random.randint(0, 1_000_000_000)
+            SIM['seed'] = new_seed
+            with ENV_LOCK:
+                SIM['obs'], SIM['info'] = env.reset(seed=new_seed)
+            SIM['current_episode_reward'] = 0.0
+            SIM['total_steps'] = 0
+            SIM['step_accum'] = 0.0
+            agent.reset()
+            app_state.update({
+                'episodes_completed': 0,
+                'reward_history': [],
+                'steps_per_second': 0,
+                'epsilon': 1.0,
+                'current_episode_reward': 0,
+                'command': 'run',
+            })
+            return
+        now = time.time()
+        dt = now - SIM['last_step_time']
+        # Detectar cambio de turbo y resetear integrador
+        turbo = bool(app_state.get('turbo_mode'))
+        if turbo != SIM['last_turbo']:
+            SIM['step_accum'] = 0.0
+            SIM['last_step_time'] = now
+            dt = 0.0
+            SIM['last_turbo'] = turbo
+        else:
+            SIM['last_step_time'] = now
+
+        spm = max(0, int(app_state['speed_multiplier']))
+        # Modo turbo: desactiva límite lineal y apunta a ~20k pasos/s
+        if turbo:
+            steps_to_do = max(
+                1, min(20000, int(20000 * dt) if dt > 0 else 5000))
+        else:
+            SIM['step_accum'] += spm * dt
+            steps_to_do = int(SIM['step_accum'])
+        if steps_to_do <= 0:
+            return
+        steps_to_do = min(steps_to_do, 10000)
+        for _ in range(steps_to_do):
+            if not turbo:
+                SIM['step_accum'] -= 1.0
+            with ENV_LOCK:
+                obs = SIM['obs']
+                state = get_state_from_pos(obs[0], obs[1], GRID_SIZE)
+                action = agent.choose_action(state, app_state['epsilon'])
+                next_obs, reward, terminated, truncated, info = env.step(
+                    action)
+                SIM['obs'] = next_obs
+                SIM['info'] = info
+            next_state = get_state_from_pos(
+                next_obs[0], next_obs[1], GRID_SIZE)
+            agent.update(state, action, reward, next_state,
+                         app_state['learning_rate'], app_state['discount_factor'])
+            SIM['current_episode_reward'] = round(
+                SIM['current_episode_reward'] + reward, 2)
+            SIM['total_steps'] += 1
+            if 'play_sound' in info and (app_state['speed_multiplier'] <= 50) and not app_state.get('turbo_mode'):
+                SIM['last_sound'] = info['play_sound']
+            if terminated or truncated:
+                app_state['episodes_completed'] += 1
+                app_state['reward_history'].append(
+                    SIM['current_episode_reward'])
+                if len(app_state['reward_history']) > app_state['chart_reward_number']:
+                    app_state['reward_history'].pop(0)
+                with ENV_LOCK:
+                    # preservar mapa actual
+                    SIM['obs'], SIM['info'] = env.reset()
+                SIM['current_episode_reward'] = 0.0
+                if app_state['epsilon'] > app_state['min_epsilon']:
+                    app_state['epsilon'] *= app_state['epsilon_decay']
+                break
+    ui.timer(0.001, simulation_tick_global)
 
 
 @ui.page('/')
-def main_interface():
+def main_interface(client: Client):
     global reward_chart
 
-    # El estado del bucle interno se mantiene igual
+    # Estado mínimo por cliente
     loop_state = {
-        'obs': None,
-        'info': None,
-        'total_steps': 0,
+        'disconnected': False,
         'last_check_time': time.time(),
-        'steps_at_last_check': 0,
-        'last_step_time': time.time(),
-        'current_seed': None,
+        'steps_at_last_check': SIM['total_steps'],
     }
 
     def reset_simulation():
-        """Reinicia toda la simulación, generando un NUEVO mapa."""
-        loop_state['current_seed'] = random.randint(0, 1_000_000_000)
-        obs, info = env.reset(seed=loop_state['current_seed'])
+        """Reinicia la simulación sin cambiar la seed global una vez fijada."""
+        global GLOBAL_SEED, SIM_INITIALIZED
+        if not SIM_INITIALIZED:
+            if GLOBAL_SEED is None:
+                GLOBAL_SEED = random.randint(0, 1_000_000_000)
+            obs, info = env.reset(seed=GLOBAL_SEED)
+            loop_state['current_seed'] = GLOBAL_SEED
+            SIM_INITIALIZED = True
+        else:
+            # Reset sin semilla para preservar el mapa actual
+            obs, info = env.reset()
         loop_state['obs'] = obs
         loop_state['info'] = info
         agent.reset()
@@ -100,6 +224,20 @@ def main_interface():
 
     # Guarda una lista para los temporizadores de este cliente
     active_timers = []
+
+    # Cancelar timers y marcar desconexión cuando el cliente se vaya
+    def _on_disconnect():
+        loop_state['disconnected'] = True
+        for timer in active_timers:
+            try:
+                timer.cancel()
+            except Exception:
+                pass
+
+    try:
+        client.on_disconnect(_on_disconnect)
+    except Exception:
+        pass
 
     # --- NUEVA LÓGICA DE DIÁLOGO Y CIERRE ---
     with ui.dialog() as dialog, ui.card():
@@ -141,8 +279,7 @@ def main_interface():
         else:
             print("Cierre cancelado por el usuario.")
 
-    # Iniciar la simulación la primera vez para este cliente
-    reset_simulation()
+    # No reiniciar la simulación al abrir nueva pestaña; la simulación es global
 
     # --- Definición de la Interfaz de Usuario ---
     ui.label('Project 1.2: The Lost Ant Colony (Arquitectura Original Corregida)').classes(
@@ -156,14 +293,16 @@ def main_interface():
                         'text-lg font-semibold text-center w-full')
                     ui.label().bind_text_from(app_state, 'speed_multiplier',
                                               lambda v: f'Velocidad Simulación: {v}x')
-                    ui.slider(min=1, max=1000, step=1).bind_value(
-                        app_state, 'speed_multiplier')
+                    with ui.grid(columns=2).classes('w-full items-center gap-2'):
+                        ui.slider(min=1, max=50, step=1).bind_value(
+                            app_state, 'speed_multiplier').classes('w-full')
+                        ui.switch('Turbo Mode').bind_value(
+                            app_state, 'turbo_mode').classes('w-full')
 
-                    with ui.row().classes('w-full justify-around mt-3'):
+                    with ui.row().classes('w-full justify-around mt-3 items-center'):
                         def toggle_simulation():
                             app_state['command'] = "pause" if app_state['command'] == "run" else "run"
                         with ui.button(on_click=toggle_simulation).props('outline'):
-                            # CORRECCIÓN 2: Añadir un icono inicial para evitar TypeError
                             ui.icon('pause').bind_name_from(
                                 app_state, 'command', lambda cmd: 'pause' if cmd == 'run' else 'play_arrow')
 
@@ -171,7 +310,6 @@ def main_interface():
                             {"command": "reset"})).props('icon=refresh outline')
 
                         with ui.button(on_click=lambda: app_state.update({'sound_enabled': not app_state['sound_enabled']})).props('outline'):
-                            # CORRECCIÓN 2: Añadir un icono inicial para evitar TypeError
                             ui.icon('volume_up').bind_name_from(
                                 app_state, 'sound_enabled', lambda enabled: 'volume_up' if enabled else 'volume_off')
 
@@ -220,80 +358,45 @@ def main_interface():
                     reward_chart = create_reward_chart(
                         chart_card, number=app_state['chart_reward_number'])
 
-    def simulation_tick():
-        if app_state["command"] == "reset":
-            reset_simulation()
-            return
-        if app_state["command"] != "run" or loop_state.get('obs') is None:
-            return
-
-        now = time.time()
-        if now - loop_state['last_step_time'] < 1.0 / app_state['speed_multiplier']:
-            return
-        loop_state['last_step_time'] = now
-
-        obs = loop_state['obs']
-        state = get_state_from_pos(obs[0], obs[1], GRID_SIZE)
-        action = agent.choose_action(state, app_state["epsilon"])
-        next_obs, reward, terminated, truncated, info = env.step(action)
-
-        # CORRECCIÓN 3: Lógica de audio robusta para manejar la inconsistencia del entorno.
-        if app_state['sound_enabled'] and 'play_sound' in info:
-            try:
-                sound_info = info['play_sound']
-                sound_data_to_play = {}
-                if isinstance(sound_info, dict):
-                    sound_data_to_play = sound_info
-                elif isinstance(sound_info, str):
-                    sound_data_to_play = ast.literal_eval(
-                        sound_info) if sound_info.startswith('{') else {'filename': sound_info}
-                if sound_data_to_play:
-                    play_sound(sound_data_to_play)
-            except Exception as e:
-                print(f"Error al procesar o reproducir el audio: {e}")
-
-        next_state = get_state_from_pos(next_obs[0], next_obs[1], GRID_SIZE)
-        agent.update(state, action, reward, next_state,
-                     app_state["learning_rate"], app_state["discount_factor"])
-
-        current_reward = app_state["current_episode_reward"] + reward
-        app_state["current_episode_reward"] = round(current_reward, 2)
-        loop_state['obs'] = next_obs
-        loop_state['total_steps'] += 1
-
-        if terminated or truncated:
-            app_state["episodes_completed"] += 1
-            app_state["reward_history"].append(current_reward)
-            if len(app_state["reward_history"]) > app_state["chart_reward_number"]:
-                app_state["reward_history"].pop(0)
-            loop_state['obs'], _ = env.reset()
-            app_state["current_episode_reward"] = 0
-            if app_state["epsilon"] > app_state["min_epsilon"]:
-                app_state["epsilon"] *= app_state["epsilon_decay"]
+    # Eliminamos simulación por cliente: solo render
 
     def render_tick():
+        if loop_state.get('disconnected'):
+            return
         env.unwrapped.set_render_data(q_table=agent.q_table)
-        frame = env.render()
+        with ENV_LOCK:
+            frame = env.render()
+            pending_sound = SIM.get('last_sound')
+            SIM['last_sound'] = None
+        # Actualizar imagen de previsualización
         app_state["preview_image"] = frame_to_base64_src(frame)
+        # Actualizar gráfico si es necesario
         if reward_chart is not None and reward_chart.visible:
             if list(reward_chart.options['series'][0]['data']) != app_state['reward_history']:
                 reward_chart.options['series'][0]['data'] = app_state['reward_history'].copy(
                 )
                 reward_chart.update()
+        # Reproducir sonido si aplica
+        if pending_sound and app_state['sound_enabled'] and app_state['speed_multiplier'] <= 50:
+            if client and getattr(client, 'connected', True):
+                try:
+                    play_sound(pending_sound)
+                except Exception:
+                    pass
 
         now = time.time()
         elapsed = now - loop_state['last_check_time']
         if elapsed > 0.5:
-            steps_this_interval = loop_state['total_steps'] - \
+            steps_this_interval = SIM['total_steps'] - \
                 loop_state['steps_at_last_check']
             sps = int(steps_this_interval / elapsed) if elapsed > 0 else 0
             app_state["steps_per_second"] = sps
             loop_state['last_check_time'] = now
-            loop_state['steps_at_last_check'] = loop_state['total_steps']
+            loop_state['steps_at_last_check'] = SIM['total_steps']
 
-    sim_timer = ui.timer(0.001, simulation_tick)
-    render_timer = ui.timer(1/30, render_tick)
-    active_timers.extend([sim_timer, render_timer])
+    # Reducimos la frecuencia de render a 15 Hz para aligerar la conversión PNG
+    render_timer = ui.timer(1/15, render_tick)
+    active_timers.extend([render_timer])
 
 
 app.on_startup(startup_handler)

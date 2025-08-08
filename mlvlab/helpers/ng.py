@@ -50,12 +50,17 @@ def setup_audio():
             return
 
         volume_percent = sound_data.get('volume', 100)
+        try:
+            volume_percent = max(0, min(100, int(volume_percent)))
+        except Exception:
+            volume_percent = 100
         volume_js = volume_percent / 100.0
 
         js_command = f"""
             (() => {{
                 const sound = new Audio('/assets/{filename}');
-                sound.volume = {volume_js};
+                try {{ sound.volume = {volume_js}; }} catch (e) {{}}
+                sound.muted = {volume_js} <= 0;
                 sound.play().catch(e => console.error("Error al reproducir audio:", e));
             }})()
         """
@@ -94,6 +99,7 @@ def frame_to_base64_src(frame: np.ndarray) -> str:
     """Convierte un frame (NumPy array) a una cadena de texto Base64 para una imagen en HTML."""
     pil_img = Image.fromarray(frame)
     with io.BytesIO() as buffered:
-        pil_img.save(buffered, format="PNG")
+        # PNG más rápido: sin optimización y compresión mínima
+        pil_img.save(buffered, format="PNG", optimize=False, compress_level=0)
         b64_img = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/png;base64,{b64_img}"

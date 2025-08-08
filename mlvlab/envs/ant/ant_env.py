@@ -2,7 +2,7 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-# PyGame se importará solo si se llama al método de renderizado.
+# Arcade se importará solo si se llama al método de renderizado.
 
 
 class LostAntEnv(gym.Env):
@@ -34,7 +34,8 @@ class LostAntEnv(gym.Env):
 
         self.render_mode = render_mode
         self.window = None
-        self.clock = None
+        self._window_visible = False
+        self._last_time = None
         self.q_table_to_render = None  # Para visualización avanzada
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -106,12 +107,12 @@ class LostAntEnv(gym.Env):
         if terminated:
             reward = self.REWARD_FOOD
             # Volumen de 0-100, como espera el player.py
-            info['play_sound'] = {'filename': 'blip.wav', 'volume': 20}
+            info['play_sound'] = {'filename': 'blip.wav', 'volume': 10}
         elif self.ant_pos.tolist() in self.obstacles:
             reward = self.REWARD_OBSTACLE
             # La hormiga es devuelta a su posición anterior
             self.ant_pos = old_pos
-            info['play_sound'] = {'filename': 'crash.wav', 'volume': 10}
+            info['play_sound'] = {'filename': 'crash.wav', 'volume': 5}
         else:
             reward = self.REWARD_MOVE
 
@@ -120,63 +121,192 @@ class LostAntEnv(gym.Env):
     def _render_frame(self):
         # --- SECCIÓN VISUAL (AISLADA) ---
         # Si nunca se llama a render(), esta sección nunca se ejecuta.
-        import pygame
+        import arcade
+        from arcade.draw.rect import draw_lbwh_rectangle_filled
+        import time
 
         # Constantes de dibujado (solo existen dentro de este método)
         CELL_SIZE = 30
         WIDTH = HEIGHT = self.GRID_SIZE * CELL_SIZE
         COLOR_GRID = (40, 40, 40)
-        COLOR_ANT = (255, 0, 0)
-        COLOR_FOOD = (0, 255, 0)
-        COLOR_OBSTACLE = (100, 100, 100)
+        COLOR_ANT = (255, 64, 64)
+        COLOR_FOOD = (64, 255, 128)
+        COLOR_OBSTACLE = (120, 120, 120)
 
+        # Crear ventana de Arcade perezosamente. Para rgb_array la mantenemos oculta.
         if self.window is None and self.render_mode in ["human", "rgb_array"]:
-            pygame.init()
-            if self.render_mode == "human":
-                self.window = pygame.display.set_mode((WIDTH, HEIGHT))
-                pygame.display.set_caption("Lost Ant Colony")
-            else:  # "rgb_array"
-                self.window = pygame.Surface((WIDTH, HEIGHT))
-            self.clock = pygame.time.Clock()
+            self._window_visible = self.render_mode == "human"
+            # En Arcade, el origen está en la esquina inferior-izquierda.
+            # Usamos "visible" para soportar render fuera de pantalla.
+            try:
+                self.window = arcade.Window(
+                    WIDTH, HEIGHT, "Lost Ant Colony", visible=self._window_visible
+                )
+            except TypeError:
+                # Compatibilidad: versiones sin parámetro visible
+                self.window = arcade.Window(WIDTH, HEIGHT, "Lost Ant Colony")
+                if not self._window_visible:
+                    try:
+                        self.window.set_visible(False)
+                    except Exception:
+                        pass
 
         if self.render_mode is None:
-            return
+            return None
 
-        self.window.fill(COLOR_GRID)
+        # Si cambiamos de modo rgb_array -> human, hacer visible la ventana
+        if self.window is not None:
+            target_visibility = self.render_mode == "human"
+            if target_visibility and not self._window_visible:
+                try:
+                    self.window.set_visible(True)
+                except Exception:
+                    pass
+                self._window_visible = True
+
+        # Utilidades de coordenadas: convertir celda (x,y) a píxeles (origen abajo-izquierda en Arcade)
+        def cell_to_pixel(x_cell: int, y_cell: int):
+            x_px = x_cell * CELL_SIZE
+            # Invertimos Y para mantener la misma orientación que en PyGame (y hacia abajo)
+            y_px = (self.GRID_SIZE - 1 - y_cell) * CELL_SIZE
+            return x_px, y_px
+
+        # Renderizado base
+        self.window.switch_to()
+        arcade.set_background_color(COLOR_GRID)
+        # Limpiar el frame usando el color de fondo configurado
+        self.window.clear()
+
+        # Dibujar mapa de calor de Q-table si está disponible
         if self.q_table_to_render is not None:
-            max_q, min_q = np.max(self.q_table_to_render), np.min(
-                self.q_table_to_render)
+            max_q = float(np.max(self.q_table_to_render))
+            min_q = float(np.min(self.q_table_to_render))
             if max_q > min_q:
-                for s in range(self.GRID_SIZE * self.GRID_SIZE):
-                    x, y = s % self.GRID_SIZE, s // self.GRID_SIZE
-                    q_value = np.max(self.q_table_to_render[s, :])
+                for state_index in range(self.GRID_SIZE * self.GRID_SIZE):
+                    x_cell = state_index % self.GRID_SIZE
+                    y_cell = state_index // self.GRID_SIZE
+                    q_value = float(
+                        np.max(self.q_table_to_render[state_index, :]))
                     norm_q = (q_value - min_q) / (max_q - min_q)
-                    heat_color = (0, min(255, int(norm_q * 200)), 0)
-                    pygame.draw.rect(
-                        self.window, heat_color, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+                    intensity = int(40 + norm_q * 180)
+                    heat_color = (0, intensity, 0, 255)
+                    x_px, y_px = cell_to_pixel(x_cell, y_cell)
+                    draw_lbwh_rectangle_filled(
+                        x_px,
+                        y_px,
+                        CELL_SIZE,
+                        CELL_SIZE,
+                        heat_color,
+                    )
 
+        # Dibujar cuadrícula sutil
+        grid_color = (60, 60, 60, 120)
+        for i in range(self.GRID_SIZE + 1):
+            x = i * CELL_SIZE
+            y = i * CELL_SIZE
+            arcade.draw_line(x, 0, x, HEIGHT, grid_color, 1)
+            arcade.draw_line(0, y, WIDTH, y, grid_color, 1)
+
+        # Dibujar obstáculos
         for obs in self.obstacles:
-            pygame.draw.rect(self.window, COLOR_OBSTACLE,
-                             (obs[0] * CELL_SIZE, obs[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-        pygame.draw.rect(self.window, COLOR_FOOD, (
-            self.food_pos[0] * CELL_SIZE, self.food_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-        pygame.draw.rect(self.window, COLOR_ANT, (
-            self.ant_pos[0] * CELL_SIZE, self.ant_pos[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+            x_px, y_px = cell_to_pixel(obs[0], obs[1])
+            # Sombra
+            draw_lbwh_rectangle_filled(
+                x_px + 2,
+                y_px + 2,
+                CELL_SIZE - 2,
+                CELL_SIZE - 2,
+                (90, 90, 90, 255),
+            )
+            # Cara superior con ligero brillo
+            draw_lbwh_rectangle_filled(
+                x_px,
+                y_px,
+                CELL_SIZE - 2,
+                CELL_SIZE,
+                COLOR_OBSTACLE,
+            )
+
+        # Dibujar comida con efecto pulso (brillo)
+        fx_time = time.time()
+        pulse = 0.5 + 0.5 * np.sin(fx_time * 3.0)
+        fx_radius = int(6 + 8 * pulse)
+        cx_food = self.food_pos[0] * CELL_SIZE + CELL_SIZE // 2
+        cy_food = (self.GRID_SIZE - 1 -
+                   self.food_pos[1]) * CELL_SIZE + CELL_SIZE // 2
+        for r, alpha in [(fx_radius * 2, 30), (fx_radius, 60), (fx_radius // 2, 90)]:
+            arcade.draw_circle_filled(
+                cx_food, cy_food, max(2, r), (64, 255, 128, alpha))
+
+        x_px, y_px = cell_to_pixel(self.food_pos[0], self.food_pos[1])
+        draw_lbwh_rectangle_filled(
+            x_px + 4,
+            y_px + 4,
+            CELL_SIZE - 8,
+            CELL_SIZE - 8,
+            (*COLOR_FOOD, 255),
+        )
+
+        # Dibujar hormiga (cuerpo + borde)
+        ax_px, ay_px = cell_to_pixel(
+            int(self.ant_pos[0]), int(self.ant_pos[1]))
+        cx_ant = ax_px + CELL_SIZE // 2
+        cy_ant = ay_px + CELL_SIZE // 2
+        arcade.draw_circle_filled(
+            cx_ant, cy_ant, CELL_SIZE * 0.35, (*COLOR_ANT, 255))
+        arcade.draw_circle_outline(
+            cx_ant, cy_ant, CELL_SIZE * 0.35, (255, 255, 255, 180), 2)
+
+        # Dirección indicativa simple (flecha hacia arriba/abajo/izq/der basada en último movimiento no almacenado)
+        # Por simplicidad, dibujamos una "antena" hacia arriba
+        arcade.draw_line(cx_ant, cy_ant, cx_ant, cy_ant +
+                         CELL_SIZE * 0.45, (255, 220, 220, 200), 2)
+
+        # No finalizamos aquí; la finalización la gestiona render() según modo
+        return WIDTH, HEIGHT
 
     def render(self):
-        # Importamos pygame aquí para que esté disponible en todo el método.
-        import pygame
+        # Importamos Arcade aquí para que esté disponible en todo el método.
+        import arcade
 
-        self._render_frame()
+        result = self._render_frame()
+        if result is None:
+            return None
+
+        width, height = result
 
         if self.render_mode == "human":
-            pygame.display.flip()
-            self.clock.tick(self.metadata["render_fps"])
+            # Mostrar en pantalla y regular FPS
+            if self.window is not None:
+                try:
+                    self.window.flip()
+                except Exception:
+                    pass
+            # Pequeña pausa para sincronizar FPS
+            import time as _time
+            _time.sleep(1.0 / float(self.metadata.get("render_fps", 30)))
         elif self.render_mode == "rgb_array":
-            return np.transpose(pygame.surfarray.array3d(self.window), axes=(1, 0, 2))
+            # Capturamos el frame a una imagen y lo convertimos a numpy RGB (H, W, 3)
+            try:
+                image = arcade.get_image(0, 0, width, height)
+            except TypeError:
+                # Compatibilidad con firmas anteriores
+                image = arcade.get_image()
+
+            # Asegurar RGB sin alfa
+            image = image.convert("RGB")
+            frame = np.asarray(image)
+            return frame
 
     def close(self):
         if self.window:
-            import pygame
-            pygame.quit()
+            try:
+                # Cerrar ventana de Arcade
+                self.window.close()
+            except Exception:
+                try:
+                    import arcade
+                    arcade.close_window()
+                except Exception:
+                    pass
             self.window = None

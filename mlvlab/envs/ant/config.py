@@ -1,20 +1,20 @@
 # mlvlab/envs/ant/config.py
-import pygame
+import arcade
 
 DESCRIPTION = "Encuentra la colonia perdida evitando los obstáculos. (GridWorld)"
 
-# Mapeo de teclas de PyGame a acciones del entorno (Action Space)
-# Esto permite que el Player genérico funcione.
+# Mapeo de teclas de Arcade a acciones del entorno (Action Space)
+# Esto permite que el Player genérico funcione con arcade/pyglet.
 KEY_MAP = {
-    pygame.K_UP: 0,
-    pygame.K_DOWN: 1,
-    pygame.K_LEFT: 2,
-    pygame.K_RIGHT: 3,
+    arcade.key.UP: 0,
+    arcade.key.DOWN: 1,
+    arcade.key.LEFT: 2,
+    arcade.key.RIGHT: 3,
     # Añadimos WASD como alternativa
-    pygame.K_w: 0,
-    pygame.K_s: 1,
-    pygame.K_a: 2,
-    pygame.K_d: 3,
+    arcade.key.W: 0,
+    arcade.key.S: 1,
+    arcade.key.A: 2,
+    arcade.key.D: 3,
 }
 
 # Configuración del agente de referencia para 'mlv train'
