@@ -92,43 +92,44 @@ class LostAntEnv(gym.Env):
         prev_ax, prev_ay = ax, ay
         info = self._get_info()
 
-        # 1. Mueve la hormiga
+        # 1) Calcular intento de movimiento (posible salida de límites)
+        target_ax, target_ay = ax, ay
         if action == 0:
-            ay -= 1  # Arriba
+            target_ay -= 1  # Arriba
         elif action == 1:
-            ay += 1  # Abajo
+            target_ay += 1  # Abajo
         elif action == 2:
-            ax -= 1  # Izquierda
+            target_ax -= 1  # Izquierda
         elif action == 3:
-            ax += 1  # Derecha
+            target_ax += 1  # Derecha
 
-        # 2. Clamp a límites
-        if ax < 0:
-            ax = 0
-        elif ax >= self.GRID_SIZE:
-            ax = self.GRID_SIZE - 1
-        if ay < 0:
-            ay = 0
-        elif ay >= self.GRID_SIZE:
-            ay = self.GRID_SIZE - 1
-
-        # 3. Evalúa el resultado
-        terminated = (
-            ax == int(self.food_pos[0]) and ay == int(self.food_pos[1]))
+        # 2) Tratar márgenes como paredes: si se intenta salir, penalizar y no mover
+        out_of_bounds = (
+            target_ax < 0 or target_ax >= self.GRID_SIZE or
+            target_ay < 0 or target_ay >= self.GRID_SIZE
+        )
         truncated = False
-
-        if terminated:
-            reward = self.REWARD_FOOD
-            # Volumen de 0-100, como espera el player.py
-            info['play_sound'] = {'filename': 'blip.wav', 'volume': 10}
-        elif (ax, ay) in self.obstacles:
+        if out_of_bounds:
             reward = self.REWARD_OBSTACLE
-            # La hormiga es devuelta a su posición anterior
-            ax, ay = prev_ax, prev_ay
+            ax, ay = prev_ax, prev_ay  # queda en la misma celda
             info['play_sound'] = {'filename': 'crash.wav', 'volume': 5}
+            terminated = False
         else:
-            reward = self.REWARD_MOVE
-        # Actualizar posición
+            # 3) Movimiento válido dentro de los límites
+            ax, ay = target_ax, target_ay
+            terminated = (
+                ax == int(self.food_pos[0]) and ay == int(self.food_pos[1]))
+            if terminated:
+                reward = self.REWARD_FOOD
+                info['play_sound'] = {'filename': 'blip.wav', 'volume': 10}
+            elif (ax, ay) in self.obstacles:
+                reward = self.REWARD_OBSTACLE
+                ax, ay = prev_ax, prev_ay  # revertir
+                info['play_sound'] = {'filename': 'crash.wav', 'volume': 5}
+            else:
+                reward = self.REWARD_MOVE
+
+        # 4) Actualizar posición
         self.ant_pos[0], self.ant_pos[1] = ax, ay
         return np.array((ax, ay), dtype=np.int32), reward, terminated, truncated, info
 

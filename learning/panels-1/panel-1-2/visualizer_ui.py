@@ -27,11 +27,11 @@ def main():
     view = m.AnalyticsView(
         env=env,
         agent=agent,
-        subtitle="Q-Learning con entorno Ant (mlvlab.ui)",
+        subtitle="Q-Learning con entorno Ant usando mlvlab.ui",
         agent_hparams_defaults={
             'learning_rate': 0.1,
             'discount_factor': 0.9,
-            'epsilon_decay': 0.99,
+            'epsilon_decay': 0.999,
             'epsilon': 1.0,
             'min_epsilon': 0.1,
         },
@@ -44,7 +44,7 @@ def main():
             m.ui.MetricsDashboard(),
             m.ui.RewardChart(history_size=100),
         ],
-        title="mlvlab.ui - Ant Q-Learning",
+        title="Ant Q-Learning",
         history_size=100,
         dark=False,
     )

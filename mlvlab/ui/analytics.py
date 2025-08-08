@@ -46,7 +46,7 @@ class AnalyticsView:
         self.agent = agent
         self.left_components = left_panel_components or []
         self.right_components = right_panel_components or []
-        self.title = title
+        self.title = "MLVLab - " + title
         self.history_size = history_size
         self.dark = dark
         self.subtitle = subtitle
@@ -66,11 +66,14 @@ class AnalyticsView:
                 },
                 "agent": {
                     # Inicialización por defecto sensible
-                    "epsilon": float(self.user_hparams.get("epsilon", 1.0)),
-                    "epsilon_decay": float(self.user_hparams.get("epsilon_decay", 0.99)),
-                    "min_epsilon": float(self.user_hparams.get("min_epsilon", 0.1)),
-                    "learning_rate": float(self.user_hparams.get("learning_rate", 0.1)),
-                    "discount_factor": float(self.user_hparams.get("discount_factor", 0.9)),
+                    **{
+                        'epsilon': 1.0,
+                        'epsilon_decay': 0.99,
+                        'min_epsilon': 0.1,
+                        'learning_rate': 0.1,
+                        'discount_factor': 0.9,
+                    },
+                    **{k: float(v) for k, v in self.user_hparams.items()},
                 },
                 "metrics": {
                     "episodes_completed": 0,
@@ -258,4 +261,5 @@ class AnalyticsView:
             _ACTIVE_RUNNER = None
 
         self._build_page()
-        ui.run(title=self.title, dark=self.dark, reload=True, show=False)
+        ui.run(title=self.title,
+               dark=self.dark, reload=True, show=False)

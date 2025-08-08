@@ -24,30 +24,39 @@ class AgentHyperparameters(UIComponent):
                 for name in self.params:
                     ui.label(_pretty(name)).classes(
                         'col-span-2 justify-self-start')
-                    initial_value = getattr(self.agent, name, None)
-                    if initial_value is None:
-                        defaults = {
-                            'learning_rate': 0.1,
-                            'discount_factor': 0.9,
-                            'epsilon_decay': 0.99,
-                        }
-                        initial_value = defaults.get(name, 0.0)
 
-                    num = ui.number(value=float(initial_value),
+                    # preferencia: state.agent -> attr del agente -> defaults
+                    value_from_state = state.get(['agent', name])
+                    if value_from_state is not None:
+                        initial_value = float(value_from_state)
+                    else:
+                        attr_val = getattr(self.agent, name, None)
+                        if attr_val is not None:
+                            initial_value = float(attr_val)
+                        else:
+                            defaults = {
+                                'learning_rate': 0.1,
+                                'discount_factor': 0.9,
+                                'epsilon_decay': 0.99,
+                                'epsilon': 1.0,
+                                'min_epsilon': 0.1,
+                            }
+                            initial_value = float(defaults.get(name, 0.0))
+                        state.set(['agent', name], initial_value)
+
+                    num = ui.number(value=initial_value,
                                     format='%.5f', step=0.00001, min=0, max=1)
 
-                    def _make_setter(attr_name: str):
-                        def setter(v):
+                    def _on_change(e, attr_name=name):
+                        try:
+                            val = float(e.args) if e.args is not None else 0.0
+                        except Exception:
+                            val = 0.0
+                        state.set(['agent', attr_name], val)
+                        if hasattr(self.agent, attr_name):
                             try:
-                                val = float(v) if v is not None else 0.0
+                                setattr(self.agent, attr_name, val)
                             except Exception:
-                                val = 0.0
-                            setattr(self.agent, attr_name, val)
-                            if attr_name in ("learning_rate", "discount_factor", "epsilon_decay"):
-                                state.set(['agent', attr_name], val)
-                        return setter
+                                pass
 
-                    if name in ("learning_rate", "discount_factor", "epsilon_decay"):
-                        state.set(['agent', name], float(initial_value))
-
-                    num.on('update:model-value', _make_setter(name))
+                    num.on('update:model-value', _on_change)
