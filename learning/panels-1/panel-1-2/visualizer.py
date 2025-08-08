@@ -69,7 +69,7 @@ reward_chart = None
 # Simulación global compartida por todos los clientes
 SIM = {
     'initialized': False,
-    'seed': None,
+    "seed": None,
     'obs': None,
     'info': None,
     'total_steps': 0,
@@ -267,10 +267,39 @@ def main_interface(client: Client):
             # El botón "Sí" ejecuta la lógica de cierre que teníamos antes
             def do_shutdown():
                 print("Confirmado. Iniciando cierre natural...")
+
+                # 1) Cancelar timers de esta pestaña
                 for timer in active_timers:
-                    timer.cancel()
-                ui.run_javascript('window.close()')
-                app.shutdown()
+                    try:
+                        timer.cancel()
+                    except Exception:
+                        pass
+
+                # 2) Señal cross-tab: BroadcastChannel + localStorage
+                ui.run_javascript("""
+                (() => {
+                  const nonce = String(Date.now()) + '-' + Math.random().toString(36).slice(2);
+                  try { new BroadcastChannel('mlvlab-shutdown').postMessage('shutdown'); } catch (e) {}
+                  try {
+                    localStorage.setItem('mlvlab_shutdown_signal', nonce);
+                    setTimeout(() => { try { localStorage.removeItem('mlvlab_shutdown_signal'); } catch (e) {} }, 200);
+                  } catch (e) {}
+                  try { window.close(); } catch (e) {}
+                  try { location.replace('about:blank'); } catch (e) {}
+                })();
+                """)
+
+                # 3) Detener bucle de simulación global
+                try:
+                    SIM['stop'] = True
+                    t = SIM.get('thread')
+                    if t and t.is_alive():
+                        t.join(timeout=1.0)
+                except Exception:
+                    pass
+
+                # 4) Apagar el servidor tras breve margen para que la señal llegue
+                ui.timer(0.3, lambda: app.shutdown())
 
             ui.button('Sí, cerrar', on_click=do_shutdown, color='red')
             ui.button('No, cancelar', on_click=dialog.close)
@@ -418,6 +447,30 @@ def main_interface(client: Client):
     # Reducimos la frecuencia de render a 15 Hz para aligerar la conversión PNG
     render_timer = ui.timer(1/15, render_tick)
     active_timers.extend([render_timer])
+
+    ui.run_javascript("""
+(() => {
+  if (window.__mlvlabShutdownInit) return;
+  window.__mlvlabShutdownInit = true;
+
+  const closeSelf = () => {
+    try { window.close(); } catch (e) {}
+    try { location.replace('about:blank'); } catch (e) {}
+    try { location.href = 'about:blank'; } catch (e) {}
+  };
+
+  // BroadcastChannel
+  try {
+    const bc = new BroadcastChannel('mlvlab-shutdown');
+    bc.onmessage = ev => { if (ev && ev.data === 'shutdown') closeSelf(); };
+  } catch (e) {}
+
+  // Evento de localStorage (solo evento, nada de leer valor inicial)
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'mlvlab_shutdown_signal') closeSelf();
+  });
+})();
+""")
 
 
 app.on_startup(startup_handler)
