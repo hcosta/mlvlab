@@ -202,7 +202,8 @@ def eval_agent(
     run_dir: Path,
     episodes: int,
     seed: Optional[int] = None,
-    cleanup: bool = True
+    cleanup: bool = True,
+    video: bool = False,
 ):
     """
     Carga una Q-Table de un 'run' y evalúa al agente, guardando un vídeo fijo.
@@ -211,9 +212,14 @@ def eval_agent(
     video_temp_folder = run_dir / "evaluation_videos_temp"
     final_video_path = run_dir / "evaluation.mp4"
 
-    env = gym.make(env_id, render_mode="rgb_array")
-    env = RecordVideo(env, str(video_temp_folder),
-                      episode_trigger=lambda x: True)
+    # Si se solicita grabar vídeo, usamos render_mode="rgb_array" con RecordVideo.
+    # En caso contrario, mostramos una ventana interactiva (render_mode="human").
+    if video:
+        env = gym.make(env_id, render_mode="rgb_array")
+        env = RecordVideo(env, str(video_temp_folder),
+                          episode_trigger=lambda x: True)
+    else:
+        env = gym.make(env_id, render_mode="human")
 
     GRID_SIZE = env.unwrapped.GRID_SIZE
     agent = QLearningAgent(num_states=GRID_SIZE * GRID_SIZE,
@@ -239,11 +245,18 @@ def eval_agent(
             state = get_state_from_pos(obs[0], obs[1], GRID_SIZE)
             action = agent.choose_action(state, epsilon=0.0)
             obs, reward, terminated, truncated, info = env.step(action)
-
-        env.render()
+            # En modo ventana interactiva, aseguramos el render frame a frame
+            if not video:
+                env.render()
 
     env.close()
 
+    # Si no estamos grabando vídeo, terminamos aquí tras la visualización.
+    if not video:
+        print("✅ Evaluación completada en modo interactivo (sin grabación).")
+        return
+
+    # Post-procesado del vídeo cuando se ha solicitado --video
     _merge_videos(str(video_temp_folder), str(
         final_video_path), cleanup=cleanup)
 

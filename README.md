@@ -38,9 +38,12 @@ mlv play mlvlab/ant-v1
 #    (Se ejecuta rápido y guarda los "pesos" en data/mlvlab_ant-v1/seed-123/)
 mlv train mlvlab/ant-v1 --seed 123
 
-# 4. Evalúa el entrenamiento y graba un vídeo
-#    (Carga los pesos de la semilla 123 y crea un vídeo en la misma carpeta)
+# 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
+#    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
 mlv eval mlvlab/ant-v1 --seed 123
+
+# 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --video
+mlv eval mlvlab/ant-v1 --seed 123 --video
 
 # 5. Consulta la ficha técnica y la documentación de un entorno
 mlv help mlvlab/ant-v1
@@ -127,3 +130,64 @@ Si quieres añadir nuevos entornos o funcionalidades al núcleo de MLV-Lab:
     ```
 
 Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[dev]`.
+
+---
+
+## ⚙️ Opciones de la CLI: play, train, eval
+
+### mlv play
+
+Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
+
+- **Uso básico**: `mlv play <env_id>`
+- **Parámetros**:
+  - **env_id**: ID del entorno (ej. `mlvlab/ant-v1`).
+  - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
+
+Ejemplo:
+
+```bash
+mlv play mlvlab/ant-v1 --seed 42
+```
+
+### mlv train
+
+Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<env>/<seed-XYZ>/`.
+
+- **Uso básico**: `mlv train <env_id>`
+- **Parámetros**:
+  - **env_id**: ID del entorno.
+  - **--seed, -s**: Semilla del entrenamiento. Si no se indica, se genera una aleatoria y se muestra por pantalla.
+  - **--eps**: Número de episodios (sobrescribe el valor de la configuración baseline del entorno).
+  - **--render**: Renderiza el entrenamiento en tiempo real. Nota: esto puede ralentizar significativamente el entrenamiento.
+
+Ejemplo:
+
+```bash
+mlv train mlvlab/ant-v1 --seed 123 --eps 500 --render
+```
+
+### mlv eval
+
+Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--video`.
+
+- **Uso básico**: `mlv eval <env_id> [opciones]`
+- **Parámetros**:
+  - **env_id**: ID del entorno.
+  - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
+  - **--eps, -e**: Número de episodios a ejecutar durante la evaluación. Por defecto: 5.
+  - **--video**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
+  - **--no-cleanup**: Conserva los vídeos temporales por episodio cuando se usa `--video`.
+
+Ejemplos:
+
+```bash
+# Visualizar el agente usando los pesos del último entrenamiento
+mlv eval mlvlab/ant-v1
+
+# Visualizar un entrenamiento concreto y grabar vídeo
+mlv eval mlvlab/ant-v1 --seed 123 --video
+
+# Evaluar 10 episodios y conservar clips temporales
+mlv eval mlvlab/ant-v1 --seed 123 --eps 10 --video --no-cleanup
+```

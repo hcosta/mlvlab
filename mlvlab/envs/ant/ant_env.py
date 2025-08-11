@@ -293,6 +293,11 @@ class LostAntEnv(gym.Env):
         if self.render_mode == "human":
             # Mostrar en pantalla y regular FPS
             if self.window is not None:
+                # Procesar eventos de ventana para evitar congelamientos al perder foco
+                try:
+                    self.window.dispatch_events()
+                except Exception:
+                    pass
                 try:
                     self.window.flip()
                 except Exception:
