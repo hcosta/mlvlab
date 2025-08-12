@@ -393,5 +393,4 @@ class AnalyticsView:
             # Sin hilo alternativo: todo va por SimulationRunner
 
         self._build_page()
-        ui.run(title=self.title,
-               dark=self.dark, reload=True, show=False)
+        ui.run(title=self.title, dark=self.dark, reload=False, show=False)

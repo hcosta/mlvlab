@@ -4,6 +4,7 @@ from typing import Any, Optional, Callable
 import time
 from threading import Lock, Thread
 import random
+import atexit
 
 from .state import StateStore
 
@@ -26,9 +27,18 @@ class SimulationRunner:
         self._state_from_obs = state_from_obs
 
         self._thread: Optional[Thread] = None
+        self._render_thread: Optional[Thread] = None
         self._stop = False
         self._last_check_time = time.time()
         self._steps_at_last_check = 0
+
+        # Detectar si el entorno está en modo ventana humana (una sola vez)
+        try:
+            self._render_human = getattr(
+                self.env, 'render_mode', None) == 'human'
+        except Exception:
+            self._render_human = False
+        self._atexit_registered = False
 
         # Inicialización del entorno
         with self.env_lock:
@@ -40,18 +50,110 @@ class SimulationRunner:
         if self._thread and self._thread.is_alive():
             return
         self._stop = False
+        # Lanzar hilo de render secundario si aplica (30 FPS aprox)
+        if getattr(self, '_render_human', False) and (not self._render_thread or not self._render_thread.is_alive()):
+            self._render_thread = Thread(target=self._render_loop, daemon=True)
+            self._render_thread.start()
         self._thread = Thread(target=self._loop, daemon=True)
         self._thread.start()
+        # Parada automática al finalizar el proceso
+        if not self._atexit_registered:
+            try:
+                atexit.register(self._atexit_hook)
+                self._atexit_registered = True
+            except Exception:
+                pass
 
     def stop(self) -> None:
+        # Señal inmediata de parada a los bucles
+        self._render_human = False
         self._stop = True
+        # Ocultar la ventana humana de forma inmediata si existe
+        try:
+            win = getattr(getattr(self.env, 'unwrapped',
+                          self.env), 'window', None)
+            if win is not None:
+                try:
+                    win.set_visible(False)  # type: ignore[attr-defined]
+                except Exception:
+                    try:
+                        import arcade  # type: ignore
+                        arcade.close_window()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
         t = self._thread
         if t and t.is_alive():
             try:
-                t.join(timeout=1.0)
+                t.join(timeout=0.5)
             except Exception:
                 pass
         self._thread = None
+        # Esperar hilo de render y cerrar ventana humana si existe
+        rt = self._render_thread
+        if rt and rt.is_alive():
+            try:
+                rt.join(timeout=0.2)
+            except Exception:
+                pass
+        self._render_thread = None
+        try:
+            if getattr(self, '_render_human', False):
+                with self.env_lock:
+                    self.env.close()
+        except Exception:
+            pass
+
+    def _atexit_hook(self) -> None:
+        # Intento de parada limpia al finalizar el script/principal
+        try:
+            self.stop()
+        except Exception:
+            pass
+
+    def _render_loop(self) -> None:
+        # Hilo independiente para mantener la ventana Arcade refrescada
+        fps = 30
+        try:
+            fps = int(getattr(getattr(self.env, 'unwrapped', self.env),
+                      'metadata', {}).get('render_fps', 30))
+        except Exception:
+            fps = 30
+        interval = 1.0 / max(1, fps)
+        # Primer render para crear ventana y desactivar cierre manual
+        try:
+            with self.env_lock:
+                self.env.render()
+                # Intentar bloquear el cierre manual de la ventana
+                try:
+                    win = getattr(getattr(self.env, 'unwrapped',
+                                  self.env), 'window', None)
+                    if win is not None:
+                        try:
+                            import pyglet
+                            win.push_handlers(on_close=lambda: True)
+                        except Exception:
+                            try:
+                                win.on_close = lambda *args, **kwargs: None  # type: ignore
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        while not self._stop and getattr(self, '_render_human', False):
+            try:
+                with self.env_lock:
+                    self.env.render()
+            except Exception:
+                pass
+            # usar sleep corto para permitir salida rápida
+            remaining = interval
+            while remaining > 0 and not self._stop and getattr(self, '_render_human', False):
+                sl = min(0.01, remaining)
+                time.sleep(sl)
+                remaining -= sl
 
     # --- interno --- #
     def _extract_state(self, obs: Any) -> Any:

@@ -31,7 +31,7 @@ class EpisodeLogicAnt:
 
 
 def main():
-    env = gym.make("mlvlab/ant-v1", render_mode="human")
+    env = gym.make("mlvlab/ant-v1", render_mode="rgb_array")
     agent = QLearningAgent(
         observation_space=gym.spaces.Discrete(
             env.unwrapped.GRID_SIZE * env.unwrapped.GRID_SIZE),
