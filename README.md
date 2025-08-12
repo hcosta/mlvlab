@@ -42,8 +42,8 @@ mlv train mlvlab/ant-v1 --seed 123
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
 mlv eval mlvlab/ant-v1 --seed 123
 
-# 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --video
-mlv eval mlvlab/ant-v1 --seed 123 --video
+# 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --record
+mlv eval mlvlab/ant-v1 --seed 123 --record
 
 # 5. Consulta la ficha técnica y la documentación de un entorno
 mlv help mlvlab/ant-v1
@@ -169,15 +169,15 @@ mlv train mlvlab/ant-v1 --seed 123 --eps 500 --render
 
 ### mlv eval
 
-Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--video`.
+Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--record`.
 
 - **Uso básico**: `mlv eval <env_id> [opciones]`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
   - **--eps, -e**: Número de episodios a ejecutar durante la evaluación. Por defecto: 5.
-  - **--video**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
-  - **--no-cleanup**: Conserva los vídeos temporales por episodio cuando se usa `--video`.
+  - **--record**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
+  - **--no-cleanup**: Conserva los vídeos temporales por episodio cuando se usa `--record`.
 
 Ejemplos:
 
@@ -186,8 +186,8 @@ Ejemplos:
 mlv eval mlvlab/ant-v1
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv eval mlvlab/ant-v1 --seed 123 --video
+mlv eval mlvlab/ant-v1 --seed 123 --record
 
 # Evaluar 10 episodios y conservar clips temporales
-mlv eval mlvlab/ant-v1 --seed 123 --eps 10 --video --no-cleanup
+mlv eval mlvlab/ant-v1 --seed 123 --eps 10 --record --no-cleanup
 ```
