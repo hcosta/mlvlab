@@ -140,11 +140,11 @@ def evaluate(
     episodes: int = typer.Option(
         5, "--eps", "-e", help="Número de episodios a ejecutar."),
     no_cleanup: bool = typer.Option(
-        False, "--no-cleanup", help="Conserva los vídeos temporales de cada episodio (solo si --video)."),
-    video: bool = typer.Option(
-        False, "--video", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
+        False, "--no-cleanup", help="Conserva los vídeos temporales de cada episodio (solo si --record)."),
+    record: bool = typer.Option(
+        False, "--record", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
 ):
-    """Evalúa un 'run'. Por defecto se visualiza en modo interactivo; usa --video para grabar."""
+    """Evalúa un 'run'. Por defecto se visualiza en modo interactivo; usa --record para grabar."""
     run_dir = None
     if seed is not None:
         run_dir = get_run_dir(env_id, seed)
@@ -187,7 +187,7 @@ def evaluate(
         episodes=episodes,
         seed=eval_seed,  # Usamos la semilla del directorio para recrear el mapa
         cleanup=not no_cleanup,
-        video=video
+        video=record
     )
 
 

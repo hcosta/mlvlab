@@ -9,9 +9,10 @@ description = "Ecosistema de aprendizaje de IA Visual de MLVisual."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "gymnasium>=0.28.0",
     "arcade>=3.3.2",
-    "numpy>=1.20.0",
+    "numba>=0.61.2",
+    "numpy>=2.2.6",
+    "gymnasium>=0.28.0",
     "typer[all]>=0.9.0",
     "rich>=13.0.0",
     "moviepy>=2.2.1", # Necesario para mlv train

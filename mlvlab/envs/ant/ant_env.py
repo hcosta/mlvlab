@@ -4,6 +4,168 @@ from gymnasium import spaces
 import numpy as np
 # Arcade se importará solo si se llama al método de renderizado.
 
+# Intentamos importar Numba para habilitar el núcleo acelerado opcional
+try:
+    from numba import njit  # type: ignore
+    _NUMBA_AVAILABLE = True
+except Exception:  # pragma: no cover - fallback si no hay Numba
+    _NUMBA_AVAILABLE = False
+
+    def njit(*args, **kwargs):  # type: ignore
+        # Fallback inofensivo: devuelve la función sin compilar
+        def _decorator(f):
+            return f
+
+        return _decorator
+
+# Núcleo numérico puro para el paso del entorno.
+# Requiere:
+# - arrays y escalares nativos (sin objetos Python)
+# - obstáculos como rejilla 2D uint8 (1=obstáculo)
+
+
+@njit(cache=True, nogil=True)
+def _step_core_numba(
+    ant_x: int,
+    ant_y: int,
+    action: int,
+    grid_size: int,
+    food_x: int,
+    food_y: int,
+    obstacles_grid: np.ndarray,  # 2D uint8 (1 = obstáculo)
+    reward_move: int,
+    reward_food: int,
+    reward_obstacle: int,
+):
+    target_x, target_y = ant_x, ant_y
+    if action == 0:
+        target_y -= 1
+    elif action == 1:
+        target_y += 1
+    elif action == 2:
+        target_x -= 1
+    elif action == 3:
+        target_x += 1
+
+    # Márgenes como paredes
+    if (
+        target_x < 0
+        or target_x >= grid_size
+        or target_y < 0
+        or target_y >= grid_size
+    ):
+        return ant_x, ant_y, reward_obstacle, 0
+
+    # Comida
+    if target_x == food_x and target_y == food_y:
+        return target_x, target_y, reward_food, 1
+
+    # Obstáculo
+    if obstacles_grid[target_y, target_x] == 1:
+        return ant_x, ant_y, reward_obstacle, 0
+
+    # Movimiento normal
+    return target_x, target_y, reward_move, 0
+
+# -------------------------------------------------------------
+# Nota sobre acelerar con Numba
+# -------------------------------------------------------------
+#
+# ¿Aporta Numba aceleración aquí?
+# - El método "hot path" de un entorno Gym suele ser `step(...)` (se llama
+#   millones de veces). En este archivo, `step` hace poca aritmética y sí
+#   varias operaciones de alto nivel de Python: membership en un `set` de
+#   tuplas (`(ax, ay) in self.obstacles`), acceso a atributos del objeto y
+#   uso de RNG de Gym (`self.np_random`). Eso limita mucho lo que Numba puede
+#   compilar y acelerar directamente.
+# - En su forma actual, la mayor parte del coste suele venir del loop Python
+#   externo (el agente que llama `env.step(...)`) y del render (cuando está
+#   activo). Por ello, aplicar Numba tal cual sobre `step` no tendrá impacto
+#   apreciable.
+#
+# ¿Dónde sí podría ayudar Numba?
+# - Si se extrae un núcleo numérico "puro" sin objetos Python (ni `set`, ni RNG
+#   de Gym), Numba puede compilarlo a nativo. Para ello, conviene:
+#   1) Representar obstáculos como una rejilla `np.ndarray` booleana/uint8
+#      (`obstacles_grid[y, x]`), no como `set` de tuplas.
+#   2) Pasar al núcleo sólo escalares y arrays NumPy (int32/float32), y devolver
+#      valores primitivos.
+#   3) Mantener el RNG fuera (la selección de acción ya la hace el agente), o
+#      usar números que entren como parámetros.
+#
+# Esbozo de aplicación (opcional, no activado por defecto):
+# - Añadir una rejilla de obstáculos en `_generate_scenario`:
+#     self.obstacles_grid = np.zeros((self.GRID_SIZE, self.GRID_SIZE), np.uint8)
+#     for (ox, oy) in self.obstacles:
+#         self.obstacles_grid[oy, ox] = 1
+# - Extraer un núcleo JIT-able:
+#
+#     try:
+#         from numba import njit
+#     except Exception:
+#         # Fallback inofensivo si Numba no está instalado
+#         def njit(*args, **kwargs):
+#             def _decorator(f):
+#                 return f
+#             return _decorator
+#
+#     @njit(cache=True, nogil=True)
+#     def _step_core_numba(ax, ay, action,
+#                          grid_size,
+#                          food_x, food_y,
+#                          obstacles_grid,  # 2D uint8 (1 = obstáculo)
+#                          r_move, r_food, r_obst):
+#         # Calcular objetivo
+#         tx, ty = ax, ay
+#         if action == 0:
+#             ty -= 1
+#         elif action == 1:
+#             ty += 1
+#         elif action == 2:
+#             tx -= 1
+#         elif action == 3:
+#             tx += 1
+#
+#         # Márgenes
+#         if tx < 0 or tx >= grid_size or ty < 0 or ty >= grid_size:
+#             return ax, ay, r_obst, 0  # terminated=0
+#
+#         # Comida
+#         if tx == food_x and ty == food_y:
+#             return tx, ty, r_food, 1  # terminated=1
+#
+#         # Obstáculo
+#         if obstacles_grid[ty, tx] == 1:
+#             return ax, ay, r_obst, 0
+#
+#         # Movimiento normal
+#         return tx, ty, r_move, 0
+#
+# - Uso dentro de `step` (pseudocódigo):
+#     if hasattr(self, "obstacles_grid"):
+#         ax, ay = int(self.ant_pos[0]), int(self.ant_pos[1])
+#         nx, ny, reward, terminated = _step_core_numba(
+#             ax, ay, int(action),
+#             int(self.GRID_SIZE),
+#             int(self.food_pos[0]), int(self.food_pos[1]),
+#             self.obstacles_grid,
+#             self.REWARD_MOVE, self.REWARD_FOOD, self.REWARD_OBSTACLE,
+#         )
+#         self.ant_pos[0], self.ant_pos[1] = nx, ny
+#         # `truncated` se seguiría gestionando en Python
+#         # y `info` (sonidos/render) también fuera del núcleo.
+#     else:
+#         # Ruta actual (Python) sin Numba
+#         ...
+#
+# Expectativa de mejora:
+# - En un único entorno, el beneficio puede ser modesto por el overhead de
+#   cruzar la frontera Python↔nativo en cada `step`. Donde realmente compensa
+#   es al procesar lotes (vectorizar múltiples entornos/acciones) dentro de un
+#   mismo núcleo JIT. Si en el futuro se añade un `VecEnv` propio o se simulan
+#   N entornos en paralelo dentro de un único array, Numba sí aporta ganancias.
+# -------------------------------------------------------------
+
 
 class LostAntEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
@@ -13,7 +175,8 @@ class LostAntEnv(gym.Env):
                  grid_size=10,
                  reward_food=100,
                  reward_obstacle=-100,
-                 reward_move=-1
+                 reward_move=-1,
+                 use_numba_core: bool = False,
                  ):
         super().__init__()
 
@@ -38,6 +201,9 @@ class LostAntEnv(gym.Env):
         self._last_time = None
         self.q_table_to_render = None  # Para visualización avanzada
 
+        # Activación opcional del núcleo Numba (solo si está disponible)
+        self.use_numba_core = bool(use_numba_core) and _NUMBA_AVAILABLE
+
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
     def _generate_scenario(self):
@@ -52,6 +218,15 @@ class LostAntEnv(gym.Env):
         while tuple(self.food_pos.tolist()) in self.obstacles:
             self.food_pos = self.np_random.integers(
                 0, self.GRID_SIZE, size=2, dtype=np.int32)
+
+        # Rejilla de obstáculos para el núcleo Numba (1 = obstáculo)
+        self.obstacles_grid = np.zeros(
+            (self.GRID_SIZE, self.GRID_SIZE), dtype=np.uint8
+        )
+        for ox, oy in self.obstacles:
+            # Seguridad por si aparecen duplicados o valores extremos
+            if 0 <= ox < self.GRID_SIZE and 0 <= oy < self.GRID_SIZE:
+                self.obstacles_grid[oy, ox] = 1
 
     def _place_ant(self):
         """Busca una posición inicial aleatoria para la hormiga."""
@@ -87,10 +262,47 @@ class LostAntEnv(gym.Env):
         return {"food_pos": self.food_pos}
 
     def step(self, action):
-        # Guardamos coordenadas previas
+        # Coordenadas actuales
         ax, ay = int(self.ant_pos[0]), int(self.ant_pos[1])
-        prev_ax, prev_ay = ax, ay
         info = self._get_info()
+        truncated = False
+
+        # Ruta acelerada por Numba si está habilitada y preparada
+        if (
+            getattr(self, "use_numba_core", False)
+            and hasattr(self, "obstacles_grid")
+            and isinstance(self.obstacles_grid, np.ndarray)
+        ):
+            nx, ny, reward, terminated_int = _step_core_numba(
+                ax,
+                ay,
+                int(action),
+                int(self.GRID_SIZE),
+                int(self.food_pos[0]),
+                int(self.food_pos[1]),
+                self.obstacles_grid,
+                int(self.REWARD_MOVE),
+                int(self.REWARD_FOOD),
+                int(self.REWARD_OBSTACLE),
+            )
+            terminated = bool(terminated_int)
+            # Sonido según resultado (equivalente a la ruta Python)
+            if terminated:
+                info['play_sound'] = {'filename': 'blip.wav', 'volume': 10}
+            elif reward == self.REWARD_OBSTACLE and (nx == ax and ny == ay):
+                info['play_sound'] = {'filename': 'crash.wav', 'volume': 5}
+
+            self.ant_pos[0], self.ant_pos[1] = nx, ny
+            return (
+                np.array((nx, ny), dtype=np.int32),
+                reward,
+                terminated,
+                truncated,
+                info,
+            )
+
+        # Ruta Python original (compatibilidad)
+        prev_ax, prev_ay = ax, ay
 
         # 1) Calcular intento de movimiento (posible salida de límites)
         target_ax, target_ay = ax, ay
@@ -108,7 +320,6 @@ class LostAntEnv(gym.Env):
             target_ax < 0 or target_ax >= self.GRID_SIZE or
             target_ay < 0 or target_ay >= self.GRID_SIZE
         )
-        truncated = False
         if out_of_bounds:
             reward = self.REWARD_OBSTACLE
             ax, ay = prev_ax, prev_ay  # queda en la misma celda

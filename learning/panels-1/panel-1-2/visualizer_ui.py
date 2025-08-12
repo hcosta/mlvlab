@@ -30,13 +30,6 @@ def main():
         env=env,
         agent=agent,
         subtitle="Q-Learning con entorno Ant usando mlvlab.ui",
-        agent_hparams_defaults={
-            'learning_rate': 0.1,
-            'discount_factor': 0.9,
-            'epsilon_decay': 0.999,
-            'epsilon': 1.0,
-            'min_epsilon': 0.1,
-        },
         left_panel_components=[
             m.ui.SimulationControls(),
             m.ui.AgentHyperparameters(
