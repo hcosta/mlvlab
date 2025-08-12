@@ -5,6 +5,7 @@ import time
 from threading import Lock
 
 from nicegui import ui, app
+import numpy as np
 import asyncio
 try:
     from nicegui import Client  # type: ignore
@@ -14,6 +15,7 @@ from starlette.websockets import WebSocket
 
 from .state import StateStore
 from .runtime import SimulationRunner
+from mlvlab.core.trainer import Trainer
 from .components.base import ComponentContext, UIComponent
 from mlvlab.helpers.ng import setup_audio, frame_to_webp_bytes, create_reward_chart
 
@@ -32,8 +34,9 @@ class AnalyticsView:
 
     def __init__(
         self,
-        env: Any,
-        agent: Any,
+        env: Any | None = None,
+        agent: Any | None = None,
+        trainer: Trainer | None = None,
         left_panel_components: Optional[List[UIComponent]] = None,
         right_panel_components: Optional[List[UIComponent]] = None,
         title: str = "MLVLab Analytics",
@@ -43,8 +46,17 @@ class AnalyticsView:
         state_from_obs: Optional[Callable[..., Any]] = None,
         agent_hparams_defaults: Optional[dict] = None,
     ) -> None:
-        self.env = env
-        self.agent = agent
+        # Soportar API antigua (env, agent) y nueva (trainer explícito)
+        self._trainer: Trainer | None = trainer
+        if self._trainer is not None:
+            self.env = self._trainer.env
+            self.agent = self._trainer.agent
+        else:
+            if env is None or agent is None:
+                raise ValueError(
+                    "Debes proporcionar 'trainer' o bien 'env' y 'agent'.")
+            self.env = env
+            self.agent = agent
         self.left_components = left_panel_components or []
         self.right_components = right_panel_components or []
         self.title = "MLVLab - " + title
@@ -56,6 +68,15 @@ class AnalyticsView:
         # Defaults de hiperparámetros (permitidos por el alumno)
         self.user_hparams = agent_hparams_defaults or {}
 
+        # Inicializar el StateStore fusionando defaults con atributos actuales del agente
+        agent_defaults = {
+            'epsilon': float(getattr(self.agent, 'epsilon', 1.0) or 1.0),
+            'epsilon_decay': float(getattr(self.agent, 'epsilon_decay', 0.99) or 0.99),
+            'min_epsilon': float(getattr(self.agent, 'min_epsilon', 0.1) or 0.1),
+            'learning_rate': float(getattr(self.agent, 'learning_rate', 0.1) or 0.1),
+            'discount_factor': float(getattr(self.agent, 'discount_factor', 0.9) or 0.9),
+        }
+
         self.state = StateStore(
             defaults={
                 "sim": {
@@ -66,14 +87,7 @@ class AnalyticsView:
                     "current_episode_reward": 0.0,
                 },
                 "agent": {
-                    # Inicialización por defecto sensible
-                    **{
-                        'epsilon': 1.0,
-                        'epsilon_decay': 0.99,
-                        'min_epsilon': 0.1,
-                        'learning_rate': 0.1,
-                        'discount_factor': 0.9,
-                    },
+                    **agent_defaults,
                     **{k: float(v) for k, v in self.user_hparams.items()},
                 },
                 "metrics": {
@@ -89,16 +103,55 @@ class AnalyticsView:
             }
         )
 
-        # Permitir que el alumno provea una función clara para convertir observaciones a estados
-        provided_fn = state_from_obs if callable(state_from_obs) else getattr(
-            self.agent, 'extract_state_from_obs', None)
+        # Determinar adaptador: prioridad Trainer.state_from_obs > parámetro > auto-resolver por entorno > agente.extract_state_from_obs
+        trainer_adapter = getattr(
+            self._trainer, 'state_from_obs', None) if self._trainer is not None else None
+
+        def _auto_resolve_adapter():
+            try:
+                import importlib
+                from importlib.util import spec_from_file_location, module_from_spec
+                from pathlib import Path
+                env_id = getattr(getattr(self.env, 'spec', None), 'id', '')
+                env_pkg = env_id.split('/')[-1] if '/' in env_id else env_id
+                module_path = f"mlvlab.agents.{env_pkg}.state"
+                try:
+                    mod = importlib.import_module(module_path)
+                except Exception:
+                    base_dir = Path(__file__).resolve(
+                    ).parents[1] / 'agents' / env_pkg
+                    file_path = base_dir / 'state.py'
+                    if not file_path.exists():
+                        return None
+                    spec = spec_from_file_location(
+                        "mlvlab_env_state_module_ui", str(file_path))
+                    if spec is None or spec.loader is None:
+                        return None
+                    mod = module_from_spec(spec)
+                    spec.loader.exec_module(mod)  # type: ignore
+                fn = getattr(mod, 'obs_to_state', None)
+                if callable(fn):
+                    return lambda obs: fn(obs, self.env)
+            except Exception:
+                return None
+            return None
+
+        raw_fn = trainer_adapter if callable(trainer_adapter) else (
+            state_from_obs if callable(
+                state_from_obs) else _auto_resolve_adapter()
+        )
+        if not callable(raw_fn):
+            raw_fn = getattr(self.agent, 'extract_state_from_obs', None)
+        adapted_fn = self._build_state_from_obs_adapter(
+            raw_fn) if callable(raw_fn) else None
+
+        # Siempre usar SimulationRunner (step-based) para respetar speed_multiplier y turbo como ayer
         self.runner = SimulationRunner(
             env=self.env,
             agent=self.agent,
             state=self.state,
             env_lock=self.env_lock,
-            state_from_obs=self._build_state_from_obs_adapter(
-                provided_fn) if callable(provided_fn) else None,
+            state_from_obs=adapted_fn,
         )
 
         self._reward_chart = None  # type: ignore
@@ -123,10 +176,25 @@ class AnalyticsView:
 
         def adapter(obs: Any) -> Any:
             try:
+                # Si ya recibimos un estado discreto (int), no transformamos
+                if isinstance(obs, (int, np.integer)):
+                    return int(obs)
+
                 if num_params <= 1:
                     return fn(obs)
-                x, y = (int(obs[0]), int(obs[1])) if hasattr(
-                    obs, '__getitem__') and len(obs) >= 2 else (obs, None)
+
+                # Solo intentamos extraer x,y si obs es indexable de longitud >= 2
+                if hasattr(obs, '__getitem__'):
+                    try:
+                        if len(obs) >= 2:  # type: ignore[arg-type]
+                            x, y = int(obs[0]), int(obs[1])
+                        else:
+                            return obs
+                    except Exception:
+                        return obs
+                else:
+                    return obs
+
                 if num_params == 2:
                     return fn(x, y)
                 if num_params >= 3 and grid_size is not None:
@@ -268,6 +336,9 @@ class AnalyticsView:
                 }};
                 img.src = URL.createObjectURL(blob);
               }};
+              ws.onopen = () => {{ console.debug('Frame WS abierto: {ws_route}'); }};
+              ws.onerror = (e) => {{ console.warn('Frame WS error', e); }};
+              ws.onclose = () => {{ console.debug('Frame WS cerrado'); }};
             }})();
             """
         )
@@ -286,6 +357,25 @@ class AnalyticsView:
                         stop()
             except Exception:
                 pass
+            # Normalizar estado de simulación para evitar turbo/velocidad extra al inicio
+            try:
+                self.state.set(["sim", "turbo_mode"], False)
+                speed = self.state.get(["sim", "speed_multiplier"]) or 1
+                try:
+                    speed = int(speed)
+                except Exception:
+                    speed = 1
+                self.state.set(["sim", "speed_multiplier"],
+                               max(1, min(50, speed)))
+                if not self.state.get(["sim", "command"]):
+                    self.state.set(["sim", "command"], "run")
+            except Exception:
+                try:
+                    self.state.set(["sim", "turbo_mode"], False)
+                    self.state.set(["sim", "speed_multiplier"], 1)
+                    self.state.set(["sim", "command"], "run")
+                except Exception:
+                    pass
             _ACTIVE_RUNNER = self.runner
             self.runner.start()
 
@@ -295,10 +385,12 @@ class AnalyticsView:
         def _shutdown_cleanup() -> None:  # pragma: no cover
             global _ACTIVE_RUNNER
             try:
-                self.runner.stop()
+                if self.runner is not None:
+                    self.runner.stop()
             except Exception:
                 pass
             _ACTIVE_RUNNER = None
+            # Sin hilo alternativo: todo va por SimulationRunner
 
         self._build_page()
         ui.run(title=self.title,

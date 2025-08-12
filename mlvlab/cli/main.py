@@ -113,11 +113,29 @@ def train(
     console.print(
         f"📂 Trabajando en el directorio: [bold yellow]{run_dir}[/bold yellow]")
 
+    # Importación robusta del módulo del agente baseline
     try:
-        agent_module = importlib.import_module(
-            f"mlvlab.agents.{env_id.split('/')[1]}.{agent_type}")
+        agent_pkg = env_id.split('/')[1]
+        module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
+        try:
+            agent_module = importlib.import_module(module_path)
+        except Exception:
+            # Fallback para nombres de paquete no válidos (e.g., con guiones)
+            from importlib.util import spec_from_file_location, module_from_spec
+            base_dir = Path(__file__).resolve(
+            ).parents[2] / 'mlvlab' / 'agents' / agent_pkg
+            file_path = base_dir / f"{agent_type}.py"
+            if not file_path.exists():
+                raise
+            spec = spec_from_file_location(
+                "mlvlab_agent_module", str(file_path))
+            if spec is None or spec.loader is None:
+                raise ImportError(
+                    "No se pudo cargar el módulo del agente por ruta.")
+            agent_module = module_from_spec(spec)
+            spec.loader.exec_module(agent_module)  # type: ignore
         train_func = getattr(agent_module, "train_agent")
-    except (ImportError, AttributeError):
+    except Exception:
         console.print(
             f"❌ Error: No se encontró el agente '{agent_type}' o su función 'train_agent'.")
         raise typer.Exit(code=1)
@@ -171,11 +189,28 @@ def evaluate(
     config = get_env_config(env_id)
     agent_type = config.get("BASELINE", {}).get("agent")
 
+    # Importación robusta del módulo del agente baseline
     try:
-        agent_module = importlib.import_module(
-            f"mlvlab.agents.{env_id.split('/')[1]}.{agent_type}")
+        agent_pkg = env_id.split('/')[1]
+        module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
+        try:
+            agent_module = importlib.import_module(module_path)
+        except Exception:
+            from importlib.util import spec_from_file_location, module_from_spec
+            base_dir = Path(__file__).resolve(
+            ).parents[2] / 'mlvlab' / 'agents' / agent_pkg
+            file_path = base_dir / f"{agent_type}.py"
+            if not file_path.exists():
+                raise
+            spec = spec_from_file_location(
+                "mlvlab_agent_module", str(file_path))
+            if spec is None or spec.loader is None:
+                raise ImportError(
+                    "No se pudo cargar el módulo del agente por ruta.")
+            agent_module = module_from_spec(spec)
+            spec.loader.exec_module(agent_module)  # type: ignore
         eval_func = getattr(agent_module, "eval_agent")
-    except (ImportError, AttributeError):
+    except Exception:
         console.print(
             f"❌ Error: No se encontró la función 'eval_agent' para el agente '{agent_type}'.")
         raise typer.Exit(code=1)

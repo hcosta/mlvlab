@@ -1,5 +1,6 @@
 # wrappers.py
 import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 
 # --- Wrapper para Recompensas ---
@@ -52,3 +53,27 @@ class FoodVectorObservationWrapper(gym.ObservationWrapper):
 
         # Devolvemos el vector como la nueva observación
         return food_pos - ant_pos
+
+
+# --- Wrapper del Manifiesto: Dirección al "hogar" (0,0) añadido a la observación ---
+
+
+class DirectionToHomeWrapper(gym.ObservationWrapper):
+    """Añade a la observación el ángulo en radianes hacia el hormiguero (0,0)."""
+
+    def __init__(self, env: gym.Env):
+        super().__init__(env)
+        self.home_pos = np.array([0, 0])
+
+        # Definimos el NUEVO espacio de observación (x, y, ángulo)
+        low = np.append(self.observation_space.low, -np.pi)
+        high = np.append(self.observation_space.high, np.pi)
+        self.observation_space = spaces.Box(
+            low=low, high=high, dtype=np.float32)
+
+    def observation(self, obs: np.ndarray) -> np.ndarray:
+        ant_pos = obs
+        direction_vector = self.home_pos - ant_pos
+        angle = np.arctan2(direction_vector[1], direction_vector[0])
+        new_obs = np.append(obs, angle).astype(np.float32)
+        return new_obs

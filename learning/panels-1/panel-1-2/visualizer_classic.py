@@ -16,11 +16,15 @@ import gymnasium as gym
 # --- PASO 1: Importar el entorno, el agente y los helpers ---
 try:
     import mlvlab
-    from q_learning import QLearningAgent, get_state_from_pos
-    # Asumiendo que los helpers están en la ubicación recomendada
+    from mlvlab.agents.q_learning import QLearningAgent
+    # Utilidad local para traducir obs (x,y) a estado
+
+    def get_state_from_pos(x, y, grid_size):
+        return int(y) * int(grid_size) + int(x)
+    # Helpers
     from mlvlab.helpers.ng import setup_audio, create_reward_chart, frame_to_webp_bytes
 except ImportError:
-    print("Error: El paquete 'mlvlab', sus helpers o 'q_learning.py' no se encontraron.")
+    print("Error: El paquete 'mlvlab' o sus helpers no se encontraron.")
     exit()
 
 # --- PASO 2: Configuración Inicial ---
@@ -41,8 +45,10 @@ env = gym.make(
     reward_move=0,         # Sin castigo por moverse
 )
 
-agent = QLearningAgent(num_states=GRID_SIZE * GRID_SIZE,
-                       num_actions=env.action_space.n)
+agent = QLearningAgent(
+    observation_space=gym.spaces.Discrete(GRID_SIZE * GRID_SIZE),
+    action_space=env.action_space
+)
 
 # Helper de mlvlab para reproducir sonidos en NiceGUI
 play_sound = None
@@ -160,15 +166,23 @@ def startup_handler():
                 with ENV_LOCK:
                     obs = SIM['obs']
                     state = get_state_from_pos(obs[0], obs[1], GRID_SIZE)
-                    action = agent.choose_action(state, app_state['epsilon'])
+                    # Sincronizar hiperparámetros en el agente
+                    try:
+                        agent.epsilon = float(app_state['epsilon'])
+                        agent.learning_rate = float(app_state['learning_rate'])
+                        agent.discount_factor = float(
+                            app_state['discount_factor'])
+                    except Exception:
+                        pass
+                    action = agent.act(state)
                     next_obs, reward, terminated, truncated, info = env.step(
                         action)
                     SIM['obs'] = next_obs
                     SIM['info'] = info
                 next_state = get_state_from_pos(
                     next_obs[0], next_obs[1], GRID_SIZE)
-                agent.update(state, action, reward, next_state,
-                             app_state['learning_rate'], app_state['discount_factor'])
+                agent.learn(state, action, float(reward),
+                            next_state, bool(terminated or truncated))
                 SIM['current_episode_reward'] = round(
                     SIM['current_episode_reward'] + reward, 2)
                 SIM['total_steps'] += 1

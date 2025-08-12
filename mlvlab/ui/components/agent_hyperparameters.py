@@ -46,6 +46,15 @@ class AgentHyperparameters(UIComponent):
 
                     num = ui.number(value=initial_value,
                                     format='%.5f', step=0.00001, min=0, max=1)
+                    # Deshabilitar edición cuando la simulación está en marcha (pureza)
+
+                    def _is_running():
+                        try:
+                            return (state.get(['sim', 'command']) or 'run') == 'run'
+                        except Exception:
+                            return True
+                    num.bind_enabled_from(state.full(), 'sim', lambda sim: (
+                        sim or {}).get('command') != 'run')
 
                     def _on_change(e, attr_name=name):
                         try:

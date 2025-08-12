@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 Pipfile.lock
+MANIFIESTO.md
 
 # learning/
 .venv/

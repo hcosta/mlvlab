@@ -88,29 +88,26 @@ class SimulationRunner:
                     except TypeError:
                         # Fallback si el entorno no acepta seed
                         obs, info = self.env.reset()
-                self.state.update("sim", {
-                    "obs": obs,
-                    "info": info,
-                    "current_episode_reward": 0.0,
-                    "total_steps": 0,
-                    "seed": new_seed,
-                })
+                # Actualizar claves individuales sin reemplazar el dict 'sim'
+                self.state.set(["sim", "obs"], obs)
+                self.state.set(["sim", "info"], info)
+                self.state.set(["sim", "current_episode_reward"], 0.0)
+                self.state.set(["sim", "total_steps"], 0)
+                self.state.set(["sim", "seed"], new_seed)
                 if hasattr(self.agent, "reset"):
                     try:
                         self.agent.reset()
                     except Exception:
                         pass
-                # Reset de métricas
-                self.state.update("metrics", {
-                    "episodes_completed": 0,
-                    "reward_history": [],
-                    "steps_per_second": 0,
-                })
-                # Reset de hiperparámetros clave a valores por defecto
-                self.state.update("agent", {
-                    "epsilon": 1.0,
-                    # mantener discount_factor y learning_rate actuales del state
-                })
+                # Reset de métricas (sin reemplazar el dict)
+                self.state.set(["metrics", "episodes_completed"], 0)
+                self.state.set(["metrics", "reward_history"], [])
+                self.state.set(["metrics", "steps_per_second"], 0)
+                # Reset mínimo de hiperparámetros clave
+                self.state.set(["agent", "epsilon"], 1.0)
+                # Re-sincronizar acumuladores locales (no tocar turbo ni speed del estado)
+                step_accum = 0.0
+                last_step_time = time.perf_counter()
                 # Continuar en run
                 self.state.set(["sim", "command"], "run")
                 continue
@@ -152,9 +149,33 @@ class SimulationRunner:
                 with self.env_lock:
                     obs = self.state.get(["sim", "obs"])
                     s = self._extract_state(obs)
-                    epsilon = float(self.state.get(
-                        ["agent", "epsilon"]) or 0.0)
-                    action = self.agent.choose_action(s, epsilon)
+                    # Sincronizar hiperparámetros desde el estado al agente (si existen)
+                    try:
+                        if hasattr(self.agent, 'learning_rate'):
+                            lr_state = self.state.get(["agent", "learning_rate"]) or getattr(
+                                self.agent, 'learning_rate')
+                            setattr(self.agent, 'learning_rate',
+                                    float(lr_state))
+                        if hasattr(self.agent, 'discount_factor'):
+                            df_state = self.state.get(["agent", "discount_factor"]) or getattr(
+                                self.agent, 'discount_factor')
+                            setattr(self.agent, 'discount_factor',
+                                    float(df_state))
+                        if hasattr(self.agent, 'epsilon'):
+                            eps_state = self.state.get(
+                                ["agent", "epsilon"]) or getattr(self.agent, 'epsilon')
+                            setattr(self.agent, 'epsilon', float(eps_state))
+                    except Exception:
+                        pass
+
+                    # Elegir acción con compatibilidad (act -> choose_action)
+                    if hasattr(self.agent, 'act') and callable(getattr(self.agent, 'act')):
+                        action = self.agent.act(s)
+                    else:
+                        epsilon = float(self.state.get(
+                            ["agent", "epsilon"]) or 0.0)
+                        action = self.agent.choose_action(
+                            s, epsilon)  # type: ignore[attr-defined]
                     next_obs, reward, terminated, truncated, info = self.env.step(
                         action)
                     # Persistir
@@ -170,10 +191,23 @@ class SimulationRunner:
                     except Exception:
                         pass
                 s2 = self._extract_state(next_obs)
-                lr = float(self.state.get(["agent", "learning_rate"]) or 0.1)
-                gamma = float(self.state.get(
-                    ["agent", "discount_factor"]) or 0.9)
-                self.agent.update(s, action, reward, s2, lr, gamma)
+                # Aprendizaje con compatibilidad (learn -> update)
+                if hasattr(self.agent, 'learn') and callable(getattr(self.agent, 'learn')):
+                    try:
+                        self.agent.learn(s, action, float(
+                            reward), s2, bool(terminated or truncated))
+                    except Exception:
+                        pass
+                else:
+                    lr = float(self.state.get(
+                        ["agent", "learning_rate"]) or 0.1)
+                    gamma = float(self.state.get(
+                        ["agent", "discount_factor"]) or 0.9)
+                    try:
+                        # type: ignore[attr-defined]
+                        self.agent.update(s, action, reward, s2, lr, gamma)
+                    except Exception:
+                        pass
 
                 # Métricas
                 cur_rew = float(self.state.get(
@@ -202,14 +236,13 @@ class SimulationRunner:
                         self.state.set(["sim", "obs"], obs)
                         self.state.set(["sim", "info"], info)
                     self.state.set(["sim", "current_episode_reward"], 0.0)
-                    eps = float(self.state.get(["agent", "epsilon"]) or 1.0)
-                    min_eps = float(self.state.get(
-                        ["agent", "min_epsilon"]) or 0.1)
-                    decay = float(self.state.get(
-                        ["agent", "epsilon_decay"]) or 0.99)
-                    if eps > min_eps:
-                        self.state.set(["agent", "epsilon"],
-                                       max(min_eps, eps * decay))
+                    # Si el agente gestiona epsilon internamente, reflejarlo en el estado
+                    try:
+                        if hasattr(self.agent, 'epsilon'):
+                            self.state.set(["agent", "epsilon"], float(
+                                getattr(self.agent, 'epsilon')))
+                    except Exception:
+                        pass
                     break
 
             # Steps per second

@@ -1,51 +1,69 @@
-# visualizer_ui.py: Demo declarativa usando mlvlab.ui
-
 import gymnasium as gym
-import mlvlab as m
+from mlvlab.agents.q_learning import QLearningAgent
+from mlvlab.core.trainer import Trainer
+from mlvlab import ui
 
-from q_learning import QLearningAgent, get_state_from_pos
+
+class EpisodeLogicAnt:
+    def obs_to_state(self, obs, env):
+        grid_size = env.unwrapped.GRID_SIZE
+        return int(obs[1]) * int(grid_size) + int(obs[0])
+
+    def __call__(self, env, agent):
+        obs, info = env.reset()
+        state = self.obs_to_state(obs, env)
+
+        done = False
+        total_reward = 0.0
+        steps = 0
+        while not done:
+            action = agent.act(state)
+            next_obs, reward, terminated, truncated, info = env.step(action)
+            next_state = self.obs_to_state(next_obs, env)
+            agent.learn(state, action, reward, next_state,
+                        terminated or truncated)
+            state = next_state
+            total_reward += reward
+            steps += 1
+            done = terminated or truncated
+
+        return total_reward
 
 
 def main():
-    grid_size = 15
-    env = gym.make(
-        "mlvlab/ant-v1",
-        render_mode="rgb_array",
-        grid_size=grid_size,
-        reward_food=500,
-        reward_obstacle=-50,
-        reward_move=0,
-    )
-
+    env = gym.make("mlvlab/ant-v1", render_mode="rgb_array")
+    grid = env.unwrapped.GRID_SIZE
     agent = QLearningAgent(
-        num_states=grid_size * grid_size,
-        num_actions=env.action_space.n,
+        observation_space=gym.spaces.Discrete(grid * grid),
+        action_space=env.action_space,
+        learning_rate=0.2,
+        discount_factor=0.95,
+        epsilon_decay=0.999
     )
-
-    # Asignamos el estado de la observación del entorno al agente
-    # Patrón recomendado para alumnos: asignar la función directamente
-    agent.extract_state_from_obs = get_state_from_pos
-
-    view = m.AnalyticsView(
-        env=env,
-        agent=agent,
-        subtitle="Q-Learning con entorno Ant usando mlvlab.ui",
+    logic = EpisodeLogicAnt()
+    trainer = Trainer(env, agent, episode_logic=logic)
+    view = ui.AnalyticsView(
+        trainer=trainer,
+        subtitle="Q-Learning con Lógica de Episodio Personalizada",
         left_panel_components=[
-            m.ui.SimulationControls(),
-            m.ui.AgentHyperparameters(
-                agent, params=['learning_rate', 'discount_factor', 'epsilon_decay']),
+            ui.SimulationControls(),
+            ui.AgentHyperparameters(
+                trainer.agent, params=[
+                    'learning_rate',
+                    'discount_factor',
+                    'epsilon_decay']
+            ),
         ],
         right_panel_components=[
-            m.ui.MetricsDashboard(),
-            m.ui.RewardChart(history_size=100),
+            ui.MetricsDashboard(),
+            ui.RewardChart(history_size=100),
         ],
-        title="Ant Q-Learning",
-        history_size=100,
-        dark=False,
+        title="Ant Q-Learning Custom Logic",
     )
 
     view.run()
 
 
+# Para permitir multiprocessing y acelerar las demos
 if __name__ in {"__main__", "__mp_main__"}:
     main()
