@@ -84,11 +84,14 @@ mlv train mlvlab/ant-v1 --seed 42
 # Entrenar con una semilla aleatoria
 mlv train mlvlab/ant-v1
 
-# Evaluar el último entrenamiento y grabar un vídeo
+# Evaluar el último entrenamiento en modo ventana
 mlv eval mlvlab/ant-v1
 
 # Evaluar un entrenamiento de una semilla específica
 mlv eval mlvlab/ant-v1 --seed 42
+
+# Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
+mlv eval mlvlab/ant-v1 --seed 42 --record --eps 100
 
 # Ver esta ficha técnica desde la terminal
 mlv help mlvlab/ant-v1
