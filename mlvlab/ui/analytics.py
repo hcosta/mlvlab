@@ -336,7 +336,7 @@ class AnalyticsView:
                             pass
                     webp = frame_to_webp_bytes(frame, quality=100)
                     await websocket.send_bytes(webp)
-                    await asyncio.sleep(1/25)  # ~25 FPS
+                    await asyncio.sleep(1/30)  # ~30 FPS
             except Exception:
                 pass
 
