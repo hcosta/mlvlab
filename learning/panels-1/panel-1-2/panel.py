@@ -3,7 +3,6 @@ from mlvlab.agents.q_learning import QLearningAgent
 from mlvlab.core.trainer import Trainer
 from mlvlab.ui import AnalyticsView
 from mlvlab import ui
-import random
 
 
 class EpisodeLogicAnt:

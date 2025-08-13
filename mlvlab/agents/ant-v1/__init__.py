@@ -1,6 +1,5 @@
-from .q_learning import train_agent, eval_agent
+from .state import obs_to_state
 
 __all__ = [
-    "train_agent",
-    "eval_agent",
+    "obs_to_state",
 ]

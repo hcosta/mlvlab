@@ -35,8 +35,23 @@ def get_env_config(env_id: str) -> dict:
             "DESCRIPTION": getattr(config_module, 'DESCRIPTION', None),
             "BASELINE": getattr(config_module, 'BASELINE', None),
             "UNIT": getattr(config_module, 'UNIT', None),
+            "ALGORITHM": getattr(config_module, 'ALGORITHM', None),
         }
 
     except (ImportError, AttributeError, gym.error.NameNotFound):
-        # Si falla algo (el entorno no existe, el config no existe), devolvemos un diccionario vacío.
-        return {}
+        # Fallbacks: derivar por ID del entorno con -/_
+        try:
+            pkg = env_id.split('/')[-1]
+            pkg_us = pkg.replace('-', '_')
+            # Intentar envs.<pkg_us>.config
+            config_module = importlib.import_module(
+                f"mlvlab.envs.{pkg_us}.config")
+            return {
+                "KEY_MAP": getattr(config_module, 'KEY_MAP', None),
+                "DESCRIPTION": getattr(config_module, 'DESCRIPTION', None),
+                "BASELINE": getattr(config_module, 'BASELINE', None),
+                "UNIT": getattr(config_module, 'UNIT', None),
+                "ALGORITHM": getattr(config_module, 'ALGORITHM', None),
+            }
+        except Exception:
+            return {}

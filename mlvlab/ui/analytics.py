@@ -114,21 +114,33 @@ class AnalyticsView:
                 from pathlib import Path
                 env_id = getattr(getattr(self.env, 'spec', None), 'id', '')
                 env_pkg = env_id.split('/')[-1] if '/' in env_id else env_id
-                module_path = f"mlvlab.agents.{env_pkg}.state"
+                env_pkg_us = env_pkg.replace('-', '_')
+
+                mod = None
+                # 1) Preferido: envs.<pkg>.adapters
                 try:
-                    mod = importlib.import_module(module_path)
+                    module_path_env = f"mlvlab.envs.{env_pkg_us}.adapters"
+                    mod = importlib.import_module(module_path_env)
                 except Exception:
-                    base_dir = Path(__file__).resolve(
-                    ).parents[1] / 'agents' / env_pkg
-                    file_path = base_dir / 'state.py'
-                    if not file_path.exists():
-                        return None
-                    spec = spec_from_file_location(
-                        "mlvlab_env_state_module_ui", str(file_path))
-                    if spec is None or spec.loader is None:
-                        return None
-                    mod = module_from_spec(spec)
-                    spec.loader.exec_module(mod)  # type: ignore
+                    mod = None
+
+                # 2) Compat: agents.<pkg>.state
+                if mod is None:
+                    try:
+                        module_path_agents = f"mlvlab.agents.{env_pkg}.state"
+                        mod = importlib.import_module(module_path_agents)
+                    except Exception:
+                        base_dir = Path(__file__).resolve(
+                        ).parents[1] / 'agents' / env_pkg
+                        file_path = base_dir / 'state.py'
+                        if not file_path.exists():
+                            return None
+                        spec = spec_from_file_location(
+                            "mlvlab_env_state_module_ui", str(file_path))
+                        if spec is None or spec.loader is None:
+                            return None
+                        mod = module_from_spec(spec)
+                        spec.loader.exec_module(mod)  # type: ignore
                 fn = getattr(mod, 'obs_to_state', None)
                 if callable(fn):
                     return lambda obs: fn(obs, self.env)
@@ -218,7 +230,7 @@ class AnalyticsView:
             )
 
             # Controles de cierre y audio
-            play_sound = setup_audio()
+            play_sound = setup_audio(self.env)
 
             # Layout 3 columnas, con centro reservado al visualizador
             ui.label(self.title).classes(

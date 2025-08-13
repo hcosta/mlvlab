@@ -13,16 +13,27 @@ def find_asset_path(env: gym.Env, asset_name: str) -> Optional[Path]:
     Busca la ruta de un asset (e.g., sonido) dentro del paquete del entorno de forma robusta.
     """
     # Obtenemos el módulo donde está definida la clase del entorno (desenvolviendo wrappers si los hay)
-    env_module = type(env.unwrapped).__module__
+    env_module = type(getattr(env, 'unwrapped', env)).__module__
     try:
         # Intentamos encontrar la ruta base del módulo
         module_spec = importlib.util.find_spec(env_module)
         if module_spec and module_spec.origin:
             # Asumimos que los assets están en una carpeta 'assets' junto al archivo .py del entorno.
             env_dir = Path(module_spec.origin).parent
-            asset_path = env_dir / "assets" / asset_name
-            if asset_path.exists():
-                return asset_path
+            # 1) Ruta por defecto: junto al módulo del entorno
+            candidate = env_dir / "assets" / asset_name
+            if candidate.exists():
+                return candidate
+            # 2) Fallback: si el módulo está envs/<pkg>/ant_env.py y el ID contiene '-', probar underscore
+            try:
+                pkg_dir = env_dir.parent
+                if pkg_dir.name and '-' in pkg_dir.name:
+                    us_dir = pkg_dir.parent / pkg_dir.name.replace('-', '_')
+                    cand2 = us_dir / 'assets' / asset_name
+                    if cand2.exists():
+                        return cand2
+            except Exception:
+                pass
     except Exception:
         pass
     return None

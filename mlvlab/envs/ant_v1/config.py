@@ -1,4 +1,3 @@
-# mlvlab/envs/ant/config.py
 import arcade
 
 DESCRIPTION = "Encuentra la colonia perdida evitando los obstáculos. (GridWorld)"

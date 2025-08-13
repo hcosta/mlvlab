@@ -5,10 +5,13 @@ import base64
 import numpy as np
 from PIL import Image
 import importlib.resources
+import importlib.util
+from pathlib import Path
+from typing import Optional, Any
 from nicegui import ui, app
 
 
-def setup_audio():
+def setup_audio(env: Optional[Any] = None):
     """
     Configura NiceGUI para encontrar y reproducir los sonidos del paquete mlvlab.
 
@@ -21,23 +24,80 @@ def setup_audio():
         Una función que puede ser llamada con el diccionario de sonido
         del entorno (ej: info['play_sound']).
     """
-    try:
-        # Encuentra la ruta a la carpeta de assets de forma robusta
-        resources_path = importlib.resources.files(
-            'mlvlab') / 'envs' / 'ant' / 'assets'
+    # Resolver carpeta de assets (orden de preferencia):
+    # 1) Si se proporciona env, buscar junto al módulo del entorno
+    # 2) Si el paquete contiene '-', probar con underscore
+    # 3) Si hay env.spec.id, inferir paquete y buscar mlvlab/envs/<pkg_us>/assets
+    assets_dir: Optional[Path] = None
+    attempted: list[str] = []
 
-        # Le dice a NiceGUI que sirva esa carpeta bajo la URL '/assets'
-        app.add_static_files('/assets', str(resources_path))
+    if env is not None:
+        try:
+            mod_name = type(getattr(env, 'unwrapped', env)).__module__
+            spec = importlib.util.find_spec(mod_name)
+            if spec and spec.origin:
+                env_dir = Path(spec.origin).parent
+                candidate = env_dir / 'assets'
+                attempted.append(str(candidate))
+                if candidate.exists():
+                    assets_dir = candidate
+        except Exception:
+            assets_dir = None
+
+    # Si el módulo del entorno es mlvlab.envs.<pkg>.* y <pkg> contiene '-', probar underscore
+    if assets_dir is None and env is not None:
+        try:
+            mod_name = type(getattr(env, 'unwrapped', env)).__module__
+            parts = mod_name.split('.')
+            if len(parts) >= 3 and parts[0] == 'mlvlab' and parts[1] == 'envs':
+                pkg = parts[2]
+                if '-' in pkg:
+                    pkg_us = pkg.replace('-', '_')
+                    spec2 = importlib.util.find_spec(f"mlvlab.envs.{pkg_us}")
+                    if spec2 and spec2.origin:
+                        env_dir2 = Path(spec2.origin).parent
+                        cand = env_dir2 / 'assets'
+                        attempted.append(str(cand))
+                        if cand.exists():
+                            assets_dir = cand
+        except Exception:
+            pass
+
+    # Inferir por env_id si existe
+    if assets_dir is None:
+        try:
+            env_id = getattr(getattr(env, 'spec', None), 'id',
+                             '') if env is not None else ''
+            if env_id:
+                pkg = env_id.split('/')[-1]
+                pkg_us = pkg.replace('-', '_')
+                cand = importlib.resources.files(
+                    'mlvlab') / 'envs' / pkg_us / 'assets'
+                attempted.append(str(cand))
+                if cand.exists():
+                    assets_dir = Path(cand)
+        except Exception:
+            pass
+
+    if assets_dir is None:
+        try:
+            dbg = " | intentados: " + "; ".join(attempted) if attempted else ""
+        except Exception:
+            dbg = ""
         print(
-            f"✅ Recursos de audio de 'mlvlab' servidos desde: {resources_path}")
-
-    except ModuleNotFoundError:
-        print("⚠️ Advertencia: No se pudo encontrar el directorio de recursos de 'mlvlab'. El sonido no funcionará.")
-        # Si no encontramos los sonidos, devolvemos una función que no hace nada
+            f"⚠️ Advertencia: No se encontró carpeta de assets para audio. El sonido no funcionará.{dbg}")
 
         def no_sound(_):
             pass
+
         return no_sound
+
+    # Servir carpeta encontrada bajo '/assets'
+    try:
+        app.add_static_files('/assets', str(assets_dir))
+        print(f"✅ Recursos de audio servidos desde: {assets_dir}")
+    except Exception:
+        pass
 
     # Si todo fue bien, definimos y devolvemos la función real
     def play_sound_from_info(sound_data: dict):

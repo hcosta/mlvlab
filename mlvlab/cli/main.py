@@ -7,6 +7,12 @@ import importlib.util
 import importlib
 from pathlib import Path
 from gymnasium.error import NameNotFound
+
+# Asegurar registro de entornos al cargar la CLI
+try:
+    import mlvlab as _mlvlab  # noqa: F401
+except Exception:
+    pass
 from typing import Optional
 # Importamos la librería correcta para descubrir entry points
 if sys.version_info < (3, 10):
@@ -117,13 +123,13 @@ def train(
     """Entrena un agente. Si no se especifica una semilla, se genera una aleatoria."""
     config = get_env_config(env_id)
     baseline = config.get("BASELINE", {})
-    agent_type = baseline.get("agent")
-    unit = config.get("UNIT", None)
+    # Nuevo flujo: seleccionar algoritmo desde ALGORITHM/UNIT
+    algorithm_key = config.get("ALGORITHM") or config.get("UNIT", None)
     train_config = baseline.get("config", {}).copy()
 
-    if not agent_type:
+    if not algorithm_key:
         console.print(
-            f"❌ Error: No hay agente de referencia definido para {env_id}.")
+            f"❌ Error: No hay algoritmo de referencia definido para {env_id}.")
         raise typer.Exit(code=1)
 
     if eps:
@@ -141,46 +147,17 @@ def train(
     console.print(
         f"📂 Trabajando en el directorio: [bold yellow]{run_dir}[/bold yellow]")
 
-    # Importación robusta del módulo del agente baseline
+    # Nuevo: usar registro de algoritmos (asegurar carga de plugins integrados)
     try:
-        # Preferimos ruta por unidad si está disponible
-        if unit:
-            module_path = f"mlvlab.agents.{unit}.{agent_type}"
-        else:
-            # Compatibilidad previa: paquete derivado del env_id
-            agent_pkg = env_id.split('/')[1]
-            module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
-        try:
-            agent_module = importlib.import_module(module_path)
-        except Exception:
-            # Fallback para nombres de paquete no válidos (e.g., con guiones)
-            from importlib.util import spec_from_file_location, module_from_spec
-            base_dir = Path(__file__).resolve(
-            ).parents[2] / 'mlvlab' / 'agents' / (unit or env_id.split('/')[1])
-            file_path = base_dir / f"{agent_type}.py"
-            if not file_path.exists():
-                raise
-            spec = spec_from_file_location(
-                "mlvlab_agent_module", str(file_path))
-            if spec is None or spec.loader is None:
-                raise ImportError(
-                    "No se pudo cargar el módulo del agente por ruta.")
-            agent_module = module_from_spec(spec)
-            spec.loader.exec_module(agent_module)  # type: ignore
-        train_func = getattr(agent_module, "train_agent")
-    except Exception:
+        import mlvlab.algorithms as _mlv_algos  # activa auto-registro de plugins
+        from mlvlab.algorithms.registry import get_algorithm
+        algo = get_algorithm(str(algorithm_key))
+        algo.train(env_id, train_config, run_dir=run_dir,
+                   seed=run_seed, render=render)
+    except Exception as e:
         console.print(
-            f"❌ Error: No se encontró el agente '{agent_type}' o su función 'train_agent'.")
+            f"❌ Error al entrenar con algoritmo '{algorithm_key}': {e}")
         raise typer.Exit(code=1)
-
-    # Llamar a la función de entrenamiento
-    train_func(
-        env_id,
-        train_config,
-        run_dir=run_dir,
-        seed=run_seed,
-        render=render
-    )
 
 
 @app.command(name="eval")
@@ -220,47 +197,25 @@ def evaluate(
         eval_seed = None
 
     config = get_env_config(env_id)
-    agent_type = config.get("BASELINE", {}).get("agent")
-    unit = config.get("UNIT", None)
+    algorithm_key = config.get("ALGORITHM") or config.get("UNIT", None)
 
-    # Importación robusta del módulo del agente baseline
+    # Nuevo: usar registro de algoritmos (asegurar carga de plugins)
     try:
-        if unit:
-            module_path = f"mlvlab.agents.{unit}.{agent_type}"
-        else:
-            agent_pkg = env_id.split('/')[1]
-            module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
-        try:
-            agent_module = importlib.import_module(module_path)
-        except Exception:
-            from importlib.util import spec_from_file_location, module_from_spec
-            base_dir = Path(__file__).resolve(
-            ).parents[2] / 'mlvlab' / 'agents' / (unit or env_id.split('/')[1])
-            file_path = base_dir / f"{agent_type}.py"
-            if not file_path.exists():
-                raise
-            spec = spec_from_file_location(
-                "mlvlab_agent_module", str(file_path))
-            if spec is None or spec.loader is None:
-                raise ImportError(
-                    "No se pudo cargar el módulo del agente por ruta.")
-            agent_module = module_from_spec(spec)
-            spec.loader.exec_module(agent_module)  # type: ignore
-        eval_func = getattr(agent_module, "eval_agent")
-    except Exception:
+        import mlvlab.algorithms as _mlv_algos  # activa auto-registro de plugins
+        from mlvlab.algorithms.registry import get_algorithm
+        algo = get_algorithm(str(algorithm_key))
+        algo.eval(
+            env_id,
+            run_dir=run_dir,
+            episodes=episodes,
+            seed=eval_seed,
+            cleanup=not no_cleanup,
+            video=record,
+        )
+    except Exception as e:
         console.print(
-            f"❌ Error: No se encontró la función 'eval_agent' para el agente '{agent_type}'.")
+            f"❌ Error al evaluar con algoritmo '{algorithm_key}': {e}")
         raise typer.Exit(code=1)
-
-    # Llamar a la función de evaluación
-    eval_func(
-        env_id,
-        run_dir=run_dir,
-        episodes=episodes,
-        seed=eval_seed,  # Usamos la semilla del directorio para recrear el mapa
-        cleanup=not no_cleanup,
-        video=record
-    )
 
 
 @app.command(name="help")
