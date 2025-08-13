@@ -60,7 +60,7 @@ Puedes usar los entornos de MLV-Lab en tus propios proyectos de Python como cual
 
 ```bash
 # Crea tu entorno virtual y luego instala las dependencias
-pip install mlvlab numpy
+pip install -U git+https://github.com/hcosta/mlvlab
 ```
 
 ### 2. Uso en tu Código
@@ -83,7 +83,7 @@ for _ in range(100):
 
 env.close()
 ```
-
+<!--
 ---
 
 ## 🏛️ Extender MLV-Lab (Plugins)
@@ -105,7 +105,7 @@ panel = "mi_visualizador.cli:app"
 
 Ahora, tu nuevo comando estará disponible:
 `mlv panel mi-comando --argumentos`
-
+-->
 ---
 
 ## 🛠️ Contribuir a MLV-Lab
