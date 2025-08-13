@@ -34,6 +34,7 @@ def get_env_config(env_id: str) -> dict:
             "KEY_MAP": getattr(config_module, 'KEY_MAP', None),
             "DESCRIPTION": getattr(config_module, 'DESCRIPTION', None),
             "BASELINE": getattr(config_module, 'BASELINE', None),
+            "UNIT": getattr(config_module, 'UNIT', None),
         }
 
     except (ImportError, AttributeError, gym.error.NameNotFound):

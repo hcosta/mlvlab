@@ -1,6 +1,6 @@
 # Entorno: Ant (LostAntEnv)
 
-Este fichero documenta el entorno `mlvlab/ant-v1`, también conocido como "La Colonia de Hormigas Perdida".
+Este fichero documenta el entorno `mlv/ant-v1`, también conocido como "La Colonia de Hormigas Perdida".
 
 ## Descripción
 
@@ -76,23 +76,23 @@ Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena e
 
 ```bash
 # Jugar interactivamente en el entorno
-mlv play mlvlab/ant-v1
+mlv play mlv/ant-v1
 
 # Entrenar un agente para una semilla específica (p. ej. 42)
-mlv train mlvlab/ant-v1 --seed 42
+mlv train mlv/ant-v1 --seed 42
 
 # Entrenar con una semilla aleatoria
-mlv train mlvlab/ant-v1
+mlv train mlv/ant-v1
 
 # Evaluar el último entrenamiento en modo ventana
-mlv eval mlvlab/ant-v1
+mlv eval mlv/ant-v1
 
 # Evaluar un entrenamiento de una semilla específica
-mlv eval mlvlab/ant-v1 --seed 42
+mlv eval mlv/ant-v1 --seed 42
 
 # Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-mlv eval mlvlab/ant-v1 --seed 42 --record --eps 100
+mlv eval mlv/ant-v1 --seed 42 --record --eps 100
 
 # Ver esta ficha técnica desde la terminal
-mlv help mlvlab/ant-v1
+mlv help mlv/ant-v1
 ```

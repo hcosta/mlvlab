@@ -453,6 +453,7 @@ class LostAntEnv(gym.Env):
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
         # Control de respawn aleatorio independiente de la seed de escenario
+        # Por defecto en esta smimulacion se usa la misma seed en los capítulos
         self._respawn_unseeded: bool = True
         try:
             self._respawn_rng = np.random.default_rng()

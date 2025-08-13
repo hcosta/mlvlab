@@ -28,25 +28,26 @@ pip install -U git+https://github.com/hcosta/mlvlab
 ### 2. Flujo de Trabajo Básico
 
 ```bash
-# 1. Descubre qué simulaciones hay disponibles
+# 1. Descubre las unidades disponibles o lista por unidad
 mlv list
+mlv list ql
 
 # 2. Juega para entender el objetivo (usa Flechas/WASD)
-mlv play mlvlab/ant-v1
+mlv play mlv/ant-v1
 
 # 3. Entrena un agente con una semilla específica (ej. 123)
-#    (Se ejecuta rápido y guarda los "pesos" en data/mlvlab_ant-v1/seed-123/)
-mlv train mlvlab/ant-v1 --seed 123
+#    (Se ejecuta rápido y guarda los "pesos" en data/mlv_ql_ant-v1/seed-123/)
+mlv train mlv/ant-v1 --seed 123
 
 # 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
-mlv eval mlvlab/ant-v1 --seed 123
+mlv eval mlv/ant-v1 --seed 123
 
 # 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --record
-mlv eval mlvlab/ant-v1 --seed 123 --record
+mlv eval mlv/ant-v1 --seed 123 --record
 
 # 5. Consulta la ficha técnica y la documentación de un entorno
-mlv help mlvlab/ant-v1
+mlv help mlv/ant-v1
 ```
 
 ---
@@ -66,10 +67,10 @@ pip install mlvlab numpy
 
 ```python
 import gymnasium as gym
-import mlvlab  # ¡Importante! Esto registra los entornos "mlvlab/..."
+import mlvlab  # ¡Importante! Esto registra los entornos "mlv/..." y mantiene compatibilidad con los antiguos
 
 # Crea el entorno como lo harías normalmente con Gymnasium
-env = gym.make("mlvlab/ant-v1", render_mode="human")
+env = gym.make("mlv/ant-v1", render_mode="human")
 obs, info = env.reset()
 
 for _ in range(100):
@@ -141,13 +142,13 @@ Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 
 - **Uso básico**: `mlv play <env_id>`
 - **Parámetros**:
-  - **env_id**: ID del entorno (ej. `mlvlab/ant-v1`).
+  - **env_id**: ID del entorno (ej. `mlv/ant-v1`).
   - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
 
 Ejemplo:
 
 ```bash
-mlv play mlvlab/ant-v1 --seed 42
+mlv play mlv/ant-v1 --seed 42
 ```
 
 ### mlv train
@@ -164,7 +165,7 @@ Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<e
 Ejemplo:
 
 ```bash
-mlv train mlvlab/ant-v1 --seed 123 --eps 500 --render
+mlv train mlv/ant-v1 --seed 123 --eps 500 --render
 ```
 
 ### mlv eval
@@ -183,11 +184,11 @@ Ejemplos:
 
 ```bash
 # Visualizar el agente usando los pesos del último entrenamiento
-mlv eval mlvlab/ant-v1
+mlv eval mlv/ant-v1
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv eval mlvlab/ant-v1 --seed 123 --record
+mlv eval mlv/ant-v1 --seed 123 --record
 
 # Evaluar 10 episodios y conservar clips temporales
-mlv eval mlvlab/ant-v1 --seed 123 --eps 10 --record --no-cleanup
+mlv eval mlv/ant-v1 --seed 123 --eps 10 --record --no-cleanup
 ```

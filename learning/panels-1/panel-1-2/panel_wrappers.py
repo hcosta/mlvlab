@@ -1,23 +1,73 @@
-from gymnasium.wrappers import TimeLimit
+
 import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+from gymnasium.wrappers import TimeLimit
 from mlvlab.agents.q_learning import QLearningAgent
 from mlvlab.core.trainer import Trainer
 from mlvlab import ui
 
-# Import robusto de wrappers: soporta ejecución como script o como módulo
-try:
-    from .wrappers import TimePenaltyWrapper, DirectionToHomeWrapper
-except Exception:  # ejecución directa como script
-    from wrappers import TimePenaltyWrapper, DirectionToHomeWrapper  # type: ignore
+# --- Wrapper para Recompensas ---
+
+
+class TimePenaltyWrapper(gym.RewardWrapper):
+    """
+    Añade una pequeña penalización en cada paso para incentivar al agente
+    a encontrar la solución más rápido.
+    """
+
+    def __init__(self, env, penalty: float = -0.1):
+        super().__init__(env)
+        self.penalty = penalty
+
+    def reward(self, reward: float) -> float:
+        """Aplica la penalización a la recompensa original del entorno."""
+        return reward + self.penalty
+
+
+class DirectionToHomeWrapper(gym.ObservationWrapper):
+    """Añade a la observación el ángulo en radianes hacia el hormiguero (0,0)."""
+
+    def __init__(self, env: gym.Env):
+        super().__init__(env)
+        self.home_pos = np.array([0, 0])
+
+        # Definimos el NUEVO espacio de observación (x, y, ángulo)
+        low = np.append(self.observation_space.low, -np.pi).astype(np.float32)
+        high = np.append(self.observation_space.high, np.pi).astype(np.float32)
+        self.observation_space = spaces.Box(
+            low=low, high=high, dtype=np.float32)
+
+    def observation(self, obs: np.ndarray) -> np.ndarray:
+        ant_pos = obs
+        direction_vector = self.home_pos - ant_pos
+        angle = np.arctan2(direction_vector[1], direction_vector[0])
+        new_obs = np.append(obs, angle).astype(np.float32)
+        return new_obs
 
 
 class EpisodeLogicAnt:
+    def __init__(self, preserve_seed: bool = False) -> None:
+        # Si True, no regeneramos escenario entre episodios (seed estable) salvo reset manual
+        self.preserve_seed = bool(preserve_seed)
+
     def obs_to_state(self, obs, env):
         grid_size = env.unwrapped.GRID_SIZE
         return int(obs[1]) * int(grid_size) + int(obs[0])
 
     def __call__(self, env, agent):
-        obs, info = env.reset()
+        # Si preservamos seed entre episodios, no forzamos nueva seed aquí; sólo recolocamos
+        if self.preserve_seed:
+            # Mantener escenario; respawn controlado por el propio env
+            obs, info = env.reset()
+        else:
+            # Crear nueva seed por episodio para escenarios distintos
+            import random
+            new_seed = random.randint(0, 1_000_000)
+            try:
+                obs, info = env.reset(seed=new_seed)
+            except TypeError:
+                obs, info = env.reset()
         state = self.obs_to_state(obs, env)
 
         done = False
@@ -38,7 +88,7 @@ class EpisodeLogicAnt:
 
 
 def main():
-    base_env = gym.make("mlvlab/ant-v1", render_mode="rgb_array")
+    base_env = gym.make("mlv/ant-v1", render_mode="rgb_array")
 
     # Demostración de extensibilidad con wrappers:
     # 1) Añadimos una característica a la observación (ángulo hacia origen)
@@ -57,7 +107,7 @@ def main():
         epsilon_decay=0.999,
     )
 
-    logic = EpisodeLogicAnt()
+    logic = EpisodeLogicAnt(preserve_seed=True)
     trainer = Trainer(env, agent, episode_logic=logic)
 
     view = ui.AnalyticsView(
@@ -113,7 +163,7 @@ class EpisodeLogicAnt:
 
 
 def main():
-    base_env = gym.make("mlvlab/ant-v1", render_mode="rgb_array")
+    base_env = gym.make("mlv/ant-v1", render_mode="rgb_array")
     # Aplicamos wrappers para demostrar extensibilidad de Gymnasium
     env = DirectionToHomeWrapper(base_env)
     env = TimePenaltyWrapper(env, penalty=-0.1)

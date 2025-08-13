@@ -31,27 +31,54 @@ app = typer.Typer(
 
 
 @app.command(name="list")
-def list_environments():
-    """(Paso 1) Muestra todos los entornos disponibles en MLV-Lab."""
-    mlv_envs = [env_id for env_id in gym.envs.registry.keys()
-                if env_id.startswith("mlvlab/")]
-
+def list_environments(unidad: Optional[str] = typer.Argument(None, help="Filtra por unidad (ej.: ql, sarsa, dqn, dqnp)")):
+    """Lista unidades disponibles o los entornos de una unidad concreta."""
     from rich.table import Table
-    table = Table("ID del Entorno", "Descripción", "Baseline Agent")
 
-    for env_id in sorted(mlv_envs):
+    # Detectar entornos por el namespace "mlv" (IDs sin unidad)
+    all_env_ids = [env_id for env_id in gym.envs.registry.keys()
+                   if env_id.startswith("mlv/")]
+
+    # Mapa env_id -> unidad desde su config
+    env_id_to_unit: dict[str, str] = {}
+    for env_id in all_env_ids:
+        cfg = get_env_config(env_id)
+        unit = cfg.get("UNIT") or cfg.get("unit") or "otros"
+        env_id_to_unit[env_id] = str(unit)
+
+    # Si no pasan unidad, listamos las unidades disponibles
+    if unidad is None:
+        unidades = sorted(set(env_id_to_unit.values()))
+        table = Table("ID de la Unidad", "Descripción")
+        for u in unidades:
+            desc = {
+                'ql': 'Simulaciones de Q-Learning',
+                'sarsa': 'Simulaciones de SARSA',
+                'dqn': 'Simulaciones de DQN',
+                'dqnp': 'Simulaciones DQN Plus (avanzado)'
+            }.get(u, 'Unidad personalizada')
+            table.add_row(f"[cyan]{u}[/cyan]", desc)
+        console.print(table)
+        console.print(
+            "Usa: [bold]mlv list <unidad>[/bold] para ver entornos de una unidad (ej. mlv list ql)")
+        return
+
+    # Con unidad proporcionada: filtrar por config
+    unit_envs = [env_id for env_id, u in env_id_to_unit.items() if u == unidad]
+
+    table = Table("ID del Entorno", "Descripción", "Baseline Agent")
+    for env_id in sorted(unit_envs):
         config = get_env_config(env_id)
         desc = config.get("DESCRIPTION", "N/D")
         baseline = config.get("BASELINE", {}).get("agent", "[red]N/A[/red]")
         table.add_row(f"[cyan]{env_id}[/cyan]", desc, baseline)
-
     console.print(table)
 
 
 @app.command(name="play")
 def play(
     env_id: str = typer.Argument(...,
-                                 help="ID del entorno (e.g., mlvlab/Ant-v1)."),
+                                 help="ID del entorno (e.g., mlv/ql/ant-v1)."),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para reproducibilidad del mapa.")
 ):
@@ -91,6 +118,7 @@ def train(
     config = get_env_config(env_id)
     baseline = config.get("BASELINE", {})
     agent_type = baseline.get("agent")
+    unit = config.get("UNIT", None)
     train_config = baseline.get("config", {}).copy()
 
     if not agent_type:
@@ -115,15 +143,20 @@ def train(
 
     # Importación robusta del módulo del agente baseline
     try:
-        agent_pkg = env_id.split('/')[1]
-        module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
+        # Preferimos ruta por unidad si está disponible
+        if unit:
+            module_path = f"mlvlab.agents.{unit}.{agent_type}"
+        else:
+            # Compatibilidad previa: paquete derivado del env_id
+            agent_pkg = env_id.split('/')[1]
+            module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
         try:
             agent_module = importlib.import_module(module_path)
         except Exception:
             # Fallback para nombres de paquete no válidos (e.g., con guiones)
             from importlib.util import spec_from_file_location, module_from_spec
             base_dir = Path(__file__).resolve(
-            ).parents[2] / 'mlvlab' / 'agents' / agent_pkg
+            ).parents[2] / 'mlvlab' / 'agents' / (unit or env_id.split('/')[1])
             file_path = base_dir / f"{agent_type}.py"
             if not file_path.exists():
                 raise
@@ -188,17 +221,21 @@ def evaluate(
 
     config = get_env_config(env_id)
     agent_type = config.get("BASELINE", {}).get("agent")
+    unit = config.get("UNIT", None)
 
     # Importación robusta del módulo del agente baseline
     try:
-        agent_pkg = env_id.split('/')[1]
-        module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
+        if unit:
+            module_path = f"mlvlab.agents.{unit}.{agent_type}"
+        else:
+            agent_pkg = env_id.split('/')[1]
+            module_path = f"mlvlab.agents.{agent_pkg}.{agent_type}"
         try:
             agent_module = importlib.import_module(module_path)
         except Exception:
             from importlib.util import spec_from_file_location, module_from_spec
             base_dir = Path(__file__).resolve(
-            ).parents[2] / 'mlvlab' / 'agents' / agent_pkg
+            ).parents[2] / 'mlvlab' / 'agents' / (unit or env_id.split('/')[1])
             file_path = base_dir / f"{agent_type}.py"
             if not file_path.exists():
                 raise

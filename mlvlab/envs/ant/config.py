@@ -29,3 +29,6 @@ BASELINE = {
         # Nota: grid_size se obtiene automáticamente del entorno.
     }
 }
+
+# Unidad pedagógica a la que pertenece este entorno (para mlv list)
+UNIT = "ql"

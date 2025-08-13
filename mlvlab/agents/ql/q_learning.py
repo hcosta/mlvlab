@@ -1,36 +1,30 @@
-"""[DEPRECADO] Mantiene compatibilidad para mlvlab/ant-v1, redirigiendo a mlv/ql/ant-v1.
+"""Entrenamiento y evaluación baseline para mlv/ql/ant-v1 usando Q-Learning genérico.
 
-Este módulo implementa las funciones `train_agent` y `eval_agent` que la CLI
-espera encontrar para el entorno `mlvlab/ant-v1` según la configuración BASELINE.
+Implementa `train_agent` y `eval_agent`, que la CLI invoca según la configuración BASELINE
+del entorno.
 """
 
-import os
-import numpy as np
-import random
-import gymnasium as gym
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Optional
-from rich.progress import track
 
+import gymnasium as gym
+import numpy as np
+
+from mlvlab.agents.q_learning import QLearningAgent
 from mlvlab.helpers.train import train_with_state_adapter
 from mlvlab.helpers.eval import evaluate_with_optional_recording
-from mlvlab.agents.q_learning import QLearningAgent
-from .state import obs_to_state
-from pathlib import Path as _Path
 
 
 def _agent_builder(env: gym.Env) -> QLearningAgent:
-    """Crea el agente Q-Learning genérico para Ant usando el tamaño de la rejilla."""
     grid_size = int(env.unwrapped.GRID_SIZE)
     agent = QLearningAgent(
         observation_space=gym.spaces.Discrete(grid_size * grid_size),
         action_space=env.action_space,
     )
-    # Registrar GRID_SIZE para posibles adaptaciones internas
-    setattr(agent, 'GRID_SIZE', grid_size)
+    setattr(agent, "GRID_SIZE", grid_size)
     return agent
-
-# --- Función de Entrenamiento Estandarizada (Contrato para la CLI) ---
 
 
 def train_agent(
@@ -38,20 +32,17 @@ def train_agent(
     config: dict,
     run_dir: Path,
     seed: int | None = None,
-    render: bool = False
+    render: bool = False,
 ):
-    """
-    Entrena un agente Q-Learning y guarda la Q-Table en la carpeta del 'run'.
-    """
-    TOTAL_EPISODES = int(config['episodes'])
-    alpha = float(config['alpha'])
-    gamma = float(config['gamma'])
-    epsilon_decay = float(config['epsilon_decay'])
-    min_epsilon = float(config['min_epsilon'])
+    total_episodes = int(config["episodes"])
+    alpha = float(config["alpha"])
+    gamma = float(config["gamma"])
+    epsilon_decay = float(config["epsilon_decay"])
+    min_epsilon = float(config["min_epsilon"])
 
     def state_adapter(obs, env: gym.Env) -> int:
-        grid = env.unwrapped.GRID_SIZE
-        return obs_to_state(int(obs[0]), int(obs[1]), int(grid))
+        grid = int(env.unwrapped.GRID_SIZE)
+        return int(obs[1]) * grid + int(obs[0])
 
     def on_render(env: gym.Env, agent: QLearningAgent) -> None:
         try:
@@ -69,12 +60,10 @@ def train_agent(
         agent.epsilon = 1.0
         return agent
 
-    # Entrena usando helper reutilizable
-    # Compatibilidad: si llega el id antiguo, funciona igual
     train_with_state_adapter(
         env_id=env_id,
         run_dir=run_dir,
-        total_episodes=TOTAL_EPISODES,
+        total_episodes=total_episodes,
         agent_builder=builder_with_hparams,
         state_adapter=state_adapter,
         seed=seed,
@@ -91,13 +80,8 @@ def eval_agent(
     cleanup: bool = True,
     video: bool = False,
 ):
-    """
-    Carga una Q-Table de un 'run' y evalúa al agente, guardando un vídeo fijo.
-    """
-    # Reutiliza helper de evaluación/grabación
     def builder(env: gym.Env) -> QLearningAgent:
         agent = _agent_builder(env)
-        # Cargar Q-Table si existe (el helper también lo intentará)
         q_table_file = run_dir / "q_table.npy"
         try:
             agent.load(str(q_table_file))

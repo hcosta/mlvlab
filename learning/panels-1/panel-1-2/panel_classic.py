@@ -37,7 +37,7 @@ SIM_INITIALIZED = False
 GRID_SIZE = 15
 
 env = gym.make(
-    "mlvlab/ant-v1",
+    "mlv/ant-v1",
     render_mode="rgb_array",
     grid_size=15,          # Un mapa más grande
     reward_food=500,       # Una recompensa por comida mucho mayor

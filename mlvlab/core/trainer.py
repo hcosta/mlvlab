@@ -48,7 +48,7 @@ def _resolve_adapter_for_env(env: gym.Env) -> Optional[Callable[[Any], Any]]:
     return None
 
 
-def default_episode_logic(env: gym.Env, agent: BaseAgent, state_from_obs: Optional[Callable[[Any], Any]] = None) -> float:
+def default_logic(env: gym.Env, agent: BaseAgent, state_from_obs: Optional[Callable[[Any], Any]] = None) -> float:
     """Lógica por defecto para ejecutar un episodio sin adaptadores internos.
 
     Si `state_from_obs` no se proporciona, intentará resolverse automáticamente uno
@@ -82,16 +82,23 @@ class Trainer:
         self,
         env: gym.Env,
         agent: BaseAgent,
-        episode_logic: EpisodeLogicFn = default_episode_logic,
+        logic: EpisodeLogicFn = default_logic,
         state_from_obs: Optional[Callable[[Any], Any]] = None,
     ):
         self.env = env
         self.agent = agent
-        self._episode_logic = episode_logic
-        # Si no se pasó state_from_obs, intentar extraerlo de episode_logic.obs_to_state
+
+        # Si se pasa la clase en lugar de una instancia, la instanciamos aquí.
+        if inspect.isclass(logic):
+            self._logic = logic()
+        else:
+            self._logic = logic
+        # --- FIN DE LA MODIFICACIÓN ---
+
+        # Si no se pasó state_from_obs, intentar extraerlo de logic.obs_to_state
         if state_from_obs is None:
             try:
-                candidate = getattr(episode_logic, 'obs_to_state', None)
+                candidate = getattr(logic, 'obs_to_state', None)
                 if callable(candidate):
                     self._state_from_obs = lambda obs: candidate(obs, self.env)
                 else:
@@ -101,18 +108,18 @@ class Trainer:
         else:
             self._state_from_obs = state_from_obs
 
-        # Respetar firma de episode_logic (2 o 3 parámetros)
+        # Respetar firma de logic (2 o 3 parámetros)
         try:
-            sig = inspect.signature(self._episode_logic)
+            sig = inspect.signature(self._logic)
             num_params = len(sig.parameters)
         except Exception:
             num_params = 3
 
         if num_params >= 3:
-            self.run_one_episode = lambda: self._episode_logic(
+            self.run_one_episode = lambda: self._logic(
                 self.env, self.agent, self._state_from_obs)
         else:
-            self.run_one_episode = lambda: self._episode_logic(
+            self.run_one_episode = lambda: self._logic(
                 self.env, self.agent)
 
     def train(self, num_episodes: int) -> None:
