@@ -48,7 +48,7 @@ def _resolve_adapter_for_env(env: gym.Env) -> Optional[Callable[[Any], Any]]:
     return None
 
 
-def default_logic(env: gym.Env, agent: BaseAgent, state_from_obs: Optional[Callable[[Any], Any]] = None) -> float:
+def default_episode_logic(env: gym.Env, agent: BaseAgent, state_from_obs: Optional[Callable[[Any], Any]] = None) -> float:
     """Lógica por defecto para ejecutar un episodio sin adaptadores internos.
 
     Si `state_from_obs` no se proporciona, intentará resolverse automáticamente uno
@@ -82,7 +82,7 @@ class Trainer:
         self,
         env: gym.Env,
         agent: BaseAgent,
-        logic: EpisodeLogicFn = default_logic,
+        logic: EpisodeLogicFn = default_episode_logic,
         state_from_obs: Optional[Callable[[Any], Any]] = None,
     ):
         self.env = env
