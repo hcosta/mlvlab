@@ -167,6 +167,241 @@ def _step_core_numba(
 # -------------------------------------------------------------
 
 
+class AntGame:
+    """
+    Lógica del juego (estado y transición), sin dependencias de UI.
+    """
+
+    def __init__(self, grid_size: int, reward_food: int, reward_obstacle: int, reward_move: int,
+                 use_numba_core: bool = False) -> None:
+        self.grid_size = int(grid_size)
+        self.reward_food = int(reward_food)
+        self.reward_obstacle = int(reward_obstacle)
+        self.reward_move = int(reward_move)
+        self.use_numba_core = bool(use_numba_core) and _NUMBA_AVAILABLE
+        self.ant_pos = np.zeros(2, dtype=np.int32)
+        self.food_pos = np.zeros(2, dtype=np.int32)
+        self.obstacles: set[tuple[int, int]] = set()
+        self.obstacles_grid = np.zeros(
+            (self.grid_size, self.grid_size), dtype=np.uint8)
+        self._np_random = None
+
+    def reset(self, np_random) -> None:
+        self._np_random = np_random
+        self.generate_scenario(np_random)
+        self.place_ant(np_random)
+
+    def generate_scenario(self, np_random) -> None:
+        self._np_random = np_random
+        # Generar comida y obstáculos de forma determinista con la RNG recibida
+        self.food_pos = self._np_random.integers(
+            0, self.grid_size, size=2, dtype=np.int32)
+        self.obstacles = {
+            tuple(self._np_random.integers(0, self.grid_size, size=2).tolist())
+            for _ in range(self.grid_size)
+        }
+        while tuple(self.food_pos.tolist()) in self.obstacles:
+            self.food_pos = self._np_random.integers(
+                0, self.grid_size, size=2, dtype=np.int32)
+        self.obstacles_grid = np.zeros(
+            (self.grid_size, self.grid_size), dtype=np.uint8)
+        for ox, oy in self.obstacles:
+            if 0 <= ox < self.grid_size and 0 <= oy < self.grid_size:
+                self.obstacles_grid[oy, ox] = 1
+
+    def place_ant(self, np_random) -> None:
+        self._np_random = np_random
+        # Colocar hormiga en celda válida distinta de comida y no obstáculo
+        self.ant_pos = self._np_random.integers(
+            0, self.grid_size, size=2, dtype=np.int32)
+        while tuple(self.ant_pos.tolist()) in self.obstacles or (
+            self.ant_pos[0] == self.food_pos[0] and self.ant_pos[1] == self.food_pos[1]
+        ):
+            self.ant_pos = self._np_random.integers(
+                0, self.grid_size, size=2, dtype=np.int32)
+
+    def get_obs(self) -> np.ndarray:
+        return np.array((int(self.ant_pos[0]), int(self.ant_pos[1])), dtype=np.int32)
+
+    def step(self, action: int) -> tuple[np.ndarray, int, bool, dict]:
+        ax, ay = int(self.ant_pos[0]), int(self.ant_pos[1])
+        info: dict = {}
+
+        # Ruta acelerada por Numba si está habilitada
+        if self.use_numba_core and isinstance(self.obstacles_grid, np.ndarray):
+            nx, ny, reward, terminated_int = _step_core_numba(
+                ax,
+                ay,
+                int(action),
+                int(self.grid_size),
+                int(self.food_pos[0]),
+                int(self.food_pos[1]),
+                self.obstacles_grid,
+                int(self.reward_move),
+                int(self.reward_food),
+                int(self.reward_obstacle),
+            )
+            terminated = bool(terminated_int)
+            self.ant_pos[0], self.ant_pos[1] = nx, ny
+            return np.array((nx, ny), dtype=np.int32), int(reward), bool(terminated), info
+
+        # Ruta Python
+        prev_ax, prev_ay = ax, ay
+        target_ax, target_ay = ax, ay
+        if action == 0:
+            target_ay -= 1
+        elif action == 1:
+            target_ay += 1
+        elif action == 2:
+            target_ax -= 1
+        elif action == 3:
+            target_ax += 1
+
+        out_of_bounds = (
+            target_ax < 0 or target_ax >= self.grid_size or
+            target_ay < 0 or target_ay >= self.grid_size
+        )
+        if out_of_bounds:
+            reward = self.reward_obstacle
+            ax, ay = prev_ax, prev_ay
+            terminated = False
+            collided = True
+        else:
+            ax, ay = target_ax, target_ay
+            terminated = (
+                ax == int(self.food_pos[0]) and ay == int(self.food_pos[1]))
+            if terminated:
+                reward = self.reward_food
+                collided = False
+            elif (ax, ay) in self.obstacles:
+                reward = self.reward_obstacle
+                ax, ay = prev_ax, prev_ay
+                collided = True
+            else:
+                reward = self.reward_move
+                collided = False
+
+        self.ant_pos[0], self.ant_pos[1] = ax, ay
+        info["collided"] = collided
+        info["terminated"] = terminated
+        return np.array((ax, ay), dtype=np.int32), int(reward), bool(terminated), info
+
+
+class ArcadeRenderer:
+    """
+    Renderer basado en Arcade. Soporta "human" y "rgb_array".
+    """
+
+    def __init__(self) -> None:
+        self.window = None
+
+    def draw(self, game: AntGame, q_table_to_render, render_mode: str | None):
+        import arcade
+        from arcade.draw.rect import draw_lbwh_rectangle_filled
+        import time
+
+        if render_mode is None:
+            return None
+
+        CELL_SIZE = 30
+        WIDTH = HEIGHT = game.grid_size * CELL_SIZE
+        COLOR_GRID = (40, 40, 40)
+        COLOR_ANT = (255, 64, 64)
+        COLOR_FOOD = (64, 255, 128)
+        COLOR_OBSTACLE = (120, 120, 120)
+
+        # Crear ventana si hace falta
+        if self.window is None and render_mode in ["human", "rgb_array"]:
+            visible = render_mode == "human"
+            try:
+                self.window = arcade.Window(
+                    WIDTH, HEIGHT, "Lost Ant Colony", visible=visible)
+            except TypeError:
+                self.window = arcade.Window(WIDTH, HEIGHT, "Lost Ant Colony")
+                if not visible:
+                    try:
+                        self.window.set_visible(False)
+                    except Exception:
+                        pass
+
+        # Visibilidad si cambiamos a human
+        if self.window is not None and render_mode == "human":
+            try:
+                self.window.set_visible(True)
+            except Exception:
+                pass
+
+        def cell_to_pixel(x_cell: int, y_cell: int):
+            x_px = x_cell * CELL_SIZE
+            y_px = (game.grid_size - 1 - y_cell) * CELL_SIZE
+            return x_px, y_px
+
+        # Render base
+        self.window.switch_to()
+        arcade.set_background_color(COLOR_GRID)
+        self.window.clear()
+
+        # Heatmap clásico verde
+        if q_table_to_render is not None:
+            max_q = float(np.max(q_table_to_render))
+            min_q = float(np.min(q_table_to_render))
+            if max_q > min_q:
+                for state_index in range(game.grid_size * game.grid_size):
+                    x_cell = state_index % game.grid_size
+                    y_cell = state_index // game.grid_size
+                    q_value = float(np.max(q_table_to_render[state_index, :]))
+                    norm_q = (q_value - min_q) / (max_q - min_q)
+                    intensity = int(40 + norm_q * 180)
+                    heat_color = (0, intensity, 0, 255)
+                    x_px, y_px = cell_to_pixel(x_cell, y_cell)
+                    draw_lbwh_rectangle_filled(
+                        x_px, y_px, CELL_SIZE, CELL_SIZE, heat_color)
+
+        # Cuadrícula
+        grid_color = (60, 60, 60, 120)
+        for i in range(game.grid_size + 1):
+            x = i * CELL_SIZE
+            y = i * CELL_SIZE
+            arcade.draw_line(x, 0, x, HEIGHT, grid_color, 1)
+            arcade.draw_line(0, y, WIDTH, y, grid_color, 1)
+
+        # Obstáculos
+        for obs in game.obstacles:
+            x_px, y_px = cell_to_pixel(obs[0], obs[1])
+            draw_lbwh_rectangle_filled(
+                x_px + 2, y_px + 2, CELL_SIZE - 2, CELL_SIZE - 2, (90, 90, 90, 255))
+            draw_lbwh_rectangle_filled(
+                x_px, y_px, CELL_SIZE - 2, CELL_SIZE, COLOR_OBSTACLE)
+
+        # Comida (pulso)
+        fx_time = time.time()
+        pulse = 0.5 + 0.5 * np.sin(fx_time * 3.0)
+        fx_radius = int(6 + 8 * pulse)
+        cx_food = game.food_pos[0] * CELL_SIZE + CELL_SIZE // 2
+        cy_food = (game.grid_size - 1 -
+                   game.food_pos[1]) * CELL_SIZE + CELL_SIZE // 2
+        for r, alpha in [(fx_radius * 2, 30), (fx_radius, 60), (fx_radius // 2, 90)]:
+            arcade.draw_circle_filled(
+                cx_food, cy_food, max(2, r), (64, 255, 128, alpha))
+        x_px, y_px = cell_to_pixel(game.food_pos[0], game.food_pos[1])
+        draw_lbwh_rectangle_filled(
+            x_px + 4, y_px + 4, CELL_SIZE - 8, CELL_SIZE - 8, (*COLOR_FOOD, 255))
+
+        # Hormiga
+        ax_px, ay_px = cell_to_pixel(
+            int(game.ant_pos[0]), int(game.ant_pos[1]))
+        cx_ant = ax_px + CELL_SIZE // 2
+        cy_ant = ay_px + CELL_SIZE // 2
+        arcade.draw_circle_filled(
+            cx_ant, cy_ant, CELL_SIZE * 0.35, (*COLOR_ANT, 255))
+        arcade.draw_circle_outline(
+            cx_ant, cy_ant, CELL_SIZE * 0.35, (255, 255, 255, 180), 2)
+        arcade.draw_line(cx_ant, cy_ant, cx_ant, cy_ant +
+                         CELL_SIZE * 0.45, (255, 220, 220, 200), 2)
+
+        return WIDTH, HEIGHT
+
+
 class LostAntEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
@@ -191,9 +426,21 @@ class LostAntEnv(gym.Env):
             low=0, high=self.GRID_SIZE - 1, shape=(2,), dtype=np.int32
         )
 
-        self.ant_pos = None
-        self.food_pos = None
-        self.obstacles = set()
+        # Juego y renderer
+        self._game = AntGame(
+            grid_size=grid_size,
+            reward_food=reward_food,
+            reward_obstacle=reward_obstacle,
+            reward_move=reward_move,
+            use_numba_core=use_numba_core,
+        )
+        self._renderer: ArcadeRenderer | None = None
+
+        # Para compatibilidad con referencias externas
+        self.ant_pos = self._game.ant_pos
+        self.food_pos = self._game.food_pos
+        self.obstacles = self._game.obstacles
+        self.obstacles_grid = self._game.obstacles_grid
 
         self.render_mode = render_mode
         self.window = None
@@ -201,55 +448,53 @@ class LostAntEnv(gym.Env):
         self._last_time = None
         self.q_table_to_render = None  # Para visualización avanzada
 
-        # Activación opcional del núcleo Numba (solo si está disponible)
-        self.use_numba_core = bool(use_numba_core) and _NUMBA_AVAILABLE
+        # Activación opcional del núcleo Numba gestionada por AntGame
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
-    def _generate_scenario(self):
-        """Genera y establece las posiciones de la comida y los obstáculos."""
-        self.food_pos = self.np_random.integers(
-            0, self.GRID_SIZE, size=2, dtype=np.int32)
-        # Conjunto de obstáculos para membership O(1)
-        self.obstacles = {
-            tuple(self.np_random.integers(0, self.GRID_SIZE, size=2).tolist())
-            for _ in range(self.GRID_SIZE)
-        }
-        while tuple(self.food_pos.tolist()) in self.obstacles:
-            self.food_pos = self.np_random.integers(
-                0, self.GRID_SIZE, size=2, dtype=np.int32)
+        # Control de respawn aleatorio independiente de la seed de escenario
+        self._respawn_unseeded: bool = True
+        try:
+            self._respawn_rng = np.random.default_rng()
+        except Exception:
+            self._respawn_rng = None
 
-        # Rejilla de obstáculos para el núcleo Numba (1 = obstáculo)
-        self.obstacles_grid = np.zeros(
-            (self.GRID_SIZE, self.GRID_SIZE), dtype=np.uint8
-        )
-        for ox, oy in self.obstacles:
-            # Seguridad por si aparecen duplicados o valores extremos
-            if 0 <= ox < self.GRID_SIZE and 0 <= oy < self.GRID_SIZE:
-                self.obstacles_grid[oy, ox] = 1
+    def _generate_scenario(self):
+        # Compatibilidad: generar un nuevo laberinto (para seed nueva)
+        self._game.generate_scenario(self.np_random)
+        rng = self._respawn_rng if getattr(
+            self, "_respawn_unseeded", False) and self._respawn_rng is not None else self.np_random
+        self._game.place_ant(rng)
+        self.ant_pos = self._game.ant_pos
+        self.food_pos = self._game.food_pos
+        self.obstacles = self._game.obstacles
+        self.obstacles_grid = self._game.obstacles_grid
 
     def _place_ant(self):
-        """Busca una posición inicial aleatoria para la hormiga."""
-        self.ant_pos = self.np_random.integers(
-            0, self.GRID_SIZE, size=2, dtype=np.int32)
-        while tuple(self.ant_pos.tolist()) in self.obstacles or (
-            self.ant_pos[0] == self.food_pos[0] and self.ant_pos[1] == self.food_pos[1]
-        ):
-            self.ant_pos = self.np_random.integers(
-                0, self.GRID_SIZE, size=2, dtype=np.int32)
+        # AntGame ya recoloca la hormiga en reset; mantener compatibilidad
+        pass
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-
-        # Si se proporciona una semilla nueva, O si el escenario nunca se ha generado,
-        # creamos un mapa nuevo (comida y obstáculos).
-        if seed is not None or self.food_pos is None:
-            self._generate_scenario()
-
-        # En CADA reset, la hormiga busca una nueva posición aleatoria en el mapa actual.
-        self._place_ant()
-
+        # Reglas Gymnasium: si llega una seed nueva o nunca se generó el escenario,
+        # crear un mapa nuevo; si no, conservar el laberinto y sólo recolocar la hormiga.
+        scenario_not_ready = (self.food_pos is None) or (
+            not self.obstacles)  # sin comida o sin rocas
+        if seed is not None or scenario_not_ready:
+            self._game.generate_scenario(self.np_random)
+        rng = self._respawn_rng if getattr(
+            self, "_respawn_unseeded", False) and self._respawn_rng is not None else self.np_random
+        self._game.place_ant(rng)
+        # Exponer referencias compartidas para compatibilidad
+        self.ant_pos = self._game.ant_pos
+        self.food_pos = self._game.food_pos
+        self.obstacles = self._game.obstacles
+        self.obstacles_grid = self._game.obstacles_grid
         return self._get_obs(), self._get_info()
+
+    # API opcional para controlar el respawn independiente de la seed
+    def set_respawn_unseeded(self, flag: bool = True):
+        self._respawn_unseeded = bool(flag)
 
     def set_render_data(self, q_table):
         self.q_table_to_render = q_table
@@ -345,151 +590,14 @@ class LostAntEnv(gym.Env):
         return np.array((ax, ay), dtype=np.int32), reward, terminated, truncated, info
 
     def _render_frame(self):
-        # --- SECCIÓN VISUAL (AISLADA) ---
-        # Si nunca se llama a render(), esta sección nunca se ejecuta.
-        import arcade
-        from arcade.draw.rect import draw_lbwh_rectangle_filled
-        import time
-
-        # Constantes de dibujado (solo existen dentro de este método)
-        CELL_SIZE = 30
-        WIDTH = HEIGHT = self.GRID_SIZE * CELL_SIZE
-        COLOR_GRID = (40, 40, 40)
-        COLOR_ANT = (255, 64, 64)
-        COLOR_FOOD = (64, 255, 128)
-        COLOR_OBSTACLE = (120, 120, 120)
-
-        # Crear ventana de Arcade perezosamente. Para rgb_array la mantenemos oculta.
-        if self.window is None and self.render_mode in ["human", "rgb_array"]:
-            self._window_visible = self.render_mode == "human"
-            # En Arcade, el origen está en la esquina inferior-izquierda.
-            # Usamos "visible" para soportar render fuera de pantalla.
-            try:
-                self.window = arcade.Window(
-                    WIDTH, HEIGHT, "Lost Ant Colony", visible=self._window_visible
-                )
-            except TypeError:
-                # Compatibilidad: versiones sin parámetro visible
-                self.window = arcade.Window(WIDTH, HEIGHT, "Lost Ant Colony")
-                if not self._window_visible:
-                    try:
-                        self.window.set_visible(False)
-                    except Exception:
-                        pass
-
-        if self.render_mode is None:
-            return None
-
-        # Si cambiamos de modo rgb_array -> human, hacer visible la ventana
-        if self.window is not None:
-            target_visibility = self.render_mode == "human"
-            if target_visibility and not self._window_visible:
-                try:
-                    self.window.set_visible(True)
-                except Exception:
-                    pass
-                self._window_visible = True
-
-        # Utilidades de coordenadas: convertir celda (x,y) a píxeles (origen abajo-izquierda en Arcade)
-        def cell_to_pixel(x_cell: int, y_cell: int):
-            x_px = x_cell * CELL_SIZE
-            # Invertimos Y para mantener la misma orientación que en PyGame (y hacia abajo)
-            y_px = (self.GRID_SIZE - 1 - y_cell) * CELL_SIZE
-            return x_px, y_px
-
-        # Renderizado base
-        self.window.switch_to()
-        arcade.set_background_color(COLOR_GRID)
-        # Limpiar el frame usando el color de fondo configurado
-        self.window.clear()
-
-        # Dibujar mapa de calor de Q-table si está disponible
-        if self.q_table_to_render is not None:
-            max_q = float(np.max(self.q_table_to_render))
-            min_q = float(np.min(self.q_table_to_render))
-            if max_q > min_q:
-                for state_index in range(self.GRID_SIZE * self.GRID_SIZE):
-                    x_cell = state_index % self.GRID_SIZE
-                    y_cell = state_index // self.GRID_SIZE
-                    q_value = float(
-                        np.max(self.q_table_to_render[state_index, :]))
-                    norm_q = (q_value - min_q) / (max_q - min_q)
-                    intensity = int(40 + norm_q * 180)
-                    heat_color = (0, intensity, 0, 255)
-                    x_px, y_px = cell_to_pixel(x_cell, y_cell)
-                    draw_lbwh_rectangle_filled(
-                        x_px,
-                        y_px,
-                        CELL_SIZE,
-                        CELL_SIZE,
-                        heat_color,
-                    )
-
-        # Dibujar cuadrícula sutil
-        grid_color = (60, 60, 60, 120)
-        for i in range(self.GRID_SIZE + 1):
-            x = i * CELL_SIZE
-            y = i * CELL_SIZE
-            arcade.draw_line(x, 0, x, HEIGHT, grid_color, 1)
-            arcade.draw_line(0, y, WIDTH, y, grid_color, 1)
-
-        # Dibujar obstáculos
-        for obs in self.obstacles:
-            x_px, y_px = cell_to_pixel(obs[0], obs[1])
-            # Sombra
-            draw_lbwh_rectangle_filled(
-                x_px + 2,
-                y_px + 2,
-                CELL_SIZE - 2,
-                CELL_SIZE - 2,
-                (90, 90, 90, 255),
-            )
-            # Cara superior con ligero brillo
-            draw_lbwh_rectangle_filled(
-                x_px,
-                y_px,
-                CELL_SIZE - 2,
-                CELL_SIZE,
-                COLOR_OBSTACLE,
-            )
-
-        # Dibujar comida con efecto pulso (brillo)
-        fx_time = time.time()
-        pulse = 0.5 + 0.5 * np.sin(fx_time * 3.0)
-        fx_radius = int(6 + 8 * pulse)
-        cx_food = self.food_pos[0] * CELL_SIZE + CELL_SIZE // 2
-        cy_food = (self.GRID_SIZE - 1 -
-                   self.food_pos[1]) * CELL_SIZE + CELL_SIZE // 2
-        for r, alpha in [(fx_radius * 2, 30), (fx_radius, 60), (fx_radius // 2, 90)]:
-            arcade.draw_circle_filled(
-                cx_food, cy_food, max(2, r), (64, 255, 128, alpha))
-
-        x_px, y_px = cell_to_pixel(self.food_pos[0], self.food_pos[1])
-        draw_lbwh_rectangle_filled(
-            x_px + 4,
-            y_px + 4,
-            CELL_SIZE - 8,
-            CELL_SIZE - 8,
-            (*COLOR_FOOD, 255),
-        )
-
-        # Dibujar hormiga (cuerpo + borde)
-        ax_px, ay_px = cell_to_pixel(
-            int(self.ant_pos[0]), int(self.ant_pos[1]))
-        cx_ant = ax_px + CELL_SIZE // 2
-        cy_ant = ay_px + CELL_SIZE // 2
-        arcade.draw_circle_filled(
-            cx_ant, cy_ant, CELL_SIZE * 0.35, (*COLOR_ANT, 255))
-        arcade.draw_circle_outline(
-            cx_ant, cy_ant, CELL_SIZE * 0.35, (255, 255, 255, 180), 2)
-
-        # Dirección indicativa simple (flecha hacia arriba/abajo/izq/der basada en último movimiento no almacenado)
-        # Por simplicidad, dibujamos una "antena" hacia arriba
-        arcade.draw_line(cx_ant, cy_ant, cx_ant, cy_ant +
-                         CELL_SIZE * 0.45, (255, 220, 220, 200), 2)
-
-        # No finalizamos aquí; la finalización la gestiona render() según modo
-        return WIDTH, HEIGHT
+        # Delegar al renderer
+        if self._renderer is None:
+            self._renderer = ArcadeRenderer()
+        result = self._renderer.draw(
+            self._game, self.q_table_to_render, self.render_mode)
+        if self._renderer is not None:
+            self.window = self._renderer.window
+        return result
 
     def render(self):
         # Importamos Arcade aquí para que esté disponible en todo el método.

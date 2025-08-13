@@ -31,6 +31,7 @@ class SimulationRunner:
         self._stop = False
         self._last_check_time = time.time()
         self._steps_at_last_check = 0
+        self._prev_speed_multiplier: int = 1
 
         # Detectar si el entorno está en modo ventana humana (una sola vez)
         try:
@@ -231,12 +232,24 @@ class SimulationRunner:
                 step_accum = 0.0
                 last_step_time = now
                 last_turbo = turbo
+                # Limpia sonidos pendientes para evitar desfases tras cambio de turbo
+                try:
+                    self.state.set(["sim", "last_sound"], None)
+                except Exception:
+                    pass
                 continue
             last_step_time = now
             # sin enfriamiento adicional para respetar el comportamiento previo estable
 
             # Si turbo está activo, ignoramos speed_multiplier para el cálculo de steps
             spm = max(0, int(self.state.get(["sim", "speed_multiplier"]) or 1))
+            if spm != self._prev_speed_multiplier:
+                # Al cambiar la velocidad, limpiar sonidos pendientes para evitar eco/desfase
+                try:
+                    self.state.set(["sim", "last_sound"], None)
+                except Exception:
+                    pass
+                self._prev_speed_multiplier = spm
             if turbo:
                 # Réplica de la estrategia original: muchos pasos por dt con top alto
                 steps_to_do = max(
@@ -287,15 +300,15 @@ class SimulationRunner:
                     # Persistir
                     self.state.set(["sim", "obs"], next_obs)
                     self.state.set(["sim", "info"], info)
-                    # Señal de audio si aplica (similar al visualizer original)
+                    # Diferir emisión de sonido: se hará tras actualizar total_steps para adjuntar step
+                    pending_play_sound = None
                     try:
                         speed = int(self.state.get(
                             ["sim", "speed_multiplier"]) or 1)
                         if isinstance(info, dict) and ("play_sound" in info) and (not turbo) and speed <= 50:
-                            self.state.set(
-                                ["sim", "last_sound"], info["play_sound"])
+                            pending_play_sound = info["play_sound"]
                     except Exception:
-                        pass
+                        pending_play_sound = None
                 s2 = self._extract_state(next_obs)
                 # Aprendizaje con compatibilidad (learn -> update)
                 if hasattr(self.agent, 'learn') and callable(getattr(self.agent, 'learn')):
@@ -323,6 +336,19 @@ class SimulationRunner:
                 total_steps = int(self.state.get(
                     ["sim", "total_steps"]) or 0) + 1
                 self.state.set(["sim", "total_steps"], total_steps)
+                # Emitir sonido alineado al step del frame
+                if pending_play_sound:
+                    try:
+                        ps = dict(pending_play_sound)
+                        ps["step"] = int(total_steps)
+                        ps["ts"] = float(time.time())
+                        self.state.set(["sim", "last_sound"], ps)
+                    except Exception:
+                        try:
+                            self.state.set(
+                                ["sim", "last_sound"], pending_play_sound)
+                        except Exception:
+                            pass
 
                 if terminated or truncated:
                     episodes = int(self.state.get(

@@ -255,8 +255,16 @@ class AnalyticsView:
                 try:
                     pending_sound = self.state.get(["sim", "last_sound"])
                     if pending_sound and self.state.get(["ui", "sound_enabled"]):
-                        play_sound(pending_sound)
-                        self.state.set(["sim", "last_sound"], None)
+                        # Sincronización por step: reproducir si el evento corresponde a un frame ya dibujado
+                        try:
+                            evt_step = int(pending_sound.get("step", -1))
+                            last_frame_step = int(self.state.get(
+                                ["ui", "last_frame_step"]) or -1)
+                        except Exception:
+                            evt_step, last_frame_step = -1, -1
+                        if evt_step < 0 or evt_step <= last_frame_step:
+                            play_sound(pending_sound)
+                            self.state.set(["sim", "last_sound"], None)
                 except Exception:
                     pass
 
@@ -306,6 +314,14 @@ class AnalyticsView:
                         except Exception:
                             pass
                         frame = self.env.render()
+                        # Registrar el step del último frame dibujado
+                        try:
+                            last_step = int(self.state.get(
+                                ["sim", "total_steps"]) or 0)
+                            self.state.set(
+                                ["ui", "last_frame_step"], last_step)
+                        except Exception:
+                            pass
                     webp = frame_to_webp_bytes(frame, quality=100)
                     await websocket.send_bytes(webp)
                     await asyncio.sleep(1/25)  # ~25 FPS
@@ -393,4 +409,4 @@ class AnalyticsView:
             # Sin hilo alternativo: todo va por SimulationRunner
 
         self._build_page()
-        ui.run(title=self.title, dark=self.dark, reload=True, show=True)
+        ui.run(title=self.title, dark=self.dark, reload=True, show=False)
