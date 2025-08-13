@@ -18,10 +18,6 @@ from mlvlab.agents.q_learning import QLearningAgent
 from .state import obs_to_state
 from pathlib import Path as _Path
 
-# Ruta de fuente para overlay opcional en los vídeos
-_FONT_PATH = str(_Path(__file__).parent.parent /
-                 "assets" / "fonts" / "Roboto-Regular.ttf")
-
 
 def _agent_builder(env: gym.Env) -> QLearningAgent:
     """Crea el agente Q-Learning genérico para Ant usando el tamaño de la rejilla."""
@@ -120,5 +116,4 @@ def eval_agent(
         seed=seed,
         record=video,
         cleanup=cleanup,
-        overlay_font_path=_FONT_PATH,
     )

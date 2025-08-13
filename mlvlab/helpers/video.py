@@ -43,13 +43,13 @@ def merge_videos_with_counter(
                 texto = f"{i}/{total_episodes}  \n"
                 if font_path is not None:
                     txt_clip = TextClip(text=texto, font=str(
-                        font_path), font_size=24, color='white')
+                        font_path), font_size=32, color='white')
                 else:
                     txt_clip = TextClip(
-                        text=texto, font_size=24, color='white')
+                        text=texto, font_size=32, color='white')
 
                 txt_clip = txt_clip.with_position(
-                    ('right', 'bottom')).with_duration(clip.duration)
+                    ('right', 'top')).with_duration(clip.duration)
                 video_con_texto = CompositeVideoClip([clip, txt_clip])
                 clips_con_texto.append(video_con_texto)
             except Exception as e:

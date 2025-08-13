@@ -19,7 +19,6 @@ def evaluate_with_optional_recording(
     seed: Optional[int] = None,
     record: bool = False,
     cleanup: bool = True,
-    overlay_font_path: Optional[str] = None,
 ) -> Optional[Path]:
     """
     Evalúa un agente construido por `agent_builder` en `env_id` durante `episodes` episodios.
@@ -89,8 +88,12 @@ def evaluate_with_optional_recording(
         print("✅ Evaluación completada en modo interactivo (sin grabación).")
         return None
 
-    ok = merge_videos_with_counter(str(temp_folder), str(
-        final_video_path), font_path=overlay_font_path, cleanup=cleanup)
+    ok = merge_videos_with_counter(
+        str(temp_folder),
+        str(final_video_path),
+        font_path=None,
+        cleanup=cleanup,
+    )
     if cleanup:
         if os.path.exists(temp_folder):
             try:

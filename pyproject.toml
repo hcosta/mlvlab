@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlvlab"
-version = "0.1.1"
+version = "0.1.2"
 description = "Ecosistema de aprendizaje de IA Visual de MLVisual."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "arcade>=3.3.2",
     "numba>=0.61.2",
@@ -17,7 +17,8 @@ dependencies = [
     "rich>=13.0.0",
     "moviepy>=2.2.1", # Necesario para mlv train
     "importlib-metadata>=4.8.0; python_version < '3.10'", # Para los entry points en Python < 3.10
-    "nicegui>=1.4.20",
+    "nicegui>=2.22.1",
+    "nicegui-highcharts>=2.1.0",
     "Pillow>=9.0.0",
 ]
 

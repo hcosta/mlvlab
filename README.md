@@ -1,12 +1,12 @@
-# MLV-Lab: Ecosistema para el Aprendizaje Visual de IA
+# MLV-Lab: Ecosistema Visual para Aprender RL
 
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.0-brightgreen)](https://pypi.org/project/mlvlab/)
+<!--[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.0-brightgreen)](https://pypi.org/project/mlvlab/)-->
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 
-MLV-Lab es un ecosistema pedagógico diseñado para explorar los conceptos fundamentales de la IA. Nuestra filosofía es **"Show, don't tell"**: pasamos de la teoría abstracta a la práctica concreta y visual.
+MLV-Lab es un ecosistema pedagógico diseñado para explorar los conceptos fundamentales de la IA sin necesidad de conocimientos matemáticas avanzados. Nuestra filosofía es **"Show, don't tell"**: pasamos de la teoría abstracta a la práctica concreta y visual.
 
 Este proyecto tiene dos audiencias principales:
 1.  **Entusiastas de la IA:** Una herramienta para jugar, entrenar y observar agentes inteligentes resolviendo problemas complejos desde la terminal.

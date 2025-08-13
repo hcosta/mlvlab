@@ -179,6 +179,10 @@ class SimulationRunner:
         while not self._stop:
             cmd = self.state.get(["sim", "command"]) or "run"
             if cmd == "pause":
+                # Mantener el reloj sincronizado mientras está en pausa para evitar "catch-up"
+                # al reanudar (dt grande -> muchos pasos de golpe).
+                last_step_time = time.perf_counter()
+                step_accum = 0.0
                 time.sleep(0.001)
                 continue
             if cmd == "reset":
