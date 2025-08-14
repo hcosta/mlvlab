@@ -52,6 +52,18 @@ mlv help mlv/ant-v1
 
 ---
 
+## 🚀 Ideas para potenciar más el entorno
+
+* ✅ Autocompletado en la terminal: Librerías como Typer (que ya usas) facilitan la creación de scripts de autocompletado para bash, zsh, etc. Esto le da un toque final de profesionalismo. **Requiere instalación del usuario**, autocompleta comandos `mlv` como `list`, `play`, etc:
+
+  ```bash
+  mlv --install-completion  # Implementado
+  ```
+* ⬜ Un comando `mlv clean`: Podría servir para realizar limpiezas de los archivos temporales en el directorio `data`, manteniendo el directorio de trabajo limpio.
+* ⬜ Un comando `mlv compare`: Podría recibir dos semillas (`mlv compare mlv/ant-v1 --seeds 123,456`) y mostrar una tabla resumen con las métricas finales de cada una, o incluso abrir el panel de análisis con ambos gráficos de recompensa superpuestos.
+
+--- 
+
 ## 💻 Desarrollo de Agentes (API)
 
 Puedes usar los entornos de MLV-Lab en tus propios proyectos de Python como cualquier otra librería de Gymnasium.

@@ -36,8 +36,47 @@ app = typer.Typer(
 # --- Comandos Principales ---
 
 
+def complete_env_id(incomplete: str):
+    """
+    Función de autocompletado que devuelve los IDs de entorno que coinciden.
+    """
+    all_env_ids = [env_id for env_id in gym.envs.registry.keys()
+                   if env_id.startswith("mlv/")]
+
+    for env_id in all_env_ids:
+        if env_id.startswith(incomplete):
+            yield env_id
+
+
+def complete_unit_id(incomplete: str):
+    """
+    Función de autocompletado que devuelve las unidades (colecciones) disponibles.
+    """
+    # Reutilizamos la misma lógica que ya tienes en el comando 'list'
+    all_env_ids = [env_id for env_id in gym.envs.registry.keys()
+                   if env_id.startswith("mlv/")]
+
+    env_id_to_unit: dict[str, str] = {}
+    for env_id in all_env_ids:
+        cfg = get_env_config(env_id)
+        unit = cfg.get("UNIT") or cfg.get("unit") or "otros"
+        env_id_to_unit[env_id] = str(unit)
+
+    unidades = sorted(set(env_id_to_unit.values()))
+
+    for unidad in unidades:
+        if unidad.startswith(incomplete):
+            yield unidad
+
+
 @app.command(name="list")
-def list_environments(unidad: Optional[str] = typer.Argument(None, help="Filtra por unidad (ej.: ql, sarsa, dqn, dqnp)")):
+def list_environments(
+    unidad: Optional[str] = typer.Argument(
+        None,
+        help="Filtra por unidad (ej.: ql, sarsa, dqn, dqnp)",
+        autocompletion=complete_unit_id
+    )
+):
     """Lista unidades disponibles o los entornos de una unidad concreta."""
     from rich.table import Table
 
@@ -84,7 +123,8 @@ def list_environments(unidad: Optional[str] = typer.Argument(None, help="Filtra 
 @app.command(name="play")
 def play(
     env_id: str = typer.Argument(...,
-                                 help="ID del entorno (e.g., mlv/ql/ant-v1)."),
+                                 help="ID del entorno a jugar (e.g., mlv/ant-v1).",
+                                 autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para reproducibilidad del mapa.")
 ):
@@ -112,7 +152,9 @@ def play(
 
 @app.command(name="train")
 def train(
-    env_id: str = typer.Argument(..., help="ID del entorno a entrenar."),
+    env_id: str = typer.Argument(...,
+                                 help="ID del entorno a entrenar(e.g., mlv/ant-v1).",
+                                 autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para el entrenamiento (si no se da, se genera una)."),
     eps: Optional[int] = typer.Option(
@@ -162,7 +204,9 @@ def train(
 
 @app.command(name="eval")
 def evaluate(
-    env_id: str = typer.Argument(..., help="ID del entorno a evaluar."),
+    env_id: str = typer.Argument(...,
+                                 help="ID del entorno a evaluar(e.g., mlv/ant-v1).",
+                                 autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
     episodes: int = typer.Option(
@@ -220,7 +264,9 @@ def evaluate(
 
 @app.command(name="help")
 def help_env(
-    env_id: str = typer.Argument(..., help="ID del entorno a inspeccionar.")
+    env_id: str = typer.Argument(...,
+                                 help="ID del entorno a inspeccionar (e.g., mlv/ant-v1).",
+                                 autocompletion=complete_env_id),
 ):
     """Muestra la ficha técnica y un enlace a la documentación del entorno."""
     try:

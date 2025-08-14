@@ -69,5 +69,5 @@ def main():
 
 
 # Para permitir multiprocessing y acelerar las demos
-if __name__ in {"__main__", "__mp_main__"}:
+if __name__ in {"__main__"}:
     main()
