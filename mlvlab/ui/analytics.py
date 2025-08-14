@@ -428,7 +428,7 @@ class AnalyticsView:
             app.shutdown()
 
         window = webview.create_window(
-            window_title, url, width=1280, height=800, maximized=True)
+            window_title, url, width=1280, height=800, maximized=True, zoomable=True)
         window.events.closing += on_closing
 
         print(f"🚀 Mostrando ventana nativa. Cargando {url}...")
