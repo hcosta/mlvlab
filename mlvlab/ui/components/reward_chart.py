@@ -13,7 +13,7 @@ class RewardChart(UIComponent):
         self._card = None
 
     def render(self, state, context: ComponentContext) -> None:
-        with ui.card().classes('w-full flex-grow') as chart_card:
+        with ui.card().classes('w-full') as chart_card:
             self._card = chart_card
             number = int(
                 state.get(['metrics', 'chart_reward_number']) or self.history_size)

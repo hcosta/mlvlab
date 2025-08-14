@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 Pipfile.lock
 MANIFIESTO.md
+env_tests/
 
 # learning/
 .venv/

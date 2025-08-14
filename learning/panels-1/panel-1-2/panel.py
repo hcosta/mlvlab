@@ -63,7 +63,7 @@ def main():
             ui.MetricsDashboard(),
             ui.RewardChart(history_size=100),
         ],
-        title="Ant Q-Learning Custom Logic",
+        title="Ant Q-Learning Custom Logics",
     )
     view.run()
 

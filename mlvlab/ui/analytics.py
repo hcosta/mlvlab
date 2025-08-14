@@ -1,74 +1,150 @@
+# mlvlab/ui/analytics.py
+
 from __future__ import annotations
 
-from typing import Any, List, Optional, Callable
+from typing import Any, List, Optional, Callable, Set, Dict
 import time
-from threading import Lock
-
-from nicegui import ui, app
-import numpy as np
+import threading
 import asyncio
-try:
-    from nicegui import Client  # type: ignore
-except Exception:  # pragma: no cover - compatibilidad
-    Client = object  # type: ignore
-from starlette.websockets import WebSocket
+from pathlib import Path
+import importlib.util
+
+from nicegui import ui, app, Client
+import numpy as np
+from starlette.responses import StreamingResponse
+from starlette.requests import Request
 
 from .state import StateStore
 from .runtime import SimulationRunner
 from mlvlab.core.trainer import Trainer
 from .components.base import ComponentContext, UIComponent
-from mlvlab.helpers.ng import setup_audio, frame_to_webp_bytes, create_reward_chart
+from mlvlab.helpers.ng import setup_audio, encode_frame_fast_jpeg, create_reward_chart
+
+# Variables globales para gestionar los hilos y el apagado
+_ACTIVE_THREADS: Dict[str, Any] = {
+    "renderer": None,
+    "runner": None,
+    "stream_tasks": {},  # Un diccionario para mapear client_id -> task
+}
 
 
-_ACTIVE_RUNNER = None  # runner activo en memoria (no persistente)
+# =============================================================================
+# Componentes para Streaming Optimizado (MJPEG @ 60 FPS)
+# =============================================================================
+
+
+class FrameBuffer:
+    """Buffer Thread-Safe para pasar frames desde el hilo de renderizado (Thread) al servidor (Asyncio)."""
+
+    def __init__(self):
+        self.current_frame = b""
+        self.lock = threading.Lock()
+        self.new_frame_event = asyncio.Event()
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop):
+        self.loop = loop
+
+    def update_frame(self, frame_bytes: bytes):
+        with self.lock:
+            self.current_frame = frame_bytes
+        if self.loop and not self.loop.is_closed():
+            self.loop.call_soon_threadsafe(self.new_frame_event.set)
+
+    async def get_next_frame(self):
+        """Espera y obtiene el siguiente fotograma (ejecutado en el bucle de eventos Asyncio)."""
+        await self.new_frame_event.wait()
+        self.new_frame_event.clear()
+        with self.lock:
+            return self.current_frame
+
+
+class RenderingThread(threading.Thread):
+    """Hilo dedicado para renderizar el entorno a la tasa de FPS objetivo."""
+
+    def __init__(self, env, agent, env_lock, buffer: FrameBuffer, state: StateStore, target_fps=60):
+        super().__init__(daemon=True)
+        self.env = env
+        self.agent = agent
+        self.env_lock = env_lock
+        self.buffer = buffer
+        self.state = state
+        self.target_fps = max(1, target_fps)
+        self.interval = 1.0 / self.target_fps
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    def run(self):
+        print(f"▶️ Hilo de Renderizado [ID: {self.ident}] iniciado.")
+        while not self._stop_event.is_set():
+            start_time = time.perf_counter()
+            try:
+                with self.env_lock:
+                    try:
+                        self.env.unwrapped.set_render_data(
+                            q_table=getattr(self.agent, 'q_table', None))
+                    except Exception:
+                        pass
+
+                    frame_np = self.env.render()
+
+                    try:
+                        last_step = int(self.state.get(
+                            ["sim", "total_steps"]) or 0)
+                        self.state.set(["ui", "last_frame_step"], last_step)
+                    except Exception:
+                        pass
+
+                frame_bytes = encode_frame_fast_jpeg(frame_np, quality=90)
+                if frame_bytes:
+                    self.buffer.update_frame(frame_bytes)
+
+            except Exception as e:
+                print(
+                    f"⚠️ Error en el hilo de renderizado [ID: {self.ident}]: {e}")
+                self._stop_event.wait(0.1)
+                continue
+
+            elapsed = time.perf_counter() - start_time
+            sleep_time = self.interval - elapsed
+            if sleep_time > 0:
+                self._stop_event.wait(timeout=sleep_time)
+
+        print(f"⏹️ Hilo de Renderizado [ID: {self.ident}] detenido.")
 
 
 class AnalyticsView:
-    """
-    Vista principal declarativa que arma el panel de análisis estándar (3 columnas).
-
-    Uso:
-        view = AnalyticsView(env, agent, left_panel_components=[...], right_panel_components=[...])
-        view.run()
-    """
+    """Vista principal declarativa que arma el panel de análisis estándar."""
 
     def __init__(
         self,
-        env: Any | None = None,
-        agent: Any | None = None,
-        trainer: Trainer | None = None,
+        env: Any | None = None, agent: Any | None = None, trainer: Trainer | None = None,
         left_panel_components: Optional[List[UIComponent]] = None,
         right_panel_components: Optional[List[UIComponent]] = None,
-        title: str = "MLVLab Analytics",
-        history_size: int = 100,
-        dark: bool = False,
-        subtitle: Optional[str] = None,
-        state_from_obs: Optional[Callable[..., Any]] = None,
+        title: str = "MLVLab Analytics", history_size: int = 100, dark: bool = False,
+        subtitle: Optional[str] = None, state_from_obs: Optional[Callable[..., Any]] = None,
         agent_hparams_defaults: Optional[dict] = None,
     ) -> None:
-        # Soportar API antigua (env, agent) y nueva (trainer explícito)
         self._trainer: Trainer | None = trainer
         if self._trainer is not None:
-            self.env = self._trainer.env
-            self.agent = self._trainer.agent
+            self.env, self.agent = self._trainer.env, self._trainer.agent
         else:
             if env is None or agent is None:
                 raise ValueError(
                     "Debes proporcionar 'trainer' o bien 'env' y 'agent'.")
-            self.env = env
-            self.agent = agent
+            self.env, self.agent = env, agent
+
         self.left_components = left_panel_components or []
         self.right_components = right_panel_components or []
         self.title = "MLVLab - " + title
         self.history_size = history_size
         self.dark = dark
         self.subtitle = subtitle
-
-        self.env_lock = Lock()
-        # Defaults de hiperparámetros (permitidos por el alumno)
+        self.env_lock = threading.Lock()
         self.user_hparams = agent_hparams_defaults or {}
 
-        # Inicializar el StateStore fusionando defaults con atributos actuales del agente
         agent_defaults = {
             'epsilon': float(getattr(self.agent, 'epsilon', 1.0) or 1.0),
             'epsilon_decay': float(getattr(self.agent, 'epsilon_decay', 0.99) or 0.99),
@@ -79,52 +155,27 @@ class AnalyticsView:
 
         self.state = StateStore(
             defaults={
-                "sim": {
-                    "command": "run",
-                    "speed_multiplier": 1,
-                    "turbo_mode": False,
-                    "total_steps": 0,
-                    "current_episode_reward": 0.0,
-                },
-                "agent": {
-                    **agent_defaults,
-                    **{k: float(v) for k, v in self.user_hparams.items()},
-                },
-                "metrics": {
-                    "episodes_completed": 0,
-                    "reward_history": [],
-                    "steps_per_second": 0,
-                    "chart_reward_number": history_size,
-                },
-                "ui": {
-                    "sound_enabled": False,
-                    "chart_visible": True,
-                },
+                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0},
+                "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
+                "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": history_size},
+                "ui": {"sound_enabled": False, "chart_visible": True},
             }
         )
 
-        # Determinar adaptador: prioridad Trainer.state_from_obs > parámetro > auto-resolver por entorno > agente.extract_state_from_obs
         trainer_adapter = getattr(
             self._trainer, 'state_from_obs', None) if self._trainer is not None else None
 
         def _auto_resolve_adapter():
             try:
-                import importlib
-                from importlib.util import spec_from_file_location, module_from_spec
-                from pathlib import Path
                 env_id = getattr(getattr(self.env, 'spec', None), 'id', '')
                 env_pkg = env_id.split('/')[-1] if '/' in env_id else env_id
                 env_pkg_us = env_pkg.replace('-', '_')
-
                 mod = None
-                # 1) Preferido: envs.<pkg>.adapters
                 try:
                     module_path_env = f"mlvlab.envs.{env_pkg_us}.adapters"
                     mod = importlib.import_module(module_path_env)
                 except Exception:
                     mod = None
-
-                # 2) Compat: agents.<pkg>.state
                 if mod is None:
                     try:
                         module_path_agents = f"mlvlab.agents.{env_pkg}.state"
@@ -135,70 +186,51 @@ class AnalyticsView:
                         file_path = base_dir / 'state.py'
                         if not file_path.exists():
                             return None
-                        spec = spec_from_file_location(
+                        spec = importlib.util.spec_from_file_location(
                             "mlvlab_env_state_module_ui", str(file_path))
                         if spec is None or spec.loader is None:
                             return None
-                        mod = module_from_spec(spec)
-                        spec.loader.exec_module(mod)  # type: ignore
+                        mod = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(mod)
                 fn = getattr(mod, 'obs_to_state', None)
                 if callable(fn):
                     return lambda obs: fn(obs, self.env)
             except Exception:
                 return None
             return None
-
         raw_fn = trainer_adapter if callable(trainer_adapter) else (
-            state_from_obs if callable(
-                state_from_obs) else _auto_resolve_adapter()
-        )
+            state_from_obs if callable(state_from_obs) else _auto_resolve_adapter())
         if not callable(raw_fn):
             raw_fn = getattr(self.agent, 'extract_state_from_obs', None)
         adapted_fn = self._build_state_from_obs_adapter(
             raw_fn) if callable(raw_fn) else None
 
-        # Siempre usar SimulationRunner (step-based) para respetar speed_multiplier y turbo como ayer
         self.runner = SimulationRunner(
-            env=self.env,
-            agent=self.agent,
-            state=self.state,
-            env_lock=self.env_lock,
-            state_from_obs=adapted_fn,
-        )
+            env=self.env, agent=self.agent, state=self.state, env_lock=self.env_lock, state_from_obs=adapted_fn)
+        self.frame_buffer = FrameBuffer()
+        self.target_fps = getattr(
+            self.env, 'metadata', {}).get("render_fps", 60)
+        self._reward_chart = None
 
-        self._reward_chart = None  # type: ignore
-
-    # -------------------------- Página principal -------------------------- #
     def _build_state_from_obs_adapter(self, fn: Callable[..., Any]) -> Callable[[Any], Any]:
-        """Adapta funciones flexibles (p.ej., get_state_from_pos(x, y, grid)) a callable(obs)->state.
-
-        - Si la función espera 1 arg: se le pasa `obs` tal cual.
-        - Si espera 2 args: asume (x, y) y los extrae de `obs`.
-        - Si espera 3+ args y tenemos `GRID_SIZE` del entorno, intenta (x, y, grid_size).
-        """
         try:
             from inspect import signature
             sig = signature(fn)
             num_params = len(sig.parameters)
         except Exception:
             num_params = 1
-
         grid_size = getattr(getattr(self.env, 'unwrapped',
                             self.env), 'GRID_SIZE', None)
 
         def adapter(obs: Any) -> Any:
             try:
-                # Si ya recibimos un estado discreto (int), no transformamos
                 if isinstance(obs, (int, np.integer)):
                     return int(obs)
-
                 if num_params <= 1:
                     return fn(obs)
-
-                # Solo intentamos extraer x,y si obs es indexable de longitud >= 2
                 if hasattr(obs, '__getitem__'):
                     try:
-                        if len(obs) >= 2:  # type: ignore[arg-type]
+                        if len(obs) >= 2:
                             x, y = int(obs[0]), int(obs[1])
                         else:
                             return obs
@@ -206,33 +238,59 @@ class AnalyticsView:
                         return obs
                 else:
                     return obs
-
                 if num_params == 2:
                     return fn(x, y)
                 if num_params >= 3 and grid_size is not None:
                     return fn(x, y, int(grid_size))
-                # fallback
                 return fn(obs)
             except Exception:
                 return obs
-
         return adapter
 
     def _build_page(self) -> None:
-        route = "/"
+        @app.get('/video_feed/{client_id}')
+        async def video_feed(request: Request, client_id: str):
+            async def mjpeg_stream_generator():
+                print(f"🔌 Cliente {client_id} conectado al stream de video.")
+                task = asyncio.current_task()
+                _ACTIVE_THREADS["stream_tasks"][client_id] = task
+                try:
+                    while True:
+                        if await request.is_disconnected():
+                            print(
+                                f"🔌 Cliente {client_id} desconectado (detectado por el servidor).")
+                            break
 
-        @ui.page(route)
-        def main(client: Client):  # type: ignore[override]
-            # Contexto por cliente: timers, bindings y utilidades
+                        try:
+                            frame = await asyncio.wait_for(
+                                self.frame_buffer.get_next_frame(),
+                                timeout=1.0
+                            )
+                            yield (b'--frame\r\n'
+                                   b'Content-Type: image/jpeg\r\n'
+                                   b'Content-Length: ' + str(len(frame)).encode() + b'\r\n\r\n' +
+                                   frame + b'\r\n')
+                            await asyncio.sleep(0.001)
+                        except asyncio.TimeoutError:
+                            continue
+                except asyncio.CancelledError:
+                    print(
+                        f"🔌 Stream task para cliente {client_id} fue cancelada explícitamente.")
+                finally:
+                    _ACTIVE_THREADS["stream_tasks"].pop(client_id, None)
+                    print(
+                        f"🔌 Stream de video para cliente {client_id} detenido limpiamente.")
+            return StreamingResponse(mjpeg_stream_generator(), media_type='multipart/x-mixed-replace; boundary=frame')
+
+        @ui.page("/")
+        def main_page(client: Client):
+            video_endpoint = f'/video_feed/{client.id}'
+
+            app.storage.client['reconnect_timeout'] = 3.0
             context = ComponentContext(
-                state=self.state,
-                env_lock=self.env_lock,
-            )
-
-            # Controles de cierre y audio
+                state=self.state, env_lock=self.env_lock)
             play_sound = setup_audio(self.env)
 
-            # Layout 3 columnas, con centro reservado al visualizador
             ui.label(self.title).classes(
                 'w-full text-2xl font-bold text-center mt-4 mb-1')
             if self.subtitle:
@@ -241,50 +299,30 @@ class AnalyticsView:
 
             with ui.element('div').classes('w-full flex justify-center'):
                 with ui.element('div').classes('w-full max-w-[1400px] flex flex-col lg:flex-row'):
-                    # Columna izquierda
                     with ui.column().classes('w-full lg:w-1/4 pb-4 lg:pr-2 lg:pb-0'):
                         for component in self.left_components:
                             component.render(self.state, context)
-
-                    # Columna central: environment viewer (canvas + WS)
                     with ui.column().classes('w-full lg:w-2/4 pb-4 lg:pb-0 lg:px-2 items-center'):
-                        from .components.environment_viewer import EnvironmentViewer
-
-                        viewer = EnvironmentViewer()
-                        viewer.render(self.state, context)
-                        # Registrar WS de frames por cliente
-                        self._register_frame_ws_route(client)
-
-                    # Columna derecha
+                        ui.image(video_endpoint).classes(
+                            'w-full h-auto border rounded shadow-lg bg-gray-200')
                     with ui.column().classes('w-full lg:w-1/4 lg:pl-2'):
                         for component in self.right_components:
                             component.render(self.state, context)
 
-            # Timer de render/metricas ~15 Hz
             def render_tick() -> None:
-                # Actualizar serie del chart si cambia
-                # Reproducir audio si hay señal y el sonido está activado
                 try:
                     pending_sound = self.state.get(["sim", "last_sound"])
                     if pending_sound and self.state.get(["ui", "sound_enabled"]):
-                        # Sincronización por step: reproducir si el evento corresponde a un frame ya dibujado
-                        try:
-                            evt_step = int(pending_sound.get("step", -1))
-                            last_frame_step = int(self.state.get(
-                                ["ui", "last_frame_step"]) or -1)
-                        except Exception:
-                            evt_step, last_frame_step = -1, -1
+                        evt_step = int(pending_sound.get("step", -1))
+                        last_frame_step = int(self.state.get(
+                            ["ui", "last_frame_step"]) or -1)
                         if evt_step < 0 or evt_step <= last_frame_step:
                             play_sound(pending_sound)
                             self.state.set(["sim", "last_sound"], None)
                 except Exception:
                     pass
-
-                # Calcular SPS cada ~0.5 s ya lo hace el runner; aquí no duplicamos
-
             context.register_timer(ui.timer(1/15, render_tick))
 
-            # Inyectar receptor de señal de cierre multi-pestaña
             ui.run_javascript(
                 """
                 (() => {
@@ -305,120 +343,91 @@ class AnalyticsView:
                 })();
                 """
             )
-
-        # Evitar herramienta no usada
         _ = create_reward_chart
 
-    # type: ignore[override]
-    def _register_frame_ws_route(self, client: Client) -> None:
-        """Registra un WebSocket que envía frames WebP a este cliente."""
-        ws_route = f"/ws/frame/{id(client)}"
-
-        async def frame_ws(websocket: WebSocket):
-            await websocket.accept()
-            try:
-                while True:
-                    with self.env_lock:
-                        # Permite overlays (Q-table, etc.) si el entorno lo soporta
-                        try:
-                            self.env.unwrapped.set_render_data(q_table=getattr(
-                                self.agent, 'q_table', None))  # type: ignore[attr-defined]
-                        except Exception:
-                            pass
-                        frame = self.env.render()
-                        # Registrar el step del último frame dibujado
-                        try:
-                            last_step = int(self.state.get(
-                                ["sim", "total_steps"]) or 0)
-                            self.state.set(
-                                ["ui", "last_frame_step"], last_step)
-                        except Exception:
-                            pass
-                    webp = frame_to_webp_bytes(frame, quality=100)
-                    await websocket.send_bytes(webp)
-                    await asyncio.sleep(1/30)  # ~30 FPS
-            except Exception:
-                pass
-
-        try:
-            app.add_websocket_route(ws_route, frame_ws)
-        except Exception:
-            # Compatibilidad: si ya existe, ignorar
-            pass
-
-        # JS para consumir el WS y pintar en canvas#viz_canvas si existe
-        ui.run_javascript(
-            f"""
-            (() => {{
-              const canvas = document.getElementById('viz_canvas');
-              if (!canvas) return;
-              const ctx = canvas.getContext('2d');
-              let url = (location.origin.replace(/^http/, 'ws')) + '{ws_route}';
-              const ws = new WebSocket(url);
-              ws.binaryType = 'arraybuffer';
-              ws.onmessage = async (ev) => {{
-                const blob = new Blob([ev.data], {{ type: 'image/webp' }});
-                const img = new Image();
-                img.onload = () => {{
-                  try {{ canvas.width = img.width; canvas.height = img.height; ctx.drawImage(img, 0, 0); }} catch (e) {{}}
-                }};
-                img.src = URL.createObjectURL(blob);
-              }};
-              ws.onopen = () => {{ console.debug('Frame WS abierto: {ws_route}'); }};
-              ws.onerror = (e) => {{ console.warn('Frame WS error', e); }};
-              ws.onclose = () => {{ console.debug('Frame WS cerrado'); }};
-            }})();
-            """
-        )
-
-    # ------------------------------ Ciclo de vida ------------------------------ #
     def run(self) -> None:
-        """Arranca la app NiceGUI y la simulación."""
+        """Arranca la app NiceGUI y los hilos de simulación/renderizado."""
 
-        def on_startup() -> None:
-            # Si hay un runner previo (por live-reload en el mismo proceso), detenerlo limpiamente
-            global _ACTIVE_RUNNER
-            try:
-                if _ACTIVE_RUNNER and _ACTIVE_RUNNER is not self.runner:
-                    stop = getattr(_ACTIVE_RUNNER, 'stop', None)
-                    if callable(stop):
-                        stop()
-            except Exception:
-                pass
-            # Normalizar estado de simulación para evitar turbo/velocidad extra al inicio
-            try:
-                self.state.set(["sim", "turbo_mode"], False)
-                speed = self.state.get(["sim", "speed_multiplier"]) or 1
-                try:
-                    speed = int(speed)
-                except Exception:
-                    speed = 1
-                self.state.set(["sim", "speed_multiplier"],
-                               max(1, min(50, speed)))
-                if not self.state.get(["sim", "command"]):
-                    self.state.set(["sim", "command"], "run")
-            except Exception:
-                try:
-                    self.state.set(["sim", "turbo_mode"], False)
-                    self.state.set(["sim", "speed_multiplier"], 1)
-                    self.state.set(["sim", "command"], "run")
-                except Exception:
-                    pass
-            _ACTIVE_RUNNER = self.runner
-            self.runner.start()
+        @app.on_disconnect
+        def client_disconnect_handler(client: Client):
+            print(f"🔌 Cliente {client.id} se ha desconectado.")
+            task = _ACTIVE_THREADS["stream_tasks"].pop(client.id, None)
+            if task:
+                print(
+                    f"... Cancelando tarea de stream para el cliente {client.id}")
+                task.cancel()
 
-        app.on_startup(on_startup)
+        # CAMBIO CLAVE: El shutdown handler ahora es asíncrono para no bloquear el bucle de eventos.
+        async def shutdown_handler():
+            """Función robusta para detener los hilos y tareas de forma segura."""
+            print("\n--- DETENIENDO APLICACIÓN (on_shutdown) ---")
 
-        @app.on_shutdown
-        def _shutdown_cleanup() -> None:  # pragma: no cover
-            global _ACTIVE_RUNNER
+            # 1. Cancelar todas las tareas de streaming y ESPERAR a que terminen.
+            tasks_to_cancel = list(_ACTIVE_THREADS["stream_tasks"].values())
+            if tasks_to_cancel:
+                print(
+                    f"... Cancelando {len(tasks_to_cancel)} tarea(s) de stream restantes...")
+                for task in tasks_to_cancel:
+                    task.cancel()
+                # Esperamos a que todas las cancelaciones se completen.
+                await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+            _ACTIVE_THREADS["stream_tasks"].clear()
+
+            # 2. Detener los hilos síncronos en un ejecutor para no bloquear.
+            renderer = _ACTIVE_THREADS.get("renderer")
+            runner = _ACTIVE_THREADS.get("runner")
+
+            def stop_threads_sync():
+                """Función síncrona que contiene las llamadas bloqueantes."""
+                if isinstance(renderer, threading.Thread) and renderer.is_alive():
+                    print(
+                        f"... Enviando señal de stop a Renderizador [ID: {renderer.ident}]")
+                    renderer.stop()
+                if isinstance(runner, threading.Thread) and hasattr(runner, 'stop') and runner.is_alive():
+                    print(
+                        f"... Enviando señal de stop a Runner [ID: {runner.ident}]")
+                    runner.stop()
+
+                if isinstance(renderer, threading.Thread) and renderer.is_alive():
+                    print(
+                        f"... Esperando a Renderizador [ID: {renderer.ident}]")
+                    renderer.join(timeout=1.0)
+                if isinstance(runner, threading.Thread) and runner.is_alive():
+                    print(f"... Esperando a Runner [ID: {runner.ident}]")
+                    runner.join(timeout=1.0)
+
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, stop_threads_sync)
+
+            _ACTIVE_THREADS["renderer"] = None
+            _ACTIVE_THREADS["runner"] = None
+            print("✅ Limpieza de shutdown completada.")
+
+        def startup_handler():
+            """Crea los nuevos hilos y prepara la aplicación para una nueva sesión."""
+            print("\n--- INICIANDO APLICACIÓN (on_startup) ---")
+
             try:
-                if self.runner is not None:
-                    self.runner.stop()
-            except Exception:
-                pass
-            _ACTIVE_RUNNER = None
-            # Sin hilo alternativo: todo va por SimulationRunner
+                loop = asyncio.get_running_loop()
+                self.frame_buffer.set_loop(loop)
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            print("▶️ Creando nuevos hilos...")
+
+            _ACTIVE_THREADS["renderer"] = RenderingThread(
+                env=self.env, agent=self.agent, env_lock=self.env_lock,
+                buffer=self.frame_buffer, state=self.state, target_fps=self.target_fps
+            )
+            _ACTIVE_THREADS["runner"] = self.runner
+
+            _ACTIVE_THREADS["renderer"].start()
+            _ACTIVE_THREADS["runner"].start()
+            print("✅ Startup completado.")
+
+        app.on_startup(startup_handler)
+        app.on_shutdown(shutdown_handler)
 
         self._build_page()
         ui.run(title=self.title, dark=self.dark, reload=True, show=False)

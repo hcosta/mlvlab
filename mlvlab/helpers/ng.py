@@ -1,6 +1,5 @@
-# mlvlab/utils.py
-
 import io
+import cv2
 import base64
 import numpy as np
 from PIL import Image
@@ -172,3 +171,26 @@ def frame_to_webp_bytes(frame: np.ndarray, quality: int = 80) -> bytes:
         pil_img.save(buffered, format="WEBP",
                      quality=int(max(1, min(100, quality))))
         return buffered.getvalue()
+
+
+def encode_frame_fast_jpeg(frame_np: np.ndarray, quality: int = 80) -> bytes:
+    """Codifica un frame (array de numpy RGB) a bytes JPEG usando OpenCV."""
+    # OpenCV trabaja con el formato de color BGR por defecto, mientras que los
+    # entornos de Gym/renderizado suelen dar RGB. La conversión es crucial.
+    if frame_np.ndim == 3 and frame_np.shape[2] == 3:
+        frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
+    else:
+        frame_bgr = frame_np  # Asumir que ya está en el formato correcto si no es RGB
+
+    # Parámetros de codificación, incluyendo la calidad del JPEG (0-100)
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+
+    # Codificar la imagen a un formato de memoria
+    result, encoded_image = cv2.imencode('.jpg', frame_bgr, encode_param)
+
+    if result:
+        # Convertir el array de numpy resultante a bytes
+        return encoded_image.tobytes()
+    else:
+        # Devolver bytes vacíos si la codificación falla
+        return b""
