@@ -159,6 +159,13 @@ class LostAntEnv(gym.Env):
         info = self._get_info()
         info.update(game_info)
 
+        # Disparamos el efecto de partículas como un evento si hay colisión.
+        if info.get("collided", False) and self.render_mode in ["human", "rgb_array"]:
+            self._lazy_init_renderer()
+            if self._renderer:
+                # Llamamos directamente a la función que genera las partículas.
+                self._renderer._spawn_collision_particles()
+
         # Añadir sonidos basados en el resultado
         if terminated:
             info['play_sound'] = {'filename': 'success.wav', 'volume': 10}

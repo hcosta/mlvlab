@@ -48,6 +48,7 @@ def main():
     # Por defecto, preservamos la seed entre episodios (mismo laberinto) salvo reset manual
     trainer = Trainer(env, agent, EpisodeLogicAnt())
     view = AnalyticsView(
+        dark=True,
         trainer=trainer,
         subtitle="Q-Learning con Lógica de Episodio Personalizada",
         left_panel_components=[

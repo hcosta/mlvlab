@@ -293,8 +293,12 @@ class ArcadeRenderer:
         self._update_rotation(delta_time, target_angle)
 
         # 3. Efectos (Partículas de Colisión)
-        if self.game.collided:
+        is_colliding_now = self.game.collided
+        if is_colliding_now and not self.was_colliding_last_frame:
             self._spawn_collision_particles()
+
+        # Actualizamos el estado para el siguiente frame.
+        self.was_colliding_last_frame = is_colliding_now
 
     def _update_particles(self, delta_time: float):
         # Actualizar todas las partículas
@@ -305,7 +309,10 @@ class ArcadeRenderer:
         self.particles = [p for p in self.particles if p.lifespan > 0]
 
     def _spawn_collision_particles(self):
-        # Genera partículas de polvo y estrellas en el punto de colisión.
+        # Guarda para evitar un error si se llama antes de la inicialización.
+        if self.ant_display_pos is None:
+            return
+        # Genera partículas de polvo y tierra en el punto de colisión.
         ax, ay = self.ant_display_pos
         cx, cy = self._cell_to_pixel(ax, ay)
 
@@ -316,7 +323,6 @@ class ArcadeRenderer:
 
         if action == 0:   # Arriba (Gym) -> Impacto desde arriba (Arcade Y es inverso)
             impact_vector = [0, -1]
-            # Spawn en la parte superior de la hormiga en pantalla
             spawn_y += self.CELL_SIZE * 0.3
         elif action == 1:  # Abajo (Gym) -> Impacto desde abajo
             impact_vector = [0, 1]
@@ -328,34 +334,30 @@ class ArcadeRenderer:
             impact_vector = [-1, 0]
             spawn_x += self.CELL_SIZE * 0.3
 
-        # Partículas de Polvo (Dust)
-        for _ in range(10):
-            # Velocidad basada en el vector de impacto más aleatoriedad
-            speed = self.rng_visual.uniform(2.0, 5.0)
-            angle_offset = self.rng_visual.uniform(-0.5, 0.5)  # Cone spread
+        # --- Partículas de Polvo/Tierra (Ajustadas) ---
+
+        # Un poco más de partículas para un "poof" más denso
+        for _ in range(15):
+            # 1. Velocidad más lenta para que parezcan motas de polvo a la deriva
+            speed = self.rng_visual.uniform(0.5, 2.5)
+            # Un cono de dispersión un poco más amplio
+            angle_offset = self.rng_visual.uniform(-0.8, 0.8)
             dx = (impact_vector[0] + angle_offset) * speed
-            dy = (impact_vector[1] + abs(angle_offset)) * \
-                speed  # Tienden a subir un poco visualmente
+            dy = (impact_vector[1] + abs(angle_offset)) * speed
 
-            lifespan = self.rng_visual.uniform(0.3, 0.8)
-            size = self.rng_visual.uniform(3, 7)
+            # 2. Aumentamos significativamente la vida de las partículas
+            lifespan = self.rng_visual.uniform(1.5, 3.0)
+
+            # Ligeramente más pequeñas para el efecto polvo
+            size = self.rng_visual.uniform(2, 6)
+
+            # 3. Reducimos la gravedad para que floten más tiempo en el aire
             p = ParticleFX(spawn_x, spawn_y, dx, dy, lifespan, size,
-                           self.COLOR_PARTICLE_DUST, gravity=0.3)
+                           self.COLOR_PARTICLE_DUST, gravity=0.1)
             self.particles.append(p)
 
-        # Partículas de Estrella (Impacto visual)
-        for _ in range(3):
-            speed = self.rng_visual.uniform(1.0, 3.0)
-            angle = self.rng_visual.uniform(0, math.pi * 2)
-            dx = math.cos(angle) * speed
-            dy = math.sin(angle) * speed
-
-            lifespan = self.rng_visual.uniform(0.5, 1.0)
-            size = self.rng_visual.uniform(2, 4)
-            # Estrellas no tienen gravedad fuerte
-            p = ParticleFX(spawn_x, spawn_y, dx, dy, lifespan, size,
-                           self.COLOR_PARTICLE_STAR, gravity=0.05)
-            self.particles.append(p)
+        # La sección de partículas de "Estrella" se ha eliminado para un efecto
+        # puramente de tierra/polvo, como solicitaste.
 
     # --- Funciones de Dibujo ---
     def _draw_static_elements(self):
@@ -636,10 +638,10 @@ class ArcadeRenderer:
             max(0, body_color[0]-50), max(0, body_color[1]-50), max(0, body_color[2]-50))
 
         head_radius = self.CELL_SIZE * 0.16 * SCALE
-        thorax_radius_x = self.CELL_SIZE * 0.13 * SCALE
-        thorax_radius_y = self.CELL_SIZE * 0.11 * SCALE
-        abdomen_radius_x = self.CELL_SIZE * 0.24 * SCALE
-        abdomen_radius_y = self.CELL_SIZE * 0.18 * SCALE
+        thorax_radius_x = self.CELL_SIZE * 0.21 * SCALE
+        thorax_radius_y = self.CELL_SIZE * 0.18 * SCALE
+        abdomen_radius_x = self.CELL_SIZE * 0.28 * SCALE
+        abdomen_radius_y = self.CELL_SIZE * 0.22 * SCALE
 
         # Función auxiliar para rotar puntos alrededor del centro
         angle_rad = math.radians(angle)
@@ -676,7 +678,7 @@ class ArcadeRenderer:
         oscillation = math.sin(t * animation_speed)
 
         # --- Dibujo de Patas (Ajustado por escala) ---
-        leg_length = self.CELL_SIZE * 0.22 * SCALE
+        leg_length = self.CELL_SIZE * 0.28 * SCALE
         leg_thickness = max(1, int(3 * SCALE))  # Grosor mínimo de 1px
 
         for side in [-1, 1]:
@@ -696,7 +698,7 @@ class ArcadeRenderer:
         shadow_offset_x, shadow_offset_y = 3 * SCALE, -3 * SCALE
 
         # Abdomen
-        abd_offset_x = -(thorax_radius_x + abdomen_radius_x*0.85)
+        abd_offset_x = -(thorax_radius_x + abdomen_radius_x*0.5)
         ax_rel, ay_rel = rotate(abd_offset_x, 0)
         # Sombra
         self.arcade.draw_ellipse_filled(cx + ax_rel + shadow_offset_x, cy + ay_rel + shadow_offset_y,
