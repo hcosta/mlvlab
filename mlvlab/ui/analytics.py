@@ -11,11 +11,13 @@ import importlib.util
 import sys
 
 # CAMBIO CLAVE: Importar webview y otras utilidades
-import webview
 from nicegui import ui, app, Client
 import numpy as np
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
+from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtCore import QUrl
 
 # Asumo que estos imports son de tu proyecto y correctos
 from .state import StateStore
@@ -32,11 +34,6 @@ _ACTIVE_THREADS: Dict[str, Any] = {
 }
 # Evento para sincronizar el inicio del servidor y la ventana
 _server_started = threading.Event()
-
-
-# =============================================================================
-# Componentes para Streaming Optimizado (MJPEG @ 60 FPS)
-# =============================================================================
 
 
 class FrameBuffer:
@@ -329,14 +326,13 @@ class AnalyticsView:
                     pass
             context.register_timer(ui.timer(1/15, render_tick))
 
-            ui.run_javascript(
-                "window.addEventListener('pywebviewready', () => pywebview.api.main_ready())")
-
         _ = create_reward_chart
 
-    # CAMBIO CLAVE: El método `run` ahora orquesta NiceGUI y PyWebview
+    # =========================================================================
+    # MÉTODO RUN REFACTORIZADO CON PYSIDE6
+    # =========================================================================
     def run(self, host='127.0.0.1', port=8181) -> None:
-        """Arranca la app NiceGUI en un hilo y la muestra en una ventana nativa con PyWebview."""
+        """Arranca la app NiceGUI en un hilo y la muestra en una ventana nativa con PySide6."""
 
         def run_nicegui():
             """Función que se ejecutará en un hilo para correr el servidor NiceGUI."""
@@ -346,42 +342,35 @@ class AnalyticsView:
                 port=port,
                 title=self.title,
                 dark=self.dark,
-                reload=False,  # El reload ya no lo gestiona NiceGUI
-                show=False,  # No queremos que abra un navegador
-                native=True,  # Modo nativo para integración
+                reload=False,
+                show=False,  # No queremos que NiceGUI abra un navegador
+                native=False,
             )
 
-        # 1. Registrar manejadores de ciclo de vida
+        # 1. Registrar manejadores de ciclo de vida de NiceGUI (sin cambios)
         @app.on_startup
         def startup_handler():
-            """Crea los nuevos hilos y prepara la aplicación para una nueva sesión."""
             print("\n--- INICIANDO APLICACIÓN (on_startup) ---")
-
             try:
                 loop = asyncio.get_running_loop()
                 self.frame_buffer.set_loop(loop)
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-
             print("▶️ Creando nuevos hilos de simulación/renderizado...")
-
             _ACTIVE_THREADS["renderer"] = RenderingThread(
                 env=self.env, agent=self.agent, env_lock=self.env_lock,
                 buffer=self.frame_buffer, state=self.state, target_fps=self.target_fps
             )
             _ACTIVE_THREADS["runner"] = self.runner
-
             _ACTIVE_THREADS["renderer"].start()
             _ACTIVE_THREADS["runner"].start()
             print("✅ Startup de hilos completado.")
-            _server_started.set()  # Notificar al hilo principal que el servidor está listo
+            _server_started.set()
 
         @app.on_shutdown
         async def shutdown_handler():
-            """Función robusta para detener los hilos y tareas de forma segura."""
             print("--- DETENIENDO APLICACIÓN (on_shutdown) ---")
-
             tasks_to_cancel = list(_ACTIVE_THREADS["stream_tasks"].values())
             if tasks_to_cancel:
                 print(
@@ -390,7 +379,6 @@ class AnalyticsView:
                     task.cancel()
                 await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
             _ACTIVE_THREADS["stream_tasks"].clear()
-
             renderer = _ACTIVE_THREADS.get("renderer")
             runner = _ACTIVE_THREADS.get("runner")
 
@@ -403,38 +391,45 @@ class AnalyticsView:
                     renderer.join(timeout=0.5)
                 if isinstance(runner, threading.Thread) and runner.is_alive():
                     runner.join(timeout=0.5)
-
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, stop_threads_sync)
-
             _ACTIVE_THREADS["renderer"] = None
             _ACTIVE_THREADS["runner"] = None
             print("✅ Limpieza de shutdown completada.")
 
-        # 2. Iniciar el servidor NiceGUI en un hilo separado
+        # 2. Iniciar el servidor NiceGUI en un hilo separado (sin cambios)
         nicegui_thread = threading.Thread(target=run_nicegui, daemon=True)
         nicegui_thread.start()
 
-        # 3. Esperar a que el servidor esté listo
+        # 3. Esperar a que el servidor esté listo (sin cambios)
         _server_started.wait()
 
-        # 4. Crear y mostrar la ventana nativa
-        window_title = self.title
-        url = f"http://{host}:{port}"
+        # 4. Crear y mostrar la ventana nativa con PySide6
+        qt_app = QApplication(sys.argv)
+        url = QUrl(f"http://{host}:{port}")
 
-        # Función que se ejecutará cuando la ventana se esté cerrando
-        def on_closing():
-            print("Ventana nativa cerrándose. Solicitando apagado de la aplicación...")
-            app.shutdown()
+        class MainWindow(QMainWindow):
+            def closeEvent(self, event):
+                """Sobrescribe el evento de cierre para apagar NiceGUI."""
+                print(
+                    "Ventana nativa cerrándose. Solicitando apagado de la aplicación...")
+                app.shutdown()
+                event.accept()
 
-        window = webview.create_window(
-            window_title, url, width=1280, height=800, maximized=True, zoomable=True)
-        window.events.closing += on_closing
+        window = MainWindow()
+        window.setWindowTitle(self.title)
+        window.setGeometry(100, 100, 1280, 800)  # x, y, ancho, alto
 
-        print(f"🚀 Mostrando ventana nativa. Cargando {url}...")
-        # debug=True para ver la consola del navegador
-        webview.start(debug=False)
+        # Crear el widget de vista web
+        web_view = QWebEngineView()
+        web_view.setUrl(url)
 
-        # Este punto solo se alcanza cuando la ventana se cierra
-        print("👋 Aplicación nativa finalizada.")
-        sys.exit()
+        # Establecer la vista web como el widget central de la ventana
+        window.setCentralWidget(web_view)
+        window.showMaximized()
+
+        print(
+            f"🚀 Mostrando ventana nativa con PySide6. Cargando {url.toString()}...")
+
+        # 5. Ejecutar la aplicación Qt (esto es un bucle bloqueante)
+        sys.exit(qt_app.exec())
