@@ -147,6 +147,7 @@ def create_reward_chart(container, number=None) -> ui.highchart:
         'credits': {'enabled': False},
         'xAxis': {'title': {'text': 'Episodio'}},
         'yAxis': {'title': {'text': None}},
+        'accessibility': {'enabled': False},
         'legend': {'enabled': False}
     }
     with container:

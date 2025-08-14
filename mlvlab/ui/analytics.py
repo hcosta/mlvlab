@@ -368,31 +368,55 @@ class AnalyticsView:
             print("✅ Startup de hilos completado.")
             _server_started.set()
 
+# En tu archivo mlvlab/ui/analytics.py, dentro del método run()
+
         @app.on_shutdown
-        async def shutdown_handler():
+        def shutdown_handler():
+            """Función robusta para detener los hilos y tareas de forma segura."""
             print("--- DETENIENDO APLICACIÓN (on_shutdown) ---")
-            tasks_to_cancel = list(_ACTIVE_THREADS["stream_tasks"].values())
-            if tasks_to_cancel:
+
+            # Define la corrutina que debe ejecutarse en el bucle de eventos
+            async def cancel_streams():
+                tasks_to_cancel = list(
+                    _ACTIVE_THREADS["stream_tasks"].values())
+                if tasks_to_cancel:
+                    print(
+                        f"... Cancelando {len(tasks_to_cancel)} tarea(s) de stream...")
+                    for task in tasks_to_cancel:
+                        task.cancel()
+                    # Espera a que todas las tareas de cancelación finalicen
+                    await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+                _ACTIVE_THREADS["stream_tasks"].clear()
+
+            # Usa el método seguro para ejecutar una corrutina desde un contexto síncrono
+            try:
+                loop = asyncio.get_running_loop()
+                # Envía la corrutina al bucle en ejecución y obtiene un 'futuro'
+                future = asyncio.run_coroutine_threadsafe(
+                    cancel_streams(), loop)
+                # Espera a que el futuro se complete con un timeout
+                future.result(timeout=2.0)
+                print("... Tareas de stream canceladas de forma segura.")
+            except (RuntimeError, TimeoutError) as e:
+                # Si no se puede obtener el bucle o hay un timeout, informa del error
                 print(
-                    f"... Cancelando {len(tasks_to_cancel)} tarea(s) de stream...")
-                for task in tasks_to_cancel:
-                    task.cancel()
-                await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
-            _ACTIVE_THREADS["stream_tasks"].clear()
+                    f"⚠️ No se pudieron cancelar las tareas de stream limpiamente: {e}")
+
+            # Ahora, el resto del código síncrono se ejecuta como antes
             renderer = _ACTIVE_THREADS.get("renderer")
             runner = _ACTIVE_THREADS.get("runner")
 
-            def stop_threads_sync():
-                if isinstance(renderer, threading.Thread) and renderer.is_alive():
-                    renderer.stop()
-                if isinstance(runner, threading.Thread) and hasattr(runner, 'stop') and runner.is_alive():
-                    runner.stop()
-                if isinstance(renderer, threading.Thread) and renderer.is_alive():
-                    renderer.join(timeout=0.5)
-                if isinstance(runner, threading.Thread) and runner.is_alive():
-                    runner.join(timeout=0.5)
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, stop_threads_sync)
+            print("... Deteniendo hilos de renderizado y simulación...")
+            if isinstance(renderer, threading.Thread) and renderer.is_alive():
+                renderer.stop()
+            if isinstance(runner, threading.Thread) and hasattr(runner, 'stop') and runner.is_alive():
+                runner.stop()
+
+            if isinstance(renderer, threading.Thread) and renderer.is_alive():
+                renderer.join(timeout=1.0)
+            if isinstance(runner, threading.Thread) and runner.is_alive():
+                runner.join(timeout=1.0)
+
             _ACTIVE_THREADS["renderer"] = None
             _ACTIVE_THREADS["runner"] = None
             print("✅ Limpieza de shutdown completada.")
