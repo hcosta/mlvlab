@@ -103,6 +103,7 @@ class Trainer:
         self.env = env
         self.agent = agent
 
+        # --- MODIFICACIÓN ---
         # Si se pasa la clase en lugar de una instancia, la instanciamos aquí.
         if inspect.isclass(logic):
             self._logic = logic()
@@ -113,7 +114,7 @@ class Trainer:
         # Si no se pasó state_from_obs, intentar extraerlo de logic.obs_to_state
         if state_from_obs is None:
             try:
-                candidate = getattr(logic, 'obs_to_state', None)
+                candidate = getattr(self._logic, 'obs_to_state', None)
                 if callable(candidate):
                     self._state_from_obs = lambda obs: candidate(obs, self.env)
                 else:

@@ -77,5 +77,5 @@ class SimulationControls(UIComponent):
                     ), 'ui', lambda s: 'volume_up' if s.get('sound_enabled') else 'volume_off')
 
                 # Cierre
-                ui.button(on_click=dialog.open).props(
-                    'icon=close outline color="red"')
+                # ui.button(on_click=dialog.open).props(
+                #     'icon=close outline color="red"')

@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Callable, Set, Dict
+from typing import Any, List, Optional, Callable, Dict
 import time
 import threading
 import asyncio
 from pathlib import Path
 import importlib.util
+import sys
 
+# CAMBIO CLAVE: Importar webview y otras utilidades
+import webview
 from nicegui import ui, app, Client
 import numpy as np
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
 
+# Asumo que estos imports son de tu proyecto y correctos
 from .state import StateStore
 from .runtime import SimulationRunner
 from mlvlab.core.trainer import Trainer
@@ -24,8 +28,10 @@ from mlvlab.helpers.ng import setup_audio, encode_frame_fast_jpeg, create_reward
 _ACTIVE_THREADS: Dict[str, Any] = {
     "renderer": None,
     "runner": None,
-    "stream_tasks": {},  # Un diccionario para mapear client_id -> task
+    "stream_tasks": {},
 }
+# Evento para sincronizar el inicio del servidor y la ventana
+_server_started = threading.Event()
 
 
 # =============================================================================
@@ -158,7 +164,7 @@ class AnalyticsView:
                 "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0},
                 "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
                 "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": history_size},
-                "ui": {"sound_enabled": False, "chart_visible": True},
+                "ui": {"sound_enabled": True, "chart_visible": True},
             }
         )
 
@@ -324,85 +330,29 @@ class AnalyticsView:
             context.register_timer(ui.timer(1/15, render_tick))
 
             ui.run_javascript(
-                """
-                (() => {
-                  if (window.__mlvlabShutdownInit) return;
-                  window.__mlvlabShutdownInit = true;
-                  const closeSelf = () => {
-                    try { window.close(); } catch (e) {}
-                    try { location.replace('about:blank'); } catch (e) {}
-                    try { location.href = 'about:blank'; } catch (e) {}
-                  };
-                  try {
-                    const bc = new BroadcastChannel('mlvlab-shutdown');
-                    bc.onmessage = ev => { if (ev && ev.data === 'shutdown') closeSelf(); };
-                  } catch (e) {}
-                  window.addEventListener('storage', (e) => {
-                    if (e.key === 'mlvlab_shutdown_signal') closeSelf();
-                  });
-                })();
-                """
-            )
+                "window.addEventListener('pywebviewready', () => pywebview.api.main_ready())")
+
         _ = create_reward_chart
 
-    def run(self) -> None:
-        """Arranca la app NiceGUI y los hilos de simulación/renderizado."""
+    # CAMBIO CLAVE: El método `run` ahora orquesta NiceGUI y PyWebview
+    def run(self, host='127.0.0.1', port=8181) -> None:
+        """Arranca la app NiceGUI en un hilo y la muestra en una ventana nativa con PyWebview."""
 
-        @app.on_disconnect
-        def client_disconnect_handler(client: Client):
-            print(f"🔌 Cliente {client.id} se ha desconectado.")
-            task = _ACTIVE_THREADS["stream_tasks"].pop(client.id, None)
-            if task:
-                print(
-                    f"... Cancelando tarea de stream para el cliente {client.id}")
-                task.cancel()
+        def run_nicegui():
+            """Función que se ejecutará en un hilo para correr el servidor NiceGUI."""
+            self._build_page()
+            ui.run(
+                host=host,
+                port=port,
+                title=self.title,
+                dark=self.dark,
+                reload=False,  # El reload ya no lo gestiona NiceGUI
+                show=False,  # No queremos que abra un navegador
+                native=True,  # Modo nativo para integración
+            )
 
-        # CAMBIO CLAVE: El shutdown handler ahora es asíncrono para no bloquear el bucle de eventos.
-        async def shutdown_handler():
-            """Función robusta para detener los hilos y tareas de forma segura."""
-            print("\n--- DETENIENDO APLICACIÓN (on_shutdown) ---")
-
-            # 1. Cancelar todas las tareas de streaming y ESPERAR a que terminen.
-            tasks_to_cancel = list(_ACTIVE_THREADS["stream_tasks"].values())
-            if tasks_to_cancel:
-                print(
-                    f"... Cancelando {len(tasks_to_cancel)} tarea(s) de stream restantes...")
-                for task in tasks_to_cancel:
-                    task.cancel()
-                # Esperamos a que todas las cancelaciones se completen.
-                await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
-            _ACTIVE_THREADS["stream_tasks"].clear()
-
-            # 2. Detener los hilos síncronos en un ejecutor para no bloquear.
-            renderer = _ACTIVE_THREADS.get("renderer")
-            runner = _ACTIVE_THREADS.get("runner")
-
-            def stop_threads_sync():
-                """Función síncrona que contiene las llamadas bloqueantes."""
-                if isinstance(renderer, threading.Thread) and renderer.is_alive():
-                    print(
-                        f"... Enviando señal de stop a Renderizador [ID: {renderer.ident}]")
-                    renderer.stop()
-                if isinstance(runner, threading.Thread) and hasattr(runner, 'stop') and runner.is_alive():
-                    print(
-                        f"... Enviando señal de stop a Runner [ID: {runner.ident}]")
-                    runner.stop()
-
-                if isinstance(renderer, threading.Thread) and renderer.is_alive():
-                    print(
-                        f"... Esperando a Renderizador [ID: {renderer.ident}]")
-                    renderer.join(timeout=1.0)
-                if isinstance(runner, threading.Thread) and runner.is_alive():
-                    print(f"... Esperando a Runner [ID: {runner.ident}]")
-                    runner.join(timeout=1.0)
-
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, stop_threads_sync)
-
-            _ACTIVE_THREADS["renderer"] = None
-            _ACTIVE_THREADS["runner"] = None
-            print("✅ Limpieza de shutdown completada.")
-
+        # 1. Registrar manejadores de ciclo de vida
+        @app.on_startup
         def startup_handler():
             """Crea los nuevos hilos y prepara la aplicación para una nueva sesión."""
             print("\n--- INICIANDO APLICACIÓN (on_startup) ---")
@@ -414,7 +364,7 @@ class AnalyticsView:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-            print("▶️ Creando nuevos hilos...")
+            print("▶️ Creando nuevos hilos de simulación/renderizado...")
 
             _ACTIVE_THREADS["renderer"] = RenderingThread(
                 env=self.env, agent=self.agent, env_lock=self.env_lock,
@@ -424,10 +374,67 @@ class AnalyticsView:
 
             _ACTIVE_THREADS["renderer"].start()
             _ACTIVE_THREADS["runner"].start()
-            print("✅ Startup completado.")
+            print("✅ Startup de hilos completado.")
+            _server_started.set()  # Notificar al hilo principal que el servidor está listo
 
-        app.on_startup(startup_handler)
-        app.on_shutdown(shutdown_handler)
+        @app.on_shutdown
+        async def shutdown_handler():
+            """Función robusta para detener los hilos y tareas de forma segura."""
+            print("--- DETENIENDO APLICACIÓN (on_shutdown) ---")
 
-        self._build_page()
-        ui.run(title=self.title, dark=self.dark, reload=True, show=False)
+            tasks_to_cancel = list(_ACTIVE_THREADS["stream_tasks"].values())
+            if tasks_to_cancel:
+                print(
+                    f"... Cancelando {len(tasks_to_cancel)} tarea(s) de stream...")
+                for task in tasks_to_cancel:
+                    task.cancel()
+                await asyncio.gather(*tasks_to_cancel, return_exceptions=True)
+            _ACTIVE_THREADS["stream_tasks"].clear()
+
+            renderer = _ACTIVE_THREADS.get("renderer")
+            runner = _ACTIVE_THREADS.get("runner")
+
+            def stop_threads_sync():
+                if isinstance(renderer, threading.Thread) and renderer.is_alive():
+                    renderer.stop()
+                if isinstance(runner, threading.Thread) and hasattr(runner, 'stop') and runner.is_alive():
+                    runner.stop()
+                if isinstance(renderer, threading.Thread) and renderer.is_alive():
+                    renderer.join(timeout=0.5)
+                if isinstance(runner, threading.Thread) and runner.is_alive():
+                    runner.join(timeout=0.5)
+
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, stop_threads_sync)
+
+            _ACTIVE_THREADS["renderer"] = None
+            _ACTIVE_THREADS["runner"] = None
+            print("✅ Limpieza de shutdown completada.")
+
+        # 2. Iniciar el servidor NiceGUI en un hilo separado
+        nicegui_thread = threading.Thread(target=run_nicegui, daemon=True)
+        nicegui_thread.start()
+
+        # 3. Esperar a que el servidor esté listo
+        _server_started.wait()
+
+        # 4. Crear y mostrar la ventana nativa
+        window_title = self.title
+        url = f"http://{host}:{port}"
+
+        # Función que se ejecutará cuando la ventana se esté cerrando
+        def on_closing():
+            print("Ventana nativa cerrándose. Solicitando apagado de la aplicación...")
+            app.shutdown()
+
+        window = webview.create_window(
+            window_title, url, width=1280, height=800, maximized=True)
+        window.events.closing += on_closing
+
+        print(f"🚀 Mostrando ventana nativa. Cargando {url}...")
+        # debug=True para ver la consola del navegador
+        webview.start(debug=False)
+
+        # Este punto solo se alcanza cuando la ventana se cierra
+        print("👋 Aplicación nativa finalizada.")
+        sys.exit()
