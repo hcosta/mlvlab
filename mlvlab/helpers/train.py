@@ -18,17 +18,27 @@ def train_with_state_adapter(
     on_render_frame: Optional[Callable[[gym.Env, object], None]] = None,
 ) -> Path:
     """
-    Entrena un agente construido por `agent_builder` contra `env_id` durante `total_episodes`.
-    `state_adapter` traduce la observación a índice discreto (o estado) para Q-Learning.
-    Si `render=True`, hace render y permite overlay/acciones via `on_render_frame`.
-    Guarda `q_table.npy` si el agente expone `.q_table` y devuelve su ruta.
+    Entrena un agente... (ver docstring original)
     """
     env = gym.make(env_id, render_mode=("human" if render else None))
+
+    # --- AJUSTE DE ALEATORIEDAD PARA ENTRENAMIENTO ---
+    # Para Q-Learning 1:1, necesitamos que el mapa sea fijo (determinado por la semilla)
+    # pero que la posición inicial sea aleatoria en cada episodio para explorar el espacio de estados.
+    # Si el entorno lo soporta, activamos el modo de respawn aleatorio (unseeded).
+    try:
+        if hasattr(env.unwrapped, "set_respawn_unseeded"):
+            env.unwrapped.set_respawn_unseeded(True)
+            print("ℹ️  Configurado respawn aleatorio (unseeded) para entrenamiento.")
+    except Exception as e:
+        print(
+            f"⚠️ Advertencia: No se pudo configurar el respawn aleatorio: {e}")
+    # --------------------------------------------------
 
     # Construir agente
     agent = agent_builder(env)
 
-    # Reset inicial con semilla si se proporciona
+    # Reset inicial con semilla si se proporciona (Fija el mapa)
     obs, info = env.reset(seed=seed)
 
     # Parámetros por defecto: obtenidos del propio agente si existen
@@ -55,6 +65,7 @@ def train_with_state_adapter(
 
     for episode in track(range(total_episodes), description="Entrenando..."):
         if episode > 0:
+            # En episodios subsiguientes, reset() reutiliza el mapa pero randomiza la posición (gracias al ajuste inicial)
             obs, info = env.reset()
 
         terminated, truncated = False, False

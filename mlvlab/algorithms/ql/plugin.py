@@ -79,18 +79,23 @@ class QLearningPlugin:
             on_render_frame=on_render,
         )
 
-    def eval(self, env_id: str, run_dir: Path, episodes: int, seed: Optional[int] = None, cleanup: bool = True, video: bool = False) -> Optional[str]:
+    def eval(self, env_id: str, run_dir: Path, **kwargs: Any) -> Optional[str]:
         def builder(env: gym.Env) -> QLearningAgent:
             return self.build_agent(env, {})
 
+        # --- TRADUCTOR DE PARÁMETRO: de 'video' a 'record' ---
+        # Comprobamos si el argumento 'video' viene en los kwargs
+        if 'video' in kwargs:
+            # Creamos la clave 'record' con el valor de 'video' y eliminamos la clave 'video'.
+            kwargs['record'] = kwargs.pop('video')
+        # ----------------------------------------------------
+
+        # Ahora pasamos los argumentos corregidos a la función final
         evaluate_with_optional_recording(
             env_id=env_id,
             run_dir=run_dir,
-            episodes=int(episodes),
             agent_builder=builder,
-            seed=seed,
-            record=video,
-            cleanup=cleanup,
+            **kwargs
         )
         return None
 

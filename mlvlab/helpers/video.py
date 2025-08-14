@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from typing import List
 from moviepy import VideoFileClip, TextClip, CompositeVideoClip, concatenate_videoclips
+from moviepy.video.fx.MultiplySpeed import MultiplySpeed
 
 
 def merge_videos_with_counter(
@@ -11,6 +12,7 @@ def merge_videos_with_counter(
     output_filename: str | os.PathLike,
     font_path: str | os.PathLike | None = None,
     cleanup: bool = True,
+    speed_multiplier: float = 1.0,
 ) -> bool:
     """
     Une todos los vídeos MP4 en `video_folder` en orden alfanumérico y añade un contador
@@ -38,6 +40,11 @@ def merge_videos_with_counter(
             filepath = os.path.join(folder, filename)
             try:
                 clip = VideoFileClip(filepath)
+                if speed_multiplier != 1.0:
+                    # 1. Creamos una instancia del efecto con el factor de velocidad
+                    speed_effect = MultiplySpeed(factor=speed_multiplier)
+                    # 2. Aplicamos el efecto al clip usando su método .apply()
+                    clip = speed_effect.apply(clip)
                 clips_originales.append(clip)
 
                 texto = f"{i}/{total_episodes}  \n"

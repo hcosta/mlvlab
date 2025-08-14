@@ -158,9 +158,9 @@ def train(
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para el entrenamiento (si no se da, se genera una)."),
     eps: Optional[int] = typer.Option(
-        None, "--eps", help="Sobrescribir el número de episodios."),
+        None, "--eps", "-e", help="Sobrescribir el número de episodios."),
     render: bool = typer.Option(
-        False, "--render", help="Renderizar el entrenamiento en tiempo real (lento).")
+        False, "--render", "-r", help="Renderizar el entrenamiento en tiempo real (lento).")
 ):
     """Entrena un agente. Si no se especifica una semilla, se genera una aleatoria."""
     config = get_env_config(env_id)
@@ -211,10 +211,14 @@ def evaluate(
         None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
     episodes: int = typer.Option(
         5, "--eps", "-e", help="Número de episodios a ejecutar."),
+    # <--- 1. AÑADE LA NUEVA OPCIÓN DE VELOCIDAD AQUÍ ---
+    speed: float = typer.Option(
+        1.0, "--speed", "-sp", help="Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad)."),
+    # ---------------------------------------------------
     no_cleanup: bool = typer.Option(
-        False, "--no-cleanup", help="Conserva los vídeos temporales de cada episodio (solo si --record)."),
+        False, "--no-cleanup", "-nc", help="Conserva los vídeos temporales de cada episodio (solo si --record)."),
     record: bool = typer.Option(
-        False, "--record", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
+        False, "--rec", "-r", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
 ):
     """Evalúa un 'run'. Por defecto se visualiza en modo interactivo; usa --record para grabar."""
     run_dir = None
@@ -245,7 +249,7 @@ def evaluate(
 
     # Nuevo: usar registro de algoritmos (asegurar carga de plugins)
     try:
-        import mlvlab.algorithms as _mlv_algos  # activa auto-registro de plugins
+        import mlvlab.algorithms as _mlv_algos
         from mlvlab.algorithms.registry import get_algorithm
         algo = get_algorithm(str(algorithm_key))
         algo.eval(
@@ -255,6 +259,7 @@ def evaluate(
             seed=eval_seed,
             cleanup=not no_cleanup,
             video=record,
+            speed=speed
         )
     except Exception as e:
         console.print(

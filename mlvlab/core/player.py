@@ -90,17 +90,27 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
     window.push_handlers(on_key_press=on_key_press, on_close=on_close)
 
     # Bucle principal
-    target_dt = 1.0 / 30.0
+    target_dt = 1.0 / 60.0
+    terminated = False
+    truncated = False
     while running:
-        # Procesar eventos de ventana
+        # 1. Procesar eventos de ventana (input del usuario)
         window.dispatch_events()
 
-        # Ejecutar acción si hay pendiente
+        # 2. Si el episodio anterior terminó, reiniciamos y volvemos al inicio del bucle.
+        if terminated or truncated:
+            # print("Episodio terminado. Reiniciando automáticamente...")
+            time.sleep(.75)
+            obs, info = env.reset()
+            terminated, truncated = False, False  # Reseteamos las banderas
+            continue  # Saltamos al siguiente ciclo del bucle
+
+        # 3. Si hay una acción del usuario, la ejecutamos.
         if pending_action is not None:
             obs, reward, terminated, truncated, info = env.step(pending_action)
             pending_action = None
 
-            # Reproducción de sonido (pyglet)
+            # Tu código de sonido original va aquí.
             if 'play_sound' in info:
                 sound_data = info['play_sound']
                 filename = sound_data.get('filename')
@@ -126,13 +136,17 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
                         player.queue(source)
                         player.play()
 
-            if terminated or truncated:
-                obs, info = env.reset()
+        # 4. Si el entorno está en su animación final, le damos un "tick" para que continúe.
+        #    Esto es un pequeño "hack" para no cambiar el entorno. Usamos una acción cualquiera (e.g., 0)
+        #    porque en este estado, el entorno la ignorará y solo avanzará la animación.
+        elif getattr(env.unwrapped, '_logical_terminated', False):
+            obs, reward, terminated, truncated, info = env.step(
+                0)  # Le damos un "tick"
 
-        # Render del entorno
+        # 5. Renderizamos siempre para que la ventana y las animaciones fluyan.
         env.render()
 
-        # Pequeña pausa para controlar FPS
+        # Pausa para controlar FPS
         time.sleep(target_dt)
 
     # Limpieza

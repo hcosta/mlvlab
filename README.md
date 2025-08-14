@@ -171,8 +171,8 @@ Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<e
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del entrenamiento. Si no se indica, se genera una aleatoria y se muestra por pantalla.
-  - **--eps**: Número de episodios (sobrescribe el valor de la configuración baseline del entorno).
-  - **--render**: Renderiza el entrenamiento en tiempo real. Nota: esto puede ralentizar significativamente el entrenamiento.
+  - **--eps, -e**: Número de episodios (sobrescribe el valor de la configuración baseline del entorno).
+  - **--render, -r**: Renderiza el entrenamiento en tiempo real. Nota: esto puede ralentizar significativamente el entrenamiento.
 
 Ejemplo:
 
@@ -189,8 +189,9 @@ Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
   - **--eps, -e**: Número de episodios a ejecutar durante la evaluación. Por defecto: 5.
-  - **--record**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
-  - **--no-cleanup**: Conserva los vídeos temporales por episodio cuando se usa `--record`.
+  - **--rec, -r**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
+  - **--speed, -sp**: Factor de multiplicación de velocidad, por defecto es `1.0`, para verlo a la mitad poner `.5`.
+  - **--no-cleanup, -nc**: Conserva los vídeos temporales por episodio cuando se usa `--record`.
 
 Ejemplos:
 

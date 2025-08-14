@@ -3,12 +3,20 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Callable, Optional
+import time
 
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 from rich.progress import track
 
-from .video import merge_videos_with_counter
+# Asumiendo que merge_videos_with_counter está disponible
+try:
+    from .video import merge_videos_with_counter
+except ImportError:
+    # Fallback dummy si no está disponible
+    def merge_videos_with_counter(*args, **kwargs):
+        print("⚠️ Utilidad de vídeo no encontrada.")
+        return False
 
 
 def evaluate_with_optional_recording(
@@ -19,6 +27,7 @@ def evaluate_with_optional_recording(
     seed: Optional[int] = None,
     record: bool = False,
     cleanup: bool = True,
+    speed: float = 1.0,  # <--- 2. AÑADE speed A LA FIRMA DE LA FUNCIÓN
 ) -> Optional[Path]:
     """
     Evalúa un agente construido por `agent_builder` en `env_id` durante `episodes` episodios.
@@ -41,6 +50,19 @@ def evaluate_with_optional_recording(
                           episode_trigger=lambda x: True)
     else:
         env = gym.make(env_id, render_mode="human")
+
+    # --- AJUSTE DE ALEATORIEDAD PARA EVALUACIÓN ---
+    # Para la evaluación, queremos que sea 100% determinista si se proporciona una semilla.
+    # Esto significa mismo mapa Y mismas posiciones iniciales.
+    # Si el entorno lo soporta, desactivamos el modo de respawn aleatorio (unseeded).
+    try:
+        if hasattr(env.unwrapped, "set_respawn_unseeded"):
+            env.unwrapped.set_respawn_unseeded(False)
+            print("ℹ️  Configurado respawn determinista (seeded) para evaluación.")
+    except Exception as e:
+        print(
+            f"⚠️ Advertencia: No se pudo configurar el respawn determinista: {e}")
+    # --------------------------------------------------
 
     # Construcción del agente (el builder debe configurarlo para este env)
     agent = agent_builder(env)
@@ -80,6 +102,13 @@ def evaluate_with_optional_recording(
             obs, reward, terminated, truncated, info = env.step(action)
             if not record:
                 env.render()
+                # Calcula el retraso basado en los FPS del entorno y el multiplicador de velocidad
+                target_fps = env.metadata.get("render_fps", 60)
+                base_delay = 1.0 / target_fps
+                # Aseguramos que la velocidad no sea cero o negativa
+                effective_speed = max(speed, 0.01)
+                actual_delay = base_delay / effective_speed
+                time.sleep(actual_delay)
 
     env.close()
 
@@ -93,6 +122,7 @@ def evaluate_with_optional_recording(
         str(final_video_path),
         font_path=None,
         cleanup=cleanup,
+        speed_multiplier=speed
     )
     if cleanup:
         if os.path.exists(temp_folder):

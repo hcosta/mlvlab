@@ -100,7 +100,7 @@ class RenderingThread(threading.Thread):
                     except Exception:
                         pass
 
-                frame_bytes = encode_frame_fast_jpeg(frame_np, quality=90)
+                frame_bytes = encode_frame_fast_jpeg(frame_np, quality=80)
                 if frame_bytes:
                     self.buffer.update_frame(frame_bytes)
 
