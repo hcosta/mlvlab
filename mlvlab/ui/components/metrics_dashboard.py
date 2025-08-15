@@ -17,6 +17,6 @@ class MetricsDashboard(UIComponent):
             ui.label().bind_text_from(state.full(), 'metrics',
                                       lambda m: f"Episodios Completados: {m.get('episodes_completed', 0)}")
             ui.label().bind_text_from(state.full(), 'metrics',
-                                      lambda m: f"Pasos/seg: {m.get('steps_per_second', 0):,d}")
-            ui.button('Mostrar/Esconder Gráfico', on_click=lambda: state.set(['ui', 'chart_visible'], not bool(
-                state.get(['ui', 'chart_visible'])))).props('icon=bar_chart outline w-full')
+                                      lambda m: f"Acciones por Segundo: {m.get('steps_per_second', 0):,d}")
+            # ui.button('Mostrar/Esconder Gráfico', on_click=lambda: state.set(['ui', 'chart_visible'], not bool(
+            #     state.get(['ui', 'chart_visible'])))).props('icon=bar_chart outline w-full')

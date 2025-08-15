@@ -13,5 +13,5 @@ class EnvironmentViewer(UIComponent):
     def render(self, state, context: ComponentContext) -> None:
         with ui.card().classes('w-full p-0 bg-black flex justify-center items-center'):
             canvas = ui.element('canvas').classes(
-                'max-w-[550px]').style('width: 100%; height: auto;')
+                'max-w-[500px]').style('width: 100%; height: auto;')
             canvas.props('id=viz_canvas width=900 height=900')
