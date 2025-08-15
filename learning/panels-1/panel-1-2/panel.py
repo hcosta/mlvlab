@@ -34,8 +34,8 @@ class AntLogic(InteractiveLogic):
         self.agent.learn(state, action, reward, next_state, done)
         # 5. Acumulamos la recompensa.
         self.total_reward += reward
-        # 6. Devolvemos los resultados.
-        return next_state, reward, done
+        # 6. Devolvemos los resultados, si no devolvemos info no reproduciremos el sonido
+        return next_state, reward, done, info
 
 
 def main():

@@ -139,18 +139,30 @@ class SimulationRunner:
             if hasattr(self.env.unwrapped, "set_simulation_speed"):
                 self.env.unwrapped.set_simulation_speed(effective_speed)
 
-            # ... (sincronización de hiperparámetros sin cambios) ...
+            # Ssincronización de hiperparámetros sin cambios
             try:
                 if hasattr(self.agent, 'learning_rate'):
-                    lr_state = self.state.get(['agent', 'learning_rate'])
-                    if lr_state is not None:
-                        self.agent.learning_rate = float(lr_state)
-                # ... (resto de hiperparámetros)
+                    lr_state = self.state.get(["agent", "learning_rate"]) or getattr(
+                        self.agent, 'learning_rate')
+                    setattr(self.agent, 'learning_rate',
+                            float(lr_state))
+                if hasattr(self.agent, 'discount_factor'):
+                    df_state = self.state.get(["agent", "discount_factor"]) or getattr(
+                        self.agent, 'discount_factor')
+                    setattr(self.agent, 'discount_factor',
+                            float(df_state))
+                if hasattr(self.agent, 'epsilon'):
+                    eps_state = self.state.get(
+                        ["agent", "epsilon"]) or getattr(self.agent, 'epsilon')
+                    setattr(self.agent, 'epsilon', float(eps_state))
             except Exception:
                 pass
 
             with self.env_lock:
-                next_state, reward, done = self.logic.step(self._current_state)
+                next_state, reward, done, info = self.logic.step(
+                    self._current_state)
+                if info and spm <= 200 and not turbo and 'play_sound' in info and info['play_sound']:
+                    self.state.set(['sim', 'last_sound'], info['play_sound'])
 
             self._current_state = next_state
 
