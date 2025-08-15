@@ -8,6 +8,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import time
+import threading  # <-- AÑADIR: Importar threading
 
 # Importamos las clases modularizadas
 try:
@@ -87,6 +88,12 @@ class LostAntEnv(gym.Env):
         except Exception:
             self._respawn_rng = np.random.RandomState()
 
+        # --- AÑADIDO: Sistema de animación de fin de escena ---
+        self._state_store = None  # Referencia al StateStore para leer speed/turbo
+        self._end_scene_state = "IDLE"  # "IDLE", "REQUESTED", "RUNNING"
+        self._end_scene_finished_event = threading.Event()
+        # --- FIN AÑADIDO ---
+
     # --- Métodos Auxiliares Privados ---
 
     def _sync_game_state(self):
@@ -125,6 +132,7 @@ class LostAntEnv(gym.Env):
         super().reset(seed=seed)
 
         self._logical_terminated = False
+        self._end_scene_state = "IDLE"  # <-- AÑADIDO: Resetear estado de animación
 
         if self._renderer:
             self._renderer.reset()
@@ -209,6 +217,22 @@ class LostAntEnv(gym.Env):
             return self._capture_rgb_array(width, height)
 
     def _render_frame(self):
+        # --- AÑADIDO: Lógica de la máquina de estados para la animación ---
+        if self._renderer is not None:
+            # 1. Si se ha solicitado una animación, la iniciamos y cambiamos de estado.
+            if self._end_scene_state == "REQUESTED":
+                self._renderer.start_success_transition()
+                self._end_scene_state = "RUNNING"
+
+            # 2. Si la animación se está ejecutando, comprobamos si ha terminado.
+            if self._end_scene_state == "RUNNING":
+                # La animación termina cuando el flag interno del renderer vuelve a False.
+                if not self._renderer.is_in_success_transition():
+                    self._end_scene_state = "IDLE"
+                    # Avisamos al otro hilo.
+                    self._end_scene_finished_event.set()
+        # --- FIN AÑADIDO ---
+
         # --- MODIFICADO: Pasamos el estado de debug_mode al renderer antes de cada dibujado. ---
         if self._renderer is not None:
             self._renderer.debug_mode = self.debug_mode
@@ -289,3 +313,37 @@ class LostAntEnv(gym.Env):
 
     def set_render_data(self, q_table):
         self.q_table_to_render = q_table
+
+    # --- AÑADIDO: Nuevos métodos para la animación de fin de escena ---
+
+    def set_state_store(self, state_store):
+        """Permite al entorno acceder al estado de la UI (para speed/turbo)."""
+        self._state_store = state_store
+
+    def end_scene(self):
+        """
+        Bloquea la ejecución para renderizar la animación de fin de episodio.
+        Se salta la animación si el modo turbo está activo o la velocidad es alta.
+        """
+        # Si no hay renderizado, no hay nada que hacer.
+        if self.render_mode not in ["human", "rgb_array"]:
+            return
+
+        # Bypass si el usuario está en modo turbo o alta velocidad.
+        if self._state_store:
+            try:
+                speed = self._state_store.get(["sim", "speed_multiplier"], 1)
+                turbo = self._state_store.get(["sim", "turbo_mode"], False)
+                if speed > 1 or turbo:
+                    return  # Salimos sin bloquear ni animar
+            except Exception:
+                pass  # Si falla la lectura, continuamos con la animación
+
+        # 1. Pone el flag para que el hilo de renderizado lo vea.
+        self._end_scene_state = "REQUESTED"
+        # 2. Limpiamos el evento por si se usó antes.
+        self._end_scene_finished_event.clear()
+        # 3. Esperamos aquí (bloquea) hasta que el hilo de render llame a .set().
+        #    Añadimos un timeout para evitar un bloqueo infinito si algo va mal.
+        self._end_scene_finished_event.wait(timeout=1)
+    # --- FIN AÑADIDO ---

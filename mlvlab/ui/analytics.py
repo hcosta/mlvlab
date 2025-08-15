@@ -195,6 +195,10 @@ class AnalyticsView:
             }
         )
 
+        # Inyectar el StateStore en el entorno si este lo permite
+        if hasattr(self.env.unwrapped, 'set_state_store'):
+            self.env.unwrapped.set_state_store(self.state)
+
         trainer_adapter = getattr(
             self._trainer, 'state_from_obs', None) if self._trainer is not None else None
 
@@ -239,7 +243,7 @@ class AnalyticsView:
             raw_fn) if callable(raw_fn) else None
 
         self.runner = SimulationRunner(
-            env=self.env, agent=self.agent, state=self.state, env_lock=self.env_lock, state_from_obs=adapted_fn)
+            trainer=self._trainer, state=self.state,  env_lock=self.env_lock,)
         self.frame_buffer = FrameBuffer()
         self.target_fps = getattr(
             self.env, 'metadata', {}).get("render_fps", 60)

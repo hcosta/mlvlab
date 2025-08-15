@@ -1,73 +1,52 @@
 import gymnasium as gym
 from mlvlab.agents.q_learning import QLearningAgent
+from mlvlab.core.logic import InteractiveLogic
 from mlvlab.core.trainer import Trainer
 from mlvlab.ui import AnalyticsView
 from mlvlab import ui
 
-# 1. FUNCIÓN PARA CONVERTIR OBSERVACIÓN EN ESTADO
-# Esta función es específica del entorno y el agente.
 
-
-def obs_to_state_ant(obs, env):
-    """Convierte la observación (coordenadas) de Ant-v1 a un estado discreto."""
-    grid_size = env.unwrapped.GRID_SIZE
-    # La observación es una tupla (x, y), la convertimos en un índice único.
-    return int(obs[1]) * int(grid_size) + int(obs[0])
-
-
-# 2. FUNCIÓN PARA GOBERNAR LA LÓGICA DE UN EPISODIO
-# Esta función define el bucle principal de entrenamiento para un episodio.
-def episode_logic_ant(env, agent):
+class AntLogic(InteractiveLogic):
     """
-    Ejecuta un episodio completo de entrenamiento para el agente en el entorno.
+    Implementación de la lógica para el entorno de la hormiga.
     """
-    # Se podría obtener la función de conversión del propio trainer si se pasara,
-    # pero es más limpio usar la función directamente.
-    obs, info = env.reset()
-    state = obs_to_state_ant(obs, env)
 
-    done = False
-    total_reward = 0.0
-    while not done:
-        # El agente elige una acción basada en el estado actual.
-        action = agent.act(state)
-        # El entorno ejecuta la acción.
-        next_obs, reward, terminated, truncated, info = env.step(action)
-        # Convertimos la nueva observación a un estado.
-        next_state = obs_to_state_ant(next_obs, env)
-        # El agente aprende de la transición.
-        agent.learn(state, action, reward, next_state, terminated or truncated)
+    def _obs_to_state(self, obs):
+        """
+        Implementación obligatoria de la conversión de observación a estado.
+        Para Ant-v1, la observación (x,y) se mapea a un índice único.
+        """
+        grid_size = self.env.unwrapped.GRID_SIZE
+        return int(obs[1]) * int(grid_size) + int(obs[0])
 
-        # Actualizamos el estado y la recompensa total.
-        state = next_state
-        total_reward += reward
+    def step(self, state):
+        """
+        Implementación obligatoria de la lógica de un paso.
+        """
+        # 1. El agente elige una acción.
+        action = self.agent.act(state)
+        # 2. El entorno ejecuta la acción.
+        next_obs, reward, terminated, truncated, info = self.env.step(action)
         done = terminated or truncated
-
-    return total_reward
+        # 3. Convertimos la nueva observación a un estado usando nuestra implementación.
+        next_state = self._obs_to_state(next_obs)
+        # 4. El agente aprende.
+        self.agent.learn(state, action, reward, next_state, done)
+        # 5. Acumulamos la recompensa.
+        self.total_reward += reward
+        # 6. Devolvemos los resultados.
+        return next_state, reward, done
 
 
 def main():
     env = gym.make("mlv/ant-v1", render_mode="rgb_array")
     grid_size = env.unwrapped.GRID_SIZE
-
     agent = QLearningAgent(
         observation_space=gym.spaces.Discrete(grid_size * grid_size),
         action_space=env.action_space,
-        learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.9925
+        learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.99
     )
-
-    # ---------------------------------------------------------------------
-    # USO DE LA NUEVA API DE TRAINER
-    # Pasamos el entorno, el agente y las dos funciones de lógica.
-    # ---------------------------------------------------------------------
-    trainer = Trainer(
-        env=env,
-        agent=agent,
-        episode_logic=episode_logic_ant,
-        obs_to_state=obs_to_state_ant
-    )
-    # ---------------------------------------------------------------------
-
+    trainer = Trainer(env, agent, logic_class=AntLogic)
     view = AnalyticsView(
         dark=True,
         trainer=trainer,
