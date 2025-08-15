@@ -8,6 +8,7 @@ import importlib.util
 from pathlib import Path
 from typing import Optional, Any
 from nicegui import ui, app
+import copy
 
 
 def setup_audio(env: Optional[Any] = None):
@@ -128,34 +129,95 @@ def setup_audio(env: Optional[Any] = None):
     return play_sound_from_info
 
 
-def create_reward_chart(container, number=None) -> ui.highchart:
+def create_reward_chart(container, number=None, dark: bool = False) -> ui.highchart:
     """
     Crea y devuelve un gráfico estándar para mostrar la recompensa por episodio.
-    El título cambia si se proporciona un número.
+    Detecta automáticamente el modo oscuro y aplica el tema correspondiente.
     """
 
-    title_text = 'Últimas recompensas'
-    # if number is not None:
-    #     title_text = f'Últimas {number} recompensas'
+    def deep_merge(source, destination):
+        """
+        Une dos diccionarios de forma recursiva.
+        """
+        for key, value in source.items():
+            if isinstance(value, dict):
+                node = destination.setdefault(key, {})
+                deep_merge(value, node)
+            else:
+                destination[key] = value
+        return destination
 
+    title_text = 'Recompensas por Episodio'
+    if number is not None:
+        title_text = f'Últimas {number} recompensas'
+
+    # Opciones base para todos los gráficos
     chart_options = {
         'title': {'text': title_text},
         'chart': {'type': 'line'},
         'series': [{'name': 'Recompensa', 'data': []}],
         'credits': {'enabled': False},
-        'xAxis': {'title': {'text': 'Episodio'}},
-        'yAxis': {'title': {'text': None}},
+        'xAxis': {
+            'title': {'text': 'Episodio'},
+            'gridLineWidth': 0  # Ocultar líneas de la cuadrícula vertical
+        },
+        'yAxis': {
+            'title': {'text': None},
+            'gridLineWidth': 1  # Mostrar líneas de la cuadrícula horizontal
+        },
         'accessibility': {'enabled': False},
         'legend': {'enabled': False},
-
-        # BLOQUE DE CÓDIGO A AÑADIR ---
         'tooltip': {
             'headerFormat': '<b>Episodio {point.x}</b><br/>',
             'pointFormat': 'Recompensa: {point.y:.2f}'
         }
-        # FIN DEL BLOQUE A AÑADIR ---
     }
+
+    # Si el modo oscuro está activo, aplicamos un tema oscuro
+    if dark:
+        dark_theme_options = {
+            'chart': {
+                'backgroundColor': '#272b30',  # Un gris oscuro suave
+                'plotBorderColor': '#606063'
+            },
+            'title': {
+                'style': {'color': '#E0E0E3', 'fontSize': '16px'}
+            },
+            'xAxis': {
+                'gridLineColor': '#707073',
+                'labels': {'style': {'color': '#E0E0E3'}},
+                'lineColor': '#707073',
+                'minorGridLineColor': '#505053',
+                'tickColor': '#707073',
+                'title': {'style': {'color': '#A0A0A3'}}
+            },
+            'yAxis': {
+                'gridLineColor': '#3c4043',
+                'labels': {'style': {'color': '#E0E0E3'}},
+                'lineColor': '#707073',
+                'minorGridLineColor': '#505053',
+                'tickColor': '#707073',
+                'title': {'style': {'color': '#A0A0A3'}}
+            },
+            'tooltip': {
+                'backgroundColor': 'rgba(10, 10, 10, 0.85)',
+                'style': {'color': '#F0F0F0'}
+            },
+            'plotOptions': {
+                'series': {
+                    'color': '#78a8d1',  # Color de la línea principal
+                    'marker': {
+                        'lineColor': '#333',
+                        'fillColor': '#b3597c'  # Color de los puntos
+                    }
+                },
+            }
+        }
+        # Unimos las opciones del tema oscuro con las opciones base
+        chart_options = deep_merge(dark_theme_options, chart_options)
+
     with container:
+        # Ya no es necesario añadir la clase 'highcharts-dark'
         chart = ui.highchart(chart_options).classes('w-full h-64')
     return chart
 

@@ -17,7 +17,9 @@ class RewardChart(UIComponent):
             self._card = chart_card
             number = int(
                 state.get(['metrics', 'chart_reward_number']) or self.history_size)
-            self._chart = create_reward_chart(chart_card, number=number)
+            is_dark = bool(state.get(['ui', 'dark_mode']) or False)
+            self._chart = create_reward_chart(
+                chart_card, number=number, dark=is_dark)
 
             def tick():
                 desired = list(state.get(['metrics', 'reward_history']) or [])

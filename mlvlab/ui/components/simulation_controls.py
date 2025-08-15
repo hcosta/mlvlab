@@ -30,23 +30,35 @@ class SimulationControls(UIComponent):
         with ui.card().classes('w-full mb-4'):
             ui.label('Controles de Simulación').classes(
                 'text-lg font-semibold text-center w-full')
-            ui.label().bind_text_from(state.full(), 'sim',
-                                      lambda s: f"Velocidad Simulación: {s.get('speed_multiplier', 1)}x")
-            with ui.grid(columns=2).classes('w-full items-center gap-2'):
-                # Slider velocidad (binding directo al dict interno del estado)
-                slider = ui.slider(min=1, max=50, step=1).classes('w-full')
-                slider.bind_value(state.full()['sim'], 'speed_multiplier')
 
-                # Switch turbo (binding directo evita ambigüedades de eventos)
-                switch = ui.switch('Turbo Mode').classes('w-full')
-                switch.bind_value(state.full()['sim'], 'turbo_mode')
+            # Fila principal para alinear las dos secciones
+            with ui.row().classes('w-full items-center no-wrap gap-x-0'):
+
+                # --- Sección 1: Multiplicador y Slider (2/3 del ancho) ---
+                with ui.row().classes('w-2/3 items-center gap-x-2 no-wrap'):
+                    # Etiqueta que muestra el valor actual del multiplicador
+                    ui.label().bind_text_from(
+                        state.full(
+                        ), 'sim', lambda s: f"Multi (x{s.get('speed_multiplier', 1)})"
+                    ).classes('w-36')  # Ancho fijo para que no "salte"
+
+                    # Slider que ocupa el espacio restante en esta sección
+                    slider = ui.slider(
+                        min=2, max=200, step=2).classes('flex-grow')
+                    slider.bind_value(state.full()['sim'], 'speed_multiplier')
+
+                # --- Sección 2: Switch de Turbo (1/3 del ancho) ---
+                with ui.row().classes('w-1/3 justify-end'):
+                    # El switch con la etiqueta corta "Turbo"
+                    switch = ui.switch('Turbo')
+                    switch.bind_value(state.full()['sim'], 'turbo_mode')
 
                 # Protección ante live-reload: forzar tipos correctos
                 def _normalize_types():  # pragma: no cover
                     try:
                         sim = state.full().get('sim', {})
                         spd = int(sim.get('speed_multiplier') or 1)
-                        sim['speed_multiplier'] = max(1, min(50, spd))
+                        sim['speed_multiplier'] = max(1, min(200, spd))
                         sim['turbo_mode'] = bool(sim.get('turbo_mode'))
                     except Exception:
                         pass

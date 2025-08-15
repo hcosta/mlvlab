@@ -191,7 +191,7 @@ class SimulationRunner:
 
             # Control de velocidad y cálculo de SPS
             if not turbo:
-                sleep_duration = 1.0 / spm
+                sleep_duration = (1.0/spm) / spm
                 time.sleep(sleep_duration)
 
             now = time.time()

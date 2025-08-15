@@ -1,13 +1,14 @@
-
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from gymnasium.wrappers import TimeLimit
 from mlvlab.agents.q_learning import QLearningAgent
 from mlvlab.core.trainer import Trainer
+from mlvlab.core.logic import InteractiveLogic  # <-- Importamos la clase base
 from mlvlab import ui
+from mlvlab.ui import AnalyticsView
 
-# Wrapper para Recompensas ---
+# --- Wrappers (sin cambios) ---
 
 
 class TimePenaltyWrapper(gym.RewardWrapper):
@@ -26,11 +27,12 @@ class TimePenaltyWrapper(gym.RewardWrapper):
 
 
 class DirectionToHomeWrapper(gym.ObservationWrapper):
-    """Añade a la observación el ángulo en radianes hacia el hormiguero (0,0)."""
+    """Añade a la observación el ángulo en radianes hacia el hormiguero."""
 
     def __init__(self, env: gym.Env):
         super().__init__(env)
-        self.home_pos = np.array([0, 0])
+        # El wrapper asume que el hormiguero está en la posición que devuelve el entorno
+        # self.home_pos = np.array([0, 0]) # Esto sería incorrecto si la meta no es (0,0)
 
         # Definimos el NUEVO espacio de observación (x, y, ángulo)
         low = np.append(self.observation_space.low, -np.pi).astype(np.float32)
@@ -40,147 +42,75 @@ class DirectionToHomeWrapper(gym.ObservationWrapper):
 
     def observation(self, obs: np.ndarray) -> np.ndarray:
         ant_pos = obs
-        direction_vector = self.home_pos - ant_pos
+        # Usamos la posición real del hormiguero del entorno base
+        goal_pos = self.env.unwrapped.goal_pos
+        direction_vector = goal_pos - ant_pos
         angle = np.arctan2(direction_vector[1], direction_vector[0])
         new_obs = np.append(obs, angle).astype(np.float32)
         return new_obs
 
 
-class EpisodeLogicAnt:
-    def __init__(self, preserve_seed: bool = False) -> None:
-        # Si True, no regeneramos escenario entre episodios (seed estable) salvo reset manual
-        self.preserve_seed = bool(preserve_seed)
+# --- Lógica de Episodio Adaptada ---
 
-    def obs_to_state(self, obs, env):
-        grid_size = env.unwrapped.GRID_SIZE
+class AntWrapperLogic(InteractiveLogic):
+    """
+    Implementación de la lógica que funciona con los wrappers.
+    """
+
+    def _obs_to_state(self, obs):
+        """
+        La observación ahora es (x, y, ángulo), pero para nuestro agente Q-Learning
+        simple, seguimos usando solo las coordenadas (x, y) para definir el estado.
+        Ignoramos el ángulo, que un agente más avanzado podría usar.
+        """
+        grid_size = self.env.unwrapped.GRID_SIZE
+        # obs[0] es X, obs[1] es Y. Ignoramos obs[2] que es el ángulo.
         return int(obs[1]) * int(grid_size) + int(obs[0])
 
-    def __call__(self, env, agent):
-        # Si preservamos seed entre episodios, no forzamos nueva seed aquí; sólo recolocamos
-        if self.preserve_seed:
-            # Mantener escenario; respawn controlado por el propio env
-            obs, info = env.reset()
-        else:
-            # Crear nueva seed por episodio para escenarios distintos
-            import random
-            new_seed = random.randint(0, 1_000_000)
-            try:
-                obs, info = env.reset(seed=new_seed)
-            except TypeError:
-                obs, info = env.reset()
-        state = self.obs_to_state(obs, env)
-
-        done = False
-        total_reward = 0.0
-        steps = 0
-        while not done:
-            action = agent.act(state)
-            next_obs, reward, terminated, truncated, info = env.step(action)
-            next_state = self.obs_to_state(next_obs, env)
-            agent.learn(state, action, reward, next_state,
-                        terminated or truncated)
-            state = next_state
-            total_reward += reward
-            steps += 1
-            done = terminated or truncated
-
-        return total_reward
+    def step(self, state):
+        """
+        Lógica de un único paso, adaptada del bucle original.
+        """
+        action = self.agent.act(state)
+        next_obs, reward, terminated, truncated, info = self.env.step(action)
+        done = terminated or truncated
+        next_state = self._obs_to_state(next_obs)
+        self.agent.learn(state, action, reward, next_state, done)
+        self.total_reward += reward
+        return next_state, reward, done
 
 
 def main():
     base_env = gym.make("mlv/ant-v1", render_mode="rgb_array")
 
-    # Demostración de extensibilidad con wrappers:
-    # 1) Añadimos una característica a la observación (ángulo hacia origen)
-    # 2) Penalizamos cada paso para favorecer trayectorias cortas
+    # Aplicamos los wrappers al entorno base
     env = DirectionToHomeWrapper(base_env)
     env = TimePenaltyWrapper(env, penalty=-0.1)
-    if TimeLimit is not None:
-        env = TimeLimit(env, max_episode_steps=300)
+    env = TimeLimit(env, max_episode_steps=300)
 
-    grid = env.unwrapped.GRID_SIZE
+    grid_size = env.unwrapped.GRID_SIZE
     agent = QLearningAgent(
-        observation_space=gym.spaces.Discrete(grid * grid),
+        observation_space=gym.spaces.Discrete(grid_size * grid_size),
         action_space=env.action_space,
         learning_rate=0.2,
         discount_factor=0.95,
         epsilon_decay=0.999,
     )
 
-    logic = EpisodeLogicAnt(preserve_seed=True)
-    trainer = Trainer(env, agent, episode_logic=logic)
+    # Instanciamos el Trainer con la nueva clase de lógica y activamos la animación final
+    trainer = Trainer(
+        env,
+        agent,
+        logic_class=AntWrapperLogic,
+        use_end_scene_animation=True
+    )
 
-    view = ui.AnalyticsView(
+    # La configuración de la vista es la misma
+    view = AnalyticsView(
         trainer=trainer,
-        subtitle="Q-Learning con Wrappers (Obs + Penalización)",
-        left_panel_components=[
-            ui.SimulationControls(),
-            ui.AgentHyperparameters(
-                trainer.agent, params=[
-                    'learning_rate',
-                    'discount_factor',
-                    'epsilon_decay']
-            ),
-        ],
-        right_panel_components=[
-            ui.MetricsDashboard(),
-            ui.RewardChart(history_size=100),
-        ],
+        dark=True,
         title="Ant Q-Learning con Wrappers",
-    )
-
-    view.run()
-
-
-if __name__ in {"__main__", "__mp_main__"}:
-    main()
-
-
-class EpisodeLogicAnt:
-    def obs_to_state(self, obs, env):
-        grid_size = env.unwrapped.GRID_SIZE
-        return int(obs[1]) * int(grid_size) + int(obs[0])
-
-    def __call__(self, env, agent):
-        obs, info = env.reset()
-        state = self.obs_to_state(obs, env)
-
-        done = False
-        total_reward = 0.0
-        steps = 0
-        while not done:
-            action = agent.act(state)
-            next_obs, reward, terminated, truncated, info = env.step(action)
-            next_state = self.obs_to_state(next_obs, env)
-            agent.learn(state, action, reward, next_state,
-                        terminated or truncated)
-            state = next_state
-            total_reward += reward
-            steps += 1
-            done = terminated or truncated
-
-        return total_reward
-
-
-def main():
-    base_env = gym.make("mlv/ant-v1", render_mode="rgb_array")
-    # Aplicamos wrappers para demostrar extensibilidad de Gymnasium
-    env = DirectionToHomeWrapper(base_env)
-    env = TimePenaltyWrapper(env, penalty=-0.1)
-    env = TimeLimit(env, max_episode_steps=300)
-    agent = QLearningAgent(
-        observation_space=gym.spaces.Discrete(
-            env.unwrapped.GRID_SIZE * env.unwrapped.GRID_SIZE),
-        action_space=env.action_space,
-        learning_rate=0.2,
-        discount_factor=0.95,
-        epsilon_decay=0.999
-    )
-    logic = EpisodeLogicAnt()
-    trainer = Trainer(env, agent, episode_logic=logic)
-    view = ui.AnalyticsView(
-        trainer=trainer,
-        subtitle="Q-Learning con Lógica de Episodio Personalizada",
+        subtitle="Observación aumentada y penalización por tiempo",
         left_panel_components=[
             ui.SimulationControls(),
             ui.AgentHyperparameters(
@@ -194,12 +124,9 @@ def main():
             ui.MetricsDashboard(),
             ui.RewardChart(history_size=100),
         ],
-        title="Ant Q-Learning Custom Logic",
     )
-
     view.run()
 
 
-# Para permitir multiprocessing y acelerar las demos
-if __name__ in {"__main__"}:
+if __name__ == "__main__":
     main()
