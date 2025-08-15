@@ -452,60 +452,57 @@ class ArcadeRenderer:
             self.arcade.draw_line_strip(highlight_points, highlight_color, 4)
 
     def _draw_heatmap(self, q_table_to_render):
-        # Dibuja la visualización de la Q-Table solo si el modo debug está activo. ---
+        # Dibuja la visualización de la Q-Table solo si el modo debug está activo.
         if not self.debug_mode or q_table_to_render is None:
             return
 
-        # Lógica de Dibujo del Heatmap (sin animación de respiración) ---
         try:
             max_q = float(np.max(q_table_to_render))
             min_q = float(np.min(q_table_to_render))
         except Exception:
             return
 
-        if (max_q - min_q) < 1e-6:
+        q_range = max_q - min_q
+        if q_range < 1e-6:
             return
 
-        # Tamaño del cuadrado (50% de la celda)
-        SQUARE_SIZE = self.CELL_SIZE * 0.5
+        # Mantenemos el tamaño del 75% que se ve bien
+        SQUARE_SIZE = self.CELL_SIZE * 0.75
 
         for state_index in range(self.game.grid_size * self.game.grid_size):
-            # Decodificación del índice de estado (asumiendo index = y * size + x)
             x_cell = state_index % self.game.grid_size
             y_cell = state_index // self.game.grid_size
             cx, cy = self._cell_to_pixel(x_cell, y_cell)
 
             try:
-                # Usamos el valor máximo Q para ese estado
+                # Volvemos a usar el valor MÁXIMO de Q para colorear la celda
                 q_value = float(np.max(q_table_to_render[state_index, :]))
             except Exception:
                 continue
 
-            # Normalizar Q-value (0.0 a 1.0)
-            norm_q = (q_value - min_q) / (max_q - min_q)
+            norm_q = (q_value - min_q) / q_range
 
-            # Calcular color (Gradiente: Púrpura oscuro -> Naranja -> Amarillo/Blanco)
-            if norm_q < 0.33:
-                t = norm_q / 0.33
-                r, g, b = int(0*(1-t) + 139*t), int(0*(1-t) +
-                                                    0*t), int(0*(1-t) + 139*t)
-            elif norm_q < 0.66:
-                t = (norm_q - 0.33) / 0.33
-                r, g, b = int(139*(1-t) + 255*t), int(0*(1-t) +
-                                                      165*t), int(139*(1-t) + 0*t)
+            # --- NUEVO GRADIENTE "VIRIDIS-LIKE" (Azul -> Verde -> Amarillo) ---
+            if norm_q < 0.5:
+                # Interpola de Azul oscuro (44, 1, 105) a Verde brillante (30, 250, 100)
+                t = norm_q * 2
+                r = int(44 * (1 - t) + 30 * t)
+                g = int(1 * (1 - t) + 250 * t)
+                b = int(105 * (1 - t) + 100 * t)
             else:
-                t = (norm_q - 0.66) / 0.34
-                r, g, b = int(255*(1-t) + 255*t), int(165 *
-                                                      (1-t) + 255*t), int(0*(1-t) + 220*t)
+                # Interpola de Verde brillante a Amarillo Fuego (253, 231, 37)
+                t = (norm_q - 0.5) * 2
+                r = int(30 * (1 - t) + 253 * t)
+                g = int(250 * (1 - t) + 231 * t)
+                b = int(100 * (1 - t) + 37 * t)
 
-            # Calcular alpha final (Combinando valor Q con una base, sin animación)
-            base_alpha = 50
-            value_alpha = norm_q * 150
+            # Alpha ajustado para mayor contraste
+            base_alpha = 40
+            value_alpha = norm_q * 190
             final_alpha = int(base_alpha + value_alpha)
 
             heat_color = (r, g, b, final_alpha)
 
-            # Dibujar cuadrados (50% del tamaño de la celda)
             left = cx - SQUARE_SIZE / 2
             bottom = cy - SQUARE_SIZE / 2
 
