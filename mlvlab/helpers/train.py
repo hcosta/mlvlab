@@ -24,7 +24,7 @@ def train_with_state_adapter(
     if render:
         env.unwrapped.debug_mode = True
 
-    # --- AJUSTE DE ALEATORIEDAD PARA ENTRENAMIENTO ---
+    # AJUSTE DE ALEATORIEDAD PARA ENTRENAMIENTO ---
     # Para Q-Learning 1:1, necesitamos que el mapa sea fijo (determinado por la semilla)
     # pero que la posición inicial sea aleatoria en cada episodio para explorar el espacio de estados.
     # Si el entorno lo soporta, activamos el modo de respawn aleatorio (unseeded).

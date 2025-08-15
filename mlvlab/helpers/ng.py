@@ -148,12 +148,12 @@ def create_reward_chart(container, number=None) -> ui.highchart:
         'accessibility': {'enabled': False},
         'legend': {'enabled': False},
 
-        # --- BLOQUE DE CÓDIGO A AÑADIR ---
+        # BLOQUE DE CÓDIGO A AÑADIR ---
         'tooltip': {
             'headerFormat': '<b>Episodio {point.x}</b><br/>',
             'pointFormat': 'Recompensa: {point.y:.2f}'
         }
-        # --- FIN DEL BLOQUE A AÑADIR ---
+        # FIN DEL BLOQUE A AÑADIR ---
     }
     with container:
         chart = ui.highchart(chart_options).classes('w-full h-64')

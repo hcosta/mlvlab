@@ -19,7 +19,7 @@ class StateStore:
         self._state: Dict[str, Any] = copy.deepcopy(
             defaults) if defaults else {}
 
-    # --- API de acceso --- #
+    # API de acceso --- #
     def get(self, path: Union[str, List[Union[str, int]]]) -> Any:
         keys = self._coerce_path(path)
         ref: Any = self._state
@@ -68,7 +68,7 @@ class StateStore:
     def full(self) -> Dict[str, Any]:
         return self._state
 
-    # --- helpers --- #
+    # helpers --- #
     @staticmethod
     def _coerce_path(path: Union[str, List[Union[str, int]]]) -> List[Union[str, int]]:
         if isinstance(path, str):

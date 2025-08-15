@@ -223,7 +223,7 @@ class LostAntEnv(gym.Env):
             self.window = None
             self._renderer = None
 
-    # --- API Extendida ---
+    # API Extendida ---
     def set_simulation_speed(self, speed: float):
         self._simulation_speed = speed
 

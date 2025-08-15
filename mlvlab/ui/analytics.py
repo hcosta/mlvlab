@@ -89,7 +89,7 @@ class RenderingThread(threading.Thread):
                 debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
 
                 with self.env_lock:
-                    # --- INICIO: CÓDIGO MODIFICADO PARA SER AGNÓSTICO ---
+                    # INICIO: CÓDIGO MODIFICADO PARA SER AGNÓSTICO ---
                     env_unwrapped = self.env.unwrapped
 
                     # 1. Establecer modo debug solo si el entorno lo soporta

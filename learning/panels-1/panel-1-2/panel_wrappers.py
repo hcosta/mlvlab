@@ -7,7 +7,7 @@ from mlvlab.agents.q_learning import QLearningAgent
 from mlvlab.core.trainer import Trainer
 from mlvlab import ui
 
-# --- Wrapper para Recompensas ---
+# Wrapper para Recompensas ---
 
 
 class TimePenaltyWrapper(gym.RewardWrapper):

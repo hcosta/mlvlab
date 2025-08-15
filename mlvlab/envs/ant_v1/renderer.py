@@ -86,7 +86,7 @@ class ArcadeRenderer:
 
         # Assets y optimización
         self.initialized = False
-        # --- NUEVO: Estado para controlar el modo de depuración ---
+        # Estado para controlar el modo de depuración ---
         self.debug_mode = False
         try:
             self.rng_visual = np.random.default_rng()
@@ -179,7 +179,7 @@ class ArcadeRenderer:
             (y_px - self.CELL_SIZE / 2) / self.CELL_SIZE
         return x_cell, y_cell
 
-    # --- Gestión de la Transición de Éxito ---
+    # Gestión de la Transición de Éxito ---
 
     def start_success_transition(self):
         if not self.in_success_transition:
@@ -269,7 +269,7 @@ class ArcadeRenderer:
             self.in_success_transition = False
             self.ant_scale = 0.0  # Forzamos la escala a 0 para asegurar que no se dibuje
 
-    # --- Actualización de Animaciones y Efectos ---
+    # Actualización de Animaciones y Efectos ---
 
     def _update_animations(self, delta_time: float):
         if self.in_success_transition:
@@ -341,7 +341,7 @@ class ArcadeRenderer:
             impact_vector = [-1, 0]
             spawn_x += self.CELL_SIZE * 0.3
 
-        # --- Partículas de Polvo/Tierra (Ajustadas) ---
+        # Partículas de Polvo/Tierra (Ajustadas) ---
 
         # Un poco más de partículas para un "poof" más denso
         for _ in range(15):
@@ -366,7 +366,7 @@ class ArcadeRenderer:
         # La sección de partículas de "Estrella" se ha eliminado para un efecto
         # puramente de tierra/polvo, como solicitaste.
 
-    # --- Funciones de Dibujo ---
+    # Funciones de Dibujo ---
     def _draw_static_elements(self):
         # Dibuja los obstáculos y las motas de tierra en cada frame.
         # Usamos el hash del escenario para generar una semilla determinista para la apariencia visual.
@@ -452,11 +452,11 @@ class ArcadeRenderer:
             self.arcade.draw_line_strip(highlight_points, highlight_color, 4)
 
     def _draw_heatmap(self, q_table_to_render):
-        # --- MODIFICADO: Dibuja la visualización de la Q-Table solo si el modo debug está activo. ---
+        # Dibuja la visualización de la Q-Table solo si el modo debug está activo. ---
         if not self.debug_mode or q_table_to_render is None:
             return
 
-        # --- Lógica de Dibujo del Heatmap (sin animación de respiración) ---
+        # Lógica de Dibujo del Heatmap (sin animación de respiración) ---
         try:
             max_q = float(np.max(q_table_to_render))
             min_q = float(np.min(q_table_to_render))
@@ -634,7 +634,7 @@ class ArcadeRenderer:
             ry = x * math.sin(angle_rad) + y * math.cos(angle_rad)
             return rx, ry
 
-        # --- Animación y Movimiento ---
+        # Animación y Movimiento ---
         t = time.time()
 
         # Detectar movimiento: Si estamos en transición de éxito, consideramos que estamos moviéndonos.
@@ -660,7 +660,7 @@ class ArcadeRenderer:
         cy += bounce
         oscillation = math.sin(t * animation_speed)
 
-        # --- Dibujo de Patas (Ajustado por escala) ---
+        # Dibujo de Patas (Ajustado por escala) ---
         leg_length = self.CELL_SIZE * 0.28 * SCALE
         leg_thickness = max(1, int(3 * SCALE))  # Grosor mínimo de 1px
 
@@ -677,7 +677,7 @@ class ArcadeRenderer:
                 self.arcade.draw_line(
                     sx, sy, sx + ex_rel, sy + ey_rel, leg_color, leg_thickness)
 
-        # --- Dibujo del Cuerpo (Encima de las patas) ---
+        # Dibujo del Cuerpo (Encima de las patas) ---
         shadow_offset_x, shadow_offset_y = 3 * SCALE, -3 * SCALE
 
         # Abdomen
@@ -708,7 +708,7 @@ class ArcadeRenderer:
         self.arcade.draw_circle_filled(
             cx + hx_rel, cy + hy_rel, head_radius, body_color)
 
-        # --- Detalles de la Cabeza (Ajustado por escala) ---
+        # Detalles de la Cabeza (Ajustado por escala) ---
         eye_radius = head_radius * 0.3
         eye_offset_x = head_radius * 0.4
         eye_offset_y = head_radius * 0.65
@@ -787,7 +787,7 @@ class ArcadeRenderer:
         # CAMBIO CLAVE: Escalamos el delta_time ---
         scaled_delta_time = delta_time * simulation_speed
 
-        # --- Proceso de Dibujo y Actualización Coordinada ---
+        # Proceso de Dibujo y Actualización Coordinada ---
 
         if self.window:
             self.window.switch_to()

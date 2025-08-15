@@ -33,7 +33,7 @@ app = typer.Typer(
     no_args_is_help=True
 )
 
-# --- Comandos Principales ---
+# Comandos Principales ---
 
 
 def complete_env_id(incomplete: str):
@@ -177,7 +177,7 @@ def train(
     if eps:
         train_config['episodes'] = eps
 
-    # --- LÓGICA DE SEMILLA ALEATORIA ---
+    # LÓGICA DE SEMILLA ALEATORIA ---
     run_seed = seed
     if run_seed is None:
         run_seed = random.randint(0, 10000)
@@ -285,7 +285,7 @@ def help_env(
         console.print(
             f"[bold cyan]Action Space:[/bold cyan]\n{env.action_space}\n")
 
-        # --- LÓGICA PARA CONSTRUIR LA URL DINÁMICA AL README ---
+        # LÓGICA PARA CONSTRUIR LA URL DINÁMICA AL README ---
         try:
             # 1. Define la URL base de tu repositorio
             base_repo_url = "https://github.com/hcosta/mlvlab/tree/master"
@@ -319,7 +319,7 @@ def help_env(
         raise typer.Exit(code=1)
 
 
-# --- Cargador de Plugins (Nivel 3: Arquitecto) ---
+# Cargador de Plugins (Nivel 3: Arquitecto) ---
 
 def load_plugins(application: typer.Typer):
     """Descubre y carga plugins registrados mediante 'mlvlab.plugins' entry points."""

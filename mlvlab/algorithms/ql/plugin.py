@@ -83,7 +83,7 @@ class QLearningPlugin:
         def builder(env: gym.Env) -> QLearningAgent:
             return self.build_agent(env, {})
 
-        # --- TRADUCTOR DE PARÁMETRO: de 'video' a 'record' ---
+        # TRADUCTOR DE PARÁMETRO: de 'video' a 'record' ---
         # Comprobamos si el argumento 'video' viene en los kwargs
         if 'video' in kwargs:
             # Creamos la clave 'record' con el valor de 'video' y eliminamos la clave 'video'.

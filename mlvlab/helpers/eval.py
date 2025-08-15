@@ -53,7 +53,7 @@ def evaluate_with_optional_recording(
         env = gym.make(env_id, render_mode="human")
         env.unwrapped.debug_mode = True
 
-    # --- AJUSTE DE ALEATORIEDAD PARA EVALUACIÓN ---
+    # AJUSTE DE ALEATORIEDAD PARA EVALUACIÓN ---
     # Para la evaluación, queremos que sea 100% determinista si se proporciona una semilla.
     # Esto significa mismo mapa Y mismas posiciones iniciales.
     # Si el entorno lo soporta, desactivamos el modo de respawn aleatorio (unseeded).

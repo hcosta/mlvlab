@@ -65,7 +65,7 @@ class SimulationRunner:
 
     def _loop(self) -> None:
         while not self._stop:
-            # --- MÁQUINA DE ESTADOS: PARTE 1 ---
+            # MÁQUINA DE ESTADOS: PARTE 1 ---
             # Si estamos esperando a que la animación termine...
             if self._runner_state == "ENDING_SCENE":
                 is_finished = True  # Valor por defecto
@@ -101,7 +101,7 @@ class SimulationRunner:
                     time.sleep(1/60)
                     continue
 
-            # --- LÓGICA PRINCIPAL ---
+            # LÓGICA PRINCIPAL ---
             cmd = self.state.get(['sim', 'command']) or "run"
             if cmd == "pause":
                 time.sleep(0.01)
@@ -161,7 +161,7 @@ class SimulationRunner:
             total_steps = int(self.state.get(['sim', 'total_steps']) or 0) + 1
             self.state.set(['sim', 'total_steps'], total_steps)
 
-            # --- MÁQUINA DE ESTADOS: PARTE 2 (EL DISPARADOR) ---
+            # MÁQUINA DE ESTADOS: PARTE 2 (EL DISPARADOR) ---
             if done:
                 if self.trainer.use_end_scene_animation and effective_speed <= 50:
                     # Activamos la animación y cambiamos el estado del runner
