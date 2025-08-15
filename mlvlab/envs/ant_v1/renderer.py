@@ -264,6 +264,11 @@ class ArcadeRenderer:
         eased_progress = easeInOutCubic(progress)
         self.ant_scale = 1.0 - eased_progress
 
+        # La animación termina si se completa la duración O si la hormiga es invisible.
+        if self.success_transition_time >= self.SUCCESS_TRANSITION_DURATION or self.ant_scale <= 0.01:
+            self.in_success_transition = False
+            self.ant_scale = 0.0  # Forzamos la escala a 0 para asegurar que no se dibuje
+
     # --- Actualización de Animaciones y Efectos ---
 
     def _update_animations(self, delta_time: float):
@@ -763,7 +768,7 @@ class ArcadeRenderer:
                 # Usamos draw_circle_filled que es compatible.
                 self.arcade.draw_circle_filled(p.x, p.y, size, color)
 
-    def draw(self, game: AntGame, q_table_to_render, render_mode: str | None):
+    def draw(self, game: AntGame, q_table_to_render, render_mode: str | None, simulation_speed: float = 1.0):
         # Función principal de dibujo del frame.
 
         if render_mode is None:
@@ -778,6 +783,9 @@ class ArcadeRenderer:
         delta_time = current_time - self.last_time
         self.last_time = current_time
         delta_time = min(delta_time, 0.1)
+
+        # CAMBIO CLAVE: Escalamos el delta_time ---
+        scaled_delta_time = delta_time * simulation_speed
 
         # --- Proceso de Dibujo y Actualización Coordinada ---
 
@@ -794,9 +802,9 @@ class ArcadeRenderer:
         # 2. Elementos estáticos
         self._draw_static_elements()
 
-        # Actualizamos las animaciones (movimiento, rotación, partículas) usando delta_time
-        self._update_animations(delta_time)
-        self._update_particles(delta_time)
+        # Actualizamos las animaciones (movimiento, rotación, partículas) usando scaled_delta_time
+        self._update_animations(scaled_delta_time)
+        self._update_particles(scaled_delta_time)
 
         # Dibujamos la hormiga (usando la posición y ángulo actualizados)
         self._draw_ant()

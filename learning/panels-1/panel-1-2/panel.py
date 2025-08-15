@@ -46,7 +46,7 @@ def main():
         action_space=env.action_space,
         learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.99
     )
-    trainer = Trainer(env, agent, logic_class=AntLogic)
+    trainer = Trainer(env, agent, AntLogic, True)
     view = AnalyticsView(
         dark=True,
         trainer=trainer,

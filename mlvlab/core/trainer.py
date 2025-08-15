@@ -14,8 +14,8 @@ class Trainer:
         self,
         env: gym.Env,
         agent: BaseAgent,
-        # CAMBIO: Recibimos una clase, no una función
         logic_class: Type[InteractiveLogic],
+        use_end_scene_animation: bool = False,
     ):
         """
         Inicializa el Trainer.
@@ -26,7 +26,7 @@ class Trainer:
         """
         self.env = env
         self.agent = agent
-
-        # CAMBIO: El Trainer ahora crea y posee la instancia de la lógica.
         # Esto encapsula la lógica del alumno en un objeto manejable.
         self.logic = logic_class(self.env, self.agent)
+        # Guardamos el estado del flag
+        self.use_end_scene_animation = use_end_scene_animation

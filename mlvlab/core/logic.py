@@ -35,8 +35,8 @@ class InteractiveLogic:
         """
         Llamado al final de cada episodio, después de que step() devuelva done=True.
         """
-        if hasattr(self.env.unwrapped, 'end_scene'):
-            self.env.unwrapped.end_scene()
+        if hasattr(self.env.unwrapped, 'trigger_end_scene'):
+            self.env.unwrapped.trigger_end_scene()
 
     def _obs_to_state(self, obs):
         """
