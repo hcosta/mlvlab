@@ -1,6 +1,5 @@
-from .trainer import Trainer, default_episode_logic
+from .trainer import Trainer
 
 __all__ = [
     "Trainer",
-    "default_episode_logic",
 ]
