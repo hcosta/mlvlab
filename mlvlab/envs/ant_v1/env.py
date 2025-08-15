@@ -149,69 +149,37 @@ class LostAntEnv(gym.Env):
         return self._get_obs(), self._get_info()
 
     def step(self, action):
-        # Flujo de control robusto para manejar la transición de éxito.
-
-        if self._logical_terminated:
-            # Si el juego ya terminó lógicamente, solo actualizamos la transición visual.
-            return self._step_transition()
-
-        # Si no ha terminado, ejecutamos la lógica del juego.
+        """
+        Ejecuta un paso en el entorno.
+        Esta versión simplificada elimina cualquier lógica de animación o retraso
+        para garantizar que el bucle de aprendizaje reciba la información
+        (recompensa, terminación) de forma inmediata.
+        """
+        # 1. Ejecutamos un paso en la lógica pura del juego.
         obs, reward, terminated, game_info = self._game.step(action)
 
+        # 2. Preparamos la información adicional estándar de Gymnasium.
         truncated = False
         info = self._get_info()
         info.update(game_info)
 
-        # Disparamos el efecto de partículas como un evento si hay colisión.
+        # 3. Gestionamos los efectos visuales y de sonido (no interfieren con la lógica).
         if info.get("collided", False) and self.render_mode in ["human", "rgb_array"]:
             self._lazy_init_renderer()
             if self._renderer:
-                # Llamamos directamente a la función que genera las partículas.
                 self._renderer._spawn_collision_particles()
 
-        # Añadir sonidos basados en el resultado
         if terminated:
             info['play_sound'] = {'filename': 'success.wav', 'volume': 10}
         elif info.get("collided", False):
             info['play_sound'] = {'filename': 'bump.wav', 'volume': 5}
 
+        # 4. Sincronizamos el estado para que el renderer tenga la última posición.
         self._sync_game_state()
 
-        if terminated:
-            self._logical_terminated = True
-
-            # Informar al renderer para que inicie la animación.
-            if self.render_mode in ["human", "rgb_array"]:
-                self._lazy_init_renderer()
-                if self._renderer:
-                    self._renderer.start_success_transition()
-
-            # El episodio NO termina para el exterior todavía, empezamos la transición visual.
-            return self._step_transition(initial_reward=reward, initial_info=info)
-
-        # Paso normal
-        return obs, reward, False, truncated, info
-
-    def _step_transition(self, initial_reward=0, initial_info=None):
-        # Maneja los pasos (frames) durante la animación de éxito.
-        obs = self._get_obs()
-        info = initial_info if initial_info is not None else self._get_info()
-        truncated = False
-        reward = initial_reward
-
-        # Comprobamos si la animación ha terminado.
-        animation_finished = True
-
-        if self.render_mode in ["human", "rgb_array"] and self._renderer:
-            if self._renderer.is_in_success_transition():
-                animation_finished = False
-
-        if animation_finished:
-            # Ahora sí, el episodio termina para el exterior (Gymnasium loop).
-            return obs, reward, True, truncated, info
-        else:
-            # La animación continúa.
-            return obs, reward, False, truncated, info
+        # 5. Devolvemos los resultados directamente.
+        #    Esto es crucial para que el agente aprenda del resultado real del paso.
+        return obs, reward, terminated, truncated, info
 
     def _lazy_init_renderer(self):
         if self._renderer is None:

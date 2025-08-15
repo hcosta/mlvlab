@@ -43,14 +43,15 @@ def main():
     agent = QLearningAgent(
         observation_space=gym.spaces.Discrete(grid_size * grid_size),
         action_space=env.action_space,
-        learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.995
+        learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.9925
     )
     # Por defecto, preservamos la seed entre episodios (mismo laberinto) salvo reset manual
     trainer = Trainer(env, agent, EpisodeLogicAnt())
     view = AnalyticsView(
         dark=True,
         trainer=trainer,
-        subtitle="Q-Learning con Lógica de Episodio Personalizada",
+        # title="Ant Q-Learning Custom Logic",
+        # subtitle="Q-Learning con Lógica de Episodio Personalizada",
         left_panel_components=[
             ui.SimulationControls(),
             ui.AgentHyperparameters(
@@ -62,9 +63,8 @@ def main():
         ],
         right_panel_components=[
             ui.MetricsDashboard(),
-            ui.RewardChart(history_size=100),
+            ui.RewardChart(history_size=500),
         ],
-        title="Ant Q-Learning Custom Logic",
     )
     view.run()
 

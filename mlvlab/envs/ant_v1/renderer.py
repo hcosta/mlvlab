@@ -785,15 +785,14 @@ class ArcadeRenderer:
             self.window.switch_to()
             self.window.clear()
 
-        # 1. Elementos estáticos
-        self._draw_static_elements()
-
-        # 2. Heatmap
+        # 3. Heatmap
         self._draw_heatmap(q_table_to_render)
 
-        # 3. Elementos dinámicos y Actualización
-        # Dibujamos el hormiguero primero para calcular self.anthill_hole_visual_center
+        # 11. Hormiguero debajo de todo
         self._draw_anthill()
+
+        # 2. Elementos estáticos
+        self._draw_static_elements()
 
         # Actualizamos las animaciones (movimiento, rotación, partículas) usando delta_time
         self._update_animations(delta_time)

@@ -156,7 +156,7 @@ class AnalyticsView:
         env: Any | None = None, agent: Any | None = None, trainer: Trainer | None = None,
         left_panel_components: Optional[List[UIComponent]] = None,
         right_panel_components: Optional[List[UIComponent]] = None,
-        title: str = "MLVLab Analytics", history_size: int = 100, dark: bool = False,
+        title: str = "", history_size: int = 100, dark: bool = False,
         subtitle: Optional[str] = None, state_from_obs: Optional[Callable[..., Any]] = None,
         agent_hparams_defaults: Optional[dict] = None,
     ) -> None:
@@ -171,7 +171,7 @@ class AnalyticsView:
 
         self.left_components = left_panel_components or []
         self.right_components = right_panel_components or []
-        self.title = "MLVLab - " + title
+        self.title = title
         self.history_size = history_size
         self.dark = dark
         self.subtitle = subtitle
@@ -324,8 +324,9 @@ class AnalyticsView:
                 state=self.state, env_lock=self.env_lock)
             play_sound = setup_audio(self.env)
 
-            ui.label(self.title).classes(
-                'w-full text-2xl font-bold text-center mt-4 mb-1')
+            if self.title:
+                ui.label("MLVLab - " + self.title).classes(
+                    'w-full text-2xl font-bold text-center mt-4 mb-1')
             if self.subtitle:
                 ui.label(self.subtitle).classes(
                     'w-full text-base text-center mb-2 opacity-80')
@@ -398,8 +399,6 @@ class AnalyticsView:
             print("✅ Startup de hilos completado.")
             _server_started.set()
 
-# En tu archivo mlvlab/ui/analytics.py, dentro del método run()
-
         @app.on_shutdown
         def shutdown_handler():
             """Función robusta para detener los hilos y tareas de forma segura."""
@@ -471,7 +470,7 @@ class AnalyticsView:
                 event.accept()
 
         window = MainWindow()
-        window.setWindowTitle(self.title)
+        window.setWindowTitle("MLVLab Analytics Panel - " + self.env.spec.id)
         window.setGeometry(100, 100, 1280, 800)  # x, y, ancho, alto
 
         # Crear el widget de vista web

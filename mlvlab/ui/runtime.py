@@ -356,7 +356,7 @@ class SimulationRunner:
                     self.state.set(["metrics", "episodes_completed"], episodes)
                     history = list(self.state.get(
                         ["metrics", "reward_history"]) or [])
-                    history.append(round(cur_rew, 2))
+                    history.append([episodes, round(cur_rew, 2)])
                     # recorte por history_size si existe en metrics.chart_reward_number
                     max_len = int(self.state.get(
                         ["metrics", "chart_reward_number"]) or 100)

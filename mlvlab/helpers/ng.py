@@ -133,13 +133,11 @@ def create_reward_chart(container, number=None) -> ui.highchart:
     Crea y devuelve un gráfico estándar para mostrar la recompensa por episodio.
     El título cambia si se proporciona un número.
     """
-    # 1. Determina el texto del título basado en el parámetro 'number'
-    if number is not None:
-        title_text = f'Últimas {number} recompensas'
-    else:
-        title_text = 'Últimas recompensas'
 
-    # 2. Usa la variable title_text para construir las opciones del gráfico
+    title_text = 'Últimas recompensas'
+    # if number is not None:
+    #     title_text = f'Últimas {number} recompensas'
+
     chart_options = {
         'title': {'text': title_text},
         'chart': {'type': 'line'},
@@ -148,7 +146,14 @@ def create_reward_chart(container, number=None) -> ui.highchart:
         'xAxis': {'title': {'text': 'Episodio'}},
         'yAxis': {'title': {'text': None}},
         'accessibility': {'enabled': False},
-        'legend': {'enabled': False}
+        'legend': {'enabled': False},
+
+        # --- BLOQUE DE CÓDIGO A AÑADIR ---
+        'tooltip': {
+            'headerFormat': '<b>Episodio {point.x}</b><br/>',
+            'pointFormat': 'Recompensa: {point.y:.2f}'
+        }
+        # --- FIN DEL BLOQUE A AÑADIR ---
     }
     with container:
         chart = ui.highchart(chart_options).classes('w-full h-64')

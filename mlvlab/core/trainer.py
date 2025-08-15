@@ -138,16 +138,6 @@ class Trainer:
             self.run_one_episode = lambda: self._logic(
                 self.env, self.agent)
 
-    def train(self, num_episodes: int) -> None:
-        print(f"Iniciando entrenamiento para {num_episodes} episodios...")
-        for episode in range(num_episodes):
-            episode_reward = self.run_one_episode()
-            if (episode + 1) % 1000 == 0:
-                print(
-                    f"Episodio {episode + 1}: Recompensa Total = {episode_reward}")
-        print("Entrenamiento finalizado.")
-        self.env.close()
-
     @property
     def state_from_obs(self) -> Optional[Callable[[Any], Any]]:
         """Devuelve el adaptador obs->state asociado al Trainer (si existe)."""
