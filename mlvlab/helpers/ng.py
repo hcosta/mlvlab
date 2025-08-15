@@ -120,7 +120,7 @@ def setup_audio(env: Optional[Any] = None):
                 const sound = new Audio('/assets/{filename}');
                 try {{ sound.volume = {volume_js}; }} catch (e) {{}}
                 sound.muted = {volume_js} <= 0;
-                sound.play().catch(e => console.error("Error al reproducir audio:", e));
+                sound.play().catch(e => console.error("Error al reproducir audio:", e.name, e.message));
             }})()
         """
         ui.run_javascript(js_command)

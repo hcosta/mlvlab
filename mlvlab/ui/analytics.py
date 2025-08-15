@@ -17,6 +17,7 @@ from starlette.responses import StreamingResponse
 from starlette.requests import Request
 from PySide6.QtWidgets import QApplication, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtCore import QUrl
 
 # Asumo que estos imports son de tu proyecto y correctos
@@ -475,6 +476,9 @@ class AnalyticsView:
 
         # Crear el widget de vista web
         web_view = QWebEngineView()
+        # Permitir la reproducción de audio sin interacción del usuario
+        web_view.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False)
         web_view.setUrl(url)
 
         # Establecer la vista web como el widget central de la ventana
