@@ -84,12 +84,40 @@ class RenderingThread(threading.Thread):
         while not self._stop_event.is_set():
             start_time = time.perf_counter()
             try:
+                # Sincronizar el debug_mode desde el estado de la UI
+                debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
+
                 with self.env_lock:
-                    try:
-                        self.env.unwrapped.set_render_data(
-                            q_table=getattr(self.agent, 'q_table', None))
-                    except Exception:
-                        pass
+                    # --- INICIO: CÓDIGO MODIFICADO PARA SER AGNÓSTICO ---
+                    env_unwrapped = self.env.unwrapped
+
+                    # 1. Establecer modo debug solo si el entorno lo soporta
+                    if hasattr(env_unwrapped, 'debug_mode'):
+                        setattr(env_unwrapped, 'debug_mode', debug_is_on)
+
+                    # 2. Pasar datos de renderizado solo si el método existe
+                    if hasattr(env_unwrapped, 'set_render_data'):
+                        # Preparamos un diccionario de datos para ser flexible
+                        render_data = {}
+
+                        # Añadir q_table solo si el agente la tiene
+                        if hasattr(self.agent, 'q_table'):
+                            render_data['q_table'] = getattr(
+                                self.agent, 'q_table', None)
+
+                        # (Ejemplo futuro) Puedo añadir datos de una red neuronal aquí
+                        # if hasattr(self.agent, 'policy_network'):
+                        #     render_data['policy'] = self.agent.policy_network
+
+                        # Llamar al método solo si hay datos que pasar
+                        if render_data:
+                            try:
+                                # Usamos ** para pasar los datos como argumentos nombrados
+                                env_unwrapped.set_render_data(**render_data)
+                            except Exception:
+                                # Fallback por si el método no acepta kwargs
+                                env_unwrapped.set_render_data(
+                                    render_data.get('q_table'))
 
                     frame_np = self.env.render()
 
@@ -162,7 +190,7 @@ class AnalyticsView:
                 "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0},
                 "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
                 "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": history_size},
-                "ui": {"sound_enabled": True, "chart_visible": True},
+                "ui": {"sound_enabled": True, "chart_visible": True, "debug_mode": False},
             }
         )
 

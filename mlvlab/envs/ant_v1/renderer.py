@@ -86,6 +86,8 @@ class ArcadeRenderer:
 
         # Assets y optimización
         self.initialized = False
+        # --- NUEVO: Estado para controlar el modo de depuración ---
+        self.debug_mode = False
         try:
             self.rng_visual = np.random.default_rng()
         except AttributeError:
@@ -445,32 +447,11 @@ class ArcadeRenderer:
             self.arcade.draw_line_strip(highlight_points, highlight_color, 4)
 
     def _draw_heatmap(self, q_table_to_render):
-        # Dibuja la visualización de la Q-Table con efecto de respiración (FadeIn/FadeOut).
-        if q_table_to_render is None:
+        # --- MODIFICADO: Dibuja la visualización de la Q-Table solo si el modo debug está activo. ---
+        if not self.debug_mode or q_table_to_render is None:
             return
 
-        # --- Lógica de Respiración ---
-        # Ciclo total: 4 segundos (2s visible fade in/out, 2s invisible)
-        CYCLE_DURATION = 4.0
-        VISIBLE_DURATION = 2.0
-
-        current_time = time.time()
-        # Calcula la posición en el ciclo (0.0 a 4.0)
-        t_cycle = current_time % CYCLE_DURATION
-
-        if t_cycle > VISIBLE_DURATION:
-            # Estamos en la fase invisible
-            return
-
-        # Calcular la transparencia (alpha) basada en la fase visible (0 a 2s)
-        # Usamos una curva sinusoidal para un fade in/out suave
-        # sin(t * PI / duration) -> va de 0 a 1 y de vuelta a 0
-        alpha_multiplier = math.sin((t_cycle / VISIBLE_DURATION) * math.pi)
-
-        # Aplicamos un umbral mínimo para que sea más visible
-        alpha_multiplier = max(0.1, alpha_multiplier)
-
-        # --- Lógica de Dibujo del Heatmap ---
+        # --- Lógica de Dibujo del Heatmap (sin animación de respiración) ---
         try:
             max_q = float(np.max(q_table_to_render))
             min_q = float(np.min(q_table_to_render))
@@ -512,20 +493,17 @@ class ArcadeRenderer:
                 r, g, b = int(255*(1-t) + 255*t), int(165 *
                                                       (1-t) + 255*t), int(0*(1-t) + 220*t)
 
-            # Calcular alpha final (Combinando respiración y valor Q)
+            # Calcular alpha final (Combinando valor Q con una base, sin animación)
             base_alpha = 50
             value_alpha = norm_q * 150
-            final_alpha = int((base_alpha + value_alpha) * alpha_multiplier)
+            final_alpha = int(base_alpha + value_alpha)
 
             heat_color = (r, g, b, final_alpha)
 
             # Dibujar cuadrados (50% del tamaño de la celda)
-            # CORRECCIÓN: Usamos draw_lbwh_rectangle_filled para compatibilidad.
-            # Calculamos la esquina inferior izquierda (Left, Bottom) desde el centro (cx, cy).
             left = cx - SQUARE_SIZE / 2
             bottom = cy - SQUARE_SIZE / 2
 
-            # Usamos la función de dibujo importada directamente
             if self.draw_lbwh_rectangle_filled:
                 self.draw_lbwh_rectangle_filled(
                     left, bottom, SQUARE_SIZE, SQUARE_SIZE, heat_color)

@@ -291,12 +291,12 @@ def help_env(
             base_repo_url = "https://github.com/hcosta/mlvlab/tree/master"
 
             # 2. Extrae la ruta del módulo del entry point
-            #    Ej: "mlvlab.envs.ant.ant_env:LostAntEnv" -> "mlvlab.envs.ant.ant_env"
+            #    Ej: "mlvlab.envs.ant.env:LostAntEnv" -> "mlvlab.envs.ant.env"
             entry_point = spec.entry_point
             module_path_str = entry_point.split(':')[0]
 
             # 3. Convierte la ruta del módulo a una ruta de directorio
-            #    Ej: "mlvlab.envs.ant.ant_env" -> "mlvlab/envs/ant"
+            #    Ej: "mlvlab.envs.ant.env" -> "mlvlab/envs/ant"
             path_parts = module_path_str.split('.')
             # Nos quedamos con todo menos el último elemento (el nombre del fichero _env.py)
             relative_path = "/".join(path_parts[:-1])

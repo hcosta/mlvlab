@@ -24,7 +24,7 @@ mlvlab/
   envs/
     ant_v1/
       __init__.py
-      ant_env.py        # clase Gym (p. ej. LostAntEnv)
+      env.py        # clase Gym (p. ej. LostAntEnv)
       adapters.py       # obs_to_state(obs, env)
       config.py         # DESCRIPTION, ALGORITHM, BASELINE, KEY_MAP (opcional)
       assets/
@@ -44,7 +44,7 @@ from gymnasium.envs.registration import register
 
 register(
     id="mlv/ant-v1",
-    entry_point="mlvlab.envs.ant_v1.ant_env:LostAntEnv",
+    entry_point="mlvlab.envs.ant_v1.env:LostAntEnv",
     max_episode_steps=500,
     kwargs={"grid_size": 15},
 )
@@ -111,7 +111,7 @@ def obs_to_state(obs: Any, env) -> int:
         return 0
 ```
 
-### Implementación del entorno (`ant_env.py`)
+### Implementación del entorno (`env.py`)
 
 - Define una clase Gym (`gym.Env`) con `observation_space`, `action_space`, `reset`, `step`, `render`, `close`.
 - Si quieres superponer un heatmap de Q-Table durante `render`, implementa en tu entorno:
@@ -169,12 +169,12 @@ Cualquier `config.py` con `ALGORITHM = "sarsa"` quedará soportado por `mlv`.
 
 1) Crear paquete:
   - `mlvlab/envs/minotaur_v1/`
-  - `ant_env.py` (clase Gym)
+  - `env.py` (clase Gym)
   - `adapters.py` (`obs_to_state`)
   - `config.py` (`ALGORITHM`, `BASELINE.config`, `DESCRIPTION`, `KEY_MAP`)
   - `assets/` (opcional)
 2) Registrar en `mlvlab/__init__.py`:
-  - `id="mlv/minotaur-v1"`, `entry_point="mlvlab.envs.minotaur_v1.ant_env:MinotaurEnv"`
+  - `id="mlv/minotaur-v1"`, `entry_point="mlvlab.envs.minotaur_v1.env:MinotaurEnv"`
 3) Probar:
   - `mlv list` (o `mlv list ql`)
   - `mlv play mlv/minotaur-v1`
@@ -184,7 +184,7 @@ Cualquier `config.py` con `ALGORITHM = "sarsa"` quedará soportado por `mlv`.
 ### Checklist: nueva versión (ej. `ant_v2`)
 
 1) Duplicar paquete:
-  - `mlvlab/envs/ant_v2/ant_env.py` con `LostAntEnvV2`
+  - `mlvlab/envs/ant_v2/env.py` con `LostAntEnvV2`
   - `mlvlab/envs/ant_v2/adapters.py` (si cambia)
   - `mlvlab/envs/ant_v2/config.py`
   - `assets/` (si cambia)

@@ -21,6 +21,8 @@ def train_with_state_adapter(
     Entrena un agente... (ver docstring original)
     """
     env = gym.make(env_id, render_mode=("human" if render else None))
+    if render:
+        env.unwrapped.debug_mode = True
 
     # --- AJUSTE DE ALEATORIEDAD PARA ENTRENAMIENTO ---
     # Para Q-Learning 1:1, necesitamos que el mapa sea fijo (determinado por la semilla)

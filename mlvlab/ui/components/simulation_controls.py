@@ -76,6 +76,16 @@ class SimulationControls(UIComponent):
                     ui.icon('volume_up').bind_name_from(state.full(
                     ), 'ui', lambda s: 'volume_up' if s.get('sound_enabled') else 'volume_off')
 
+                # Debug Mode Toggle
+                def toggle_debug_mode():
+                    enabled = bool(state.get(['ui', 'debug_mode']))
+                    state.set(['ui', 'debug_mode'], not enabled)
+
+                with ui.button(on_click=toggle_debug_mode).props('outline'):
+                    # Usamos 'visibility' y 'visibility_off' como iconos
+                    ui.icon('visibility').bind_name_from(state.full(
+                    ), 'ui', lambda s: 'visibility' if s.get('debug_mode') else 'visibility_off')
+
                 # Cierre
                 # ui.button(on_click=dialog.open).props(
                 #     'icon=close outline color="red"')

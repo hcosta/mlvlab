@@ -13,15 +13,15 @@ def get_env_config(env_id: str) -> dict:
     try:
         # Obtenemos la especificación del entorno registrado
         spec = gym.spec(env_id)
-        entry_point = spec.entry_point  # e.g., "mlvlab.envs.ant.ant_env:LostAntEnv"
+        entry_point = spec.entry_point  # e.g., "mlvlab.envs.ant.env:LostAntEnv"
 
-        # Extraemos el path del módulo (e.g., "mlvlab.envs.ant.ant_env")
+        # Extraemos el path del módulo (e.g., "mlvlab.envs.ant.env")
         module_path = entry_point.split(':')[0]
 
         # Derivamos el path de configuración (e.g. "mlvlab.envs.ant.config")
         path_parts = module_path.split('.')
         if len(path_parts) > 1:
-            # Reemplazamos el último segmento (e.g., 'ant_env') por 'config'
+            # Reemplazamos el último segmento (e.g., 'env') por 'config'
             config_module_path = ".".join(path_parts[:-1] + ["config"])
         else:
             return {}

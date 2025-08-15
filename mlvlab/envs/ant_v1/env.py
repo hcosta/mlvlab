@@ -73,6 +73,9 @@ class LostAntEnv(gym.Env):
         self.window = None
         self.q_table_to_render = None
 
+        # --- NUEVO: Atributo para controlar el modo de depuración ---
+        self.debug_mode = False
+
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
         # Gestión de aleatoriedad para respawn
@@ -238,6 +241,10 @@ class LostAntEnv(gym.Env):
             return self._capture_rgb_array(width, height)
 
     def _render_frame(self):
+        # --- MODIFICADO: Pasamos el estado de debug_mode al renderer antes de cada dibujado. ---
+        if self._renderer is not None:
+            self._renderer.debug_mode = self.debug_mode
+
         result = self._renderer.draw(
             self._game, self.q_table_to_render, self.render_mode)
 

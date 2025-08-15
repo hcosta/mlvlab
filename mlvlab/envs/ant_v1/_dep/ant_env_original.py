@@ -1,4 +1,4 @@
-# mlvlab/envs/ant/ant_env.py
+# mlvlab/envs/ant/env.py
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np

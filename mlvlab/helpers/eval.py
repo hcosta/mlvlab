@@ -46,10 +46,12 @@ def evaluate_with_optional_recording(
     # Crear entorno según modo
     if record:
         env = gym.make(env_id, render_mode="rgb_array")
+        env.unwrapped.debug_mode = True
         env = RecordVideo(env, str(temp_folder),
                           episode_trigger=lambda x: True)
     else:
         env = gym.make(env_id, render_mode="human")
+        env.unwrapped.debug_mode = True
 
     # --- AJUSTE DE ALEATORIEDAD PARA EVALUACIÓN ---
     # Para la evaluación, queremos que sea 100% determinista si se proporciona una semilla.
