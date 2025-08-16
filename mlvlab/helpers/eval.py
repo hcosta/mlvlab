@@ -1,19 +1,36 @@
+# mlvlab/evaluation/eval.py
+
 from __future__ import annotations
 
 import os
 from pathlib import Path
 from typing import Callable, Optional
 import time
+import shutil
+import sys
 
 import gymnasium as gym
-from gymnasium.wrappers import RecordVideo
+import imageio  # Necesario para la grabación manual
 from rich.progress import track
+from contextlib import contextmanager
 
-# Asumiendo que merge_videos_with_counter está disponible
+
+@contextmanager
+def suppress_stderr():
+    """Un gestor de contexto para suprimir temporalmente la salida a stderr."""
+    with open(os.devnull, "w") as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
+
+
+# Asumiendo que merge_videos_with_counter está disponible, aunque no lo usaremos en este flujo
 try:
     from .video import merge_videos_with_counter
 except ImportError:
-    # Fallback dummy si no está disponible
     def merge_videos_with_counter(*args, **kwargs):
         print("⚠️ Utilidad de vídeo no encontrada.")
         return False
@@ -26,120 +43,117 @@ def evaluate_with_optional_recording(
     agent_builder: Callable[[gym.Env], object],
     seed: Optional[int] = None,
     record: bool = False,
-    cleanup: bool = True,
-    speed: float = 1.0,  # <--- 2. AÑADE speed A LA FIRMA DE LA FUNCIÓN
+    speed: float = 1.0,
 ) -> Optional[Path]:
     """
-    Evalúa un agente construido por `agent_builder` en `env_id` durante `episodes` episodios.
-    Si `record=True`, graba cada episodio en `run_dir/evaluation_videos_temp` y genera un
-    vídeo final `run_dir/evaluation.mp4`. Devuelve la ruta al vídeo si se genera.
-
-    Requisitos del agente:
-      - Método `act(obs_or_state) -> int`
-      - (Opcional) atributo `epsilon` (para forzar política greedy)
-      - (Opcional) método `load(filepath)` para cargar estado (p.ej., Q-Table)
-      - (Opcional) propiedad `q_table` para overlay de heatmap
+    Evalúa un agente y, si record=True, graba un vídeo de la evaluación de forma manual
+    para asegurar la compatibilidad con renderers cinemáticos dependientes del tiempo.
     """
-    temp_folder = run_dir / "evaluation_videos_temp"
     final_video_path = run_dir / "evaluation.mp4"
 
-    # Crear entorno según modo
-    if record:
-        env = gym.make(env_id, render_mode="rgb_array")
-        env.unwrapped.debug_mode = True
-        env = RecordVideo(env, str(temp_folder),
-                          episode_trigger=lambda x: True)
-    else:
-        env = gym.make(env_id, render_mode="human")
+    # --- LÓGICA DE RENDERIZADO Y GRABACIÓN RECTIFICADA ---
+
+    render_mode = "human" if not record else "rgb_array"
+    env = gym.make(env_id, render_mode=render_mode)
+
+    # Activar el modo debug si está disponible, para visualizaciones extra
+    if hasattr(env.unwrapped, "debug_mode"):
         env.unwrapped.debug_mode = True
 
-    # AJUSTE DE ALEATORIEDAD PARA EVALUACIÓN ---
-    # Para la evaluación, queremos que sea 100% determinista si se proporciona una semilla.
-    # Esto significa mismo mapa Y mismas posiciones iniciales.
-    # Si el entorno lo soporta, desactivamos el modo de respawn aleatorio (unseeded).
-    try:
-        if hasattr(env.unwrapped, "set_respawn_unseeded"):
+    # Configuración de respawn determinista para una evaluación consistente
+    if hasattr(env.unwrapped, "set_respawn_unseeded"):
+        try:
             env.unwrapped.set_respawn_unseeded(False)
             print("ℹ️  Configurado respawn determinista (seeded) para evaluación.")
-    except Exception as e:
-        print(
-            f"⚠️ Advertencia: No se pudo configurar el respawn determinista: {e}")
-    # --------------------------------------------------
+        except Exception as e:
+            print(
+                f"⚠️ Advertencia: No se pudo configurar el respawn determinista: {e}")
 
-    # Construcción del agente (el builder debe configurarlo para este env)
+    # Construcción del agente
     agent = agent_builder(env)
 
-    # Intentar cargar estado del agente desde run_dir estandarizado
-    q_table_file = run_dir / "q_table.npy"
-    try:
-        if hasattr(agent, "load") and q_table_file.exists():
-            agent.load(str(q_table_file))  # type: ignore[attr-defined]
-            print(f"🧠 Cargado estado del agente desde {q_table_file}.")
-    except Exception as e:
-        print(f"⚠️ No se pudo cargar el estado del agente: {e}")
+    # Carga del estado del agente (p.ej., Tabla Q)
+    agent_file = run_dir / "q_table.npy"  # Asumiendo un nombre estándar
+    if hasattr(agent, "load") and agent_file.exists():
+        try:
+            agent.load(str(agent_file))
+            print(f"🧠 Cargado estado del agente desde {agent_file}.")
+        except Exception as e:
+            print(f"⚠️ No se pudo cargar el estado del agente: {e}")
 
-    # Forzar política greedy en evaluación si el agente soporta epsilon
-    try:
-        if hasattr(agent, "epsilon"):
-            setattr(agent, "epsilon", 0.0)
-    except Exception:
-        pass
+    # Forzar modo explotación (sin acciones aleatorias)
+    if hasattr(agent, "epsilon"):
+        setattr(agent, "epsilon", 0.0)
 
-    # Bucle de evaluación
+    # --- BUCLE DE EVALUACIÓN ---
+
+    frames = []  # Lista para guardar los fotogramas si estamos grabando
+
     for ep in track(range(episodes), description="Evaluando..."):
         current_seed = seed if ep == 0 else None
         obs, info = env.reset(seed=current_seed)
 
         terminated, truncated = False, False
         while not (terminated or truncated):
-            # Overlay de Q-Table si existe
-            try:
-                q_table = getattr(agent, "q_table", None)
-                if q_table is not None and hasattr(env.unwrapped, "set_render_data"):
-                    env.unwrapped.set_render_data(q_table=q_table)
-            except Exception:
-                pass
+
+            # Pasar datos de renderizado al entorno si es necesario (p.ej. Q-Table)
+            q_table = getattr(agent, "q_table", None)
+            if q_table is not None and hasattr(env.unwrapped, "set_render_data"):
+                env.unwrapped.set_render_data(q_table=q_table)
 
             action = agent.act(obs)
             obs, reward, terminated, truncated, info = env.step(action)
-            if not record:
+
+            if record:
+                # Grabación manual del frame
+                frame = env.render()
+                if frame is not None:
+                    frames.append(frame)
+            else:
+                # Renderizado en tiempo real para el modo humano
                 env.render()
-                # Calcula el retraso basado en los FPS del entorno y el multiplicador de velocidad
-                target_fps = env.metadata.get("render_fps", 60)
-                base_delay = 1.0 / target_fps
-                # Aseguramos que la velocidad no sea cero o negativa
-                effective_speed = max(speed, 0.01)
-                actual_delay = base_delay / effective_speed
-                time.sleep(actual_delay)
+
+            # PAUSA CRUCIAL para dar tiempo al renderer cinemático
+            target_fps = env.metadata.get("render_fps", 60)
+            effective_speed = max(speed, 0.01)
+            delay = (1.0 / target_fps) / effective_speed
+            time.sleep(delay)
+
+    # --- GRABACIÓN DE LA ESCENA FINAL CINEMÁTICA (SOLO EN MODO RECORD) ---
+    if record:
+        print("Grabando escena final cinemática...")
+        # Grabamos durante 0.5 segundos extra para capturar la animación completa del renderer
+        num_final_frames = int(env.metadata.get("render_fps", 60) * 0.5)
+        for _ in range(num_final_frames):
+            frame = env.render()
+            if frame is not None:
+                frames.append(frame)
+            time.sleep(1/env.metadata.get("render_fps", 60))
+
+        # Guardar el vídeo usando imageio
+        if frames:
+            effective_speed = max(speed, 0.01)
+            playback_fps = target_fps * effective_speed
+
+            print(
+                f"Guardando vídeo a {playback_fps:.2f} FPS (velocidad x{speed})...")
+            try:
+                # Aquí podrías usar tu supresor de warnings si quieres
+                imageio.mimsave(str(final_video_path),
+                                frames, fps=playback_fps)
+                print(
+                    f"✅ Evaluación completada. Vídeo guardado en: {final_video_path}")
+            except Exception as e:
+                print(f"❌ Error al guardar el vídeo con imageio: {e}")
+                final_video_path = None
+        else:
+            print("⚠️ No se generaron frames para el vídeo.")
+            final_video_path = None
 
     env.close()
 
-    # Manejo de vídeo
     if not record:
-        print("✅ Evaluación completada en modo interactivo (sin grabación).")
+        print("✅ Evaluación completada en modo interactivo.")
         return None
 
-    ok = merge_videos_with_counter(
-        str(temp_folder),
-        str(final_video_path),
-        font_path=None,
-        cleanup=cleanup,
-        speed_multiplier=speed
-    )
-    if cleanup:
-        if os.path.exists(temp_folder):
-            try:
-                import shutil
-                shutil.rmtree(temp_folder)
-                print("🗑️ Archivos temporales eliminados.")
-            except Exception:
-                pass
-    else:
-        print(f"ℹ️ Se conservan los archivos temporales en: {temp_folder}")
-
-    if ok:
-        print(
-            f"✅ Evaluación completada. Vídeo guardado en: {final_video_path}")
-        return final_video_path
-    else:
-        return None
+    return final_video_path

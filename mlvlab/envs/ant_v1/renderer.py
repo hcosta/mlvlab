@@ -766,7 +766,13 @@ class ArcadeRenderer:
                 self.arcade.draw_circle_filled(p.x, p.y, size, color)
 
     def draw(self, game: AntGame, q_table_to_render, render_mode: str | None, simulation_speed: float = 1.0):
-        # Función principal de dibujo del frame.
+        """ Función principal de dibujo del frame. """
+
+        # Si el juego está en un estado terminal (victoria o colisión),
+        # forzamos a que la posición visual sea idéntica a la posición real.
+        # Esto asegura que el último frame del GIF muestre el resultado correcto.
+        if game.collided or (game.ant_pos[0] == game.goal_pos[0] and game.ant_pos[1] == game.goal_pos[1]):
+            self.ant_display_pos = list(game.ant_pos.astype(float))
 
         if render_mode is None:
             return None
@@ -781,7 +787,7 @@ class ArcadeRenderer:
         self.last_time = current_time
         delta_time = min(delta_time, 0.1)
 
-        # CAMBIO CLAVE: Escalamos el delta_time ---
+        # Escalamos el delta_time ---
         scaled_delta_time = delta_time * simulation_speed
 
         # Proceso de Dibujo y Actualización Coordinada ---

@@ -99,6 +99,5 @@ def eval_agent(
         episodes=int(episodes),
         agent_builder=builder,
         seed=seed,
-        record=video,
-        cleanup=cleanup,
+        record=video
     )

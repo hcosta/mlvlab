@@ -211,12 +211,8 @@ def evaluate(
         None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
     episodes: int = typer.Option(
         5, "--eps", "-e", help="Número de episodios a ejecutar."),
-    # <--- 1. AÑADE LA NUEVA OPCIÓN DE VELOCIDAD AQUÍ ---
     speed: float = typer.Option(
         1.0, "--speed", "-sp", help="Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad)."),
-    # ---------------------------------------------------
-    no_cleanup: bool = typer.Option(
-        False, "--no-cleanup", "-nc", help="Conserva los vídeos temporales de cada episodio (solo si --record)."),
     record: bool = typer.Option(
         False, "--rec", "-r", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
 ):
@@ -257,7 +253,6 @@ def evaluate(
             run_dir=run_dir,
             episodes=episodes,
             seed=eval_seed,
-            cleanup=not no_cleanup,
             video=record,
             speed=speed
         )

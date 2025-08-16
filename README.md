@@ -191,7 +191,6 @@ Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio
   - **--eps, -e**: Número de episodios a ejecutar durante la evaluación. Por defecto: 5.
   - **--rec, -r**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
   - **--speed, -sp**: Factor de multiplicación de velocidad, por defecto es `1.0`, para verlo a la mitad poner `.5`.
-  - **--no-cleanup, -nc**: Conserva los vídeos temporales por episodio cuando se usa `--record`.
 
 Ejemplos:
 
