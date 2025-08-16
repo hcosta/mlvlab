@@ -78,6 +78,8 @@ class ArcadeRenderer:
         self.last_time = time.time()
         self.particles: list[ParticleFX] = []
         self.anthill_hole_visual_center = None  # (x_px, y_px) del agujero
+        self.was_colliding_last_frame = False
+        self._q_value_text_objects: list = []
 
         # Estado de transición de éxito
         self.in_success_transition = False
@@ -450,6 +452,76 @@ class ArcadeRenderer:
         if len(highlight_points) > 1:
             self.arcade.draw_line_strip(highlight_points, highlight_color, 4)
 
+    def _spawn_collision_particles(self):
+        if self.ant_display_pos is None:
+            return
+        cx, cy = self._cell_to_pixel(*self.ant_display_pos)
+        vec_map = {0: (0, -1), 1: (0, 1), 2: (1, 0), 3: (-1, 0)}
+        impact_vector = vec_map.get(self.game.last_action, (0, 0))
+        for _ in range(15):
+            speed = self.rng_visual.uniform(0.5, 2.5)
+            angle_offset = self.rng_visual.uniform(-0.8, 0.8)
+            dx = (impact_vector[0] + angle_offset) * speed
+            dy = (impact_vector[1] + abs(angle_offset)) * speed
+            self.particles.append(ParticleFX(cx, cy, dx, dy, self.rng_visual.uniform(
+                1.5, 3.0), self.rng_visual.uniform(2, 6), self.COLOR_PARTICLE_DUST, gravity=0.1))
+
+    # --- NUEVA FUNCIÓN PARA DIBUJAR LOS Q-VALUES DE LA HORMIGA ---
+    def _draw_ant_q_values(self, q_table):
+        """Dibuja los 4 valores Q solo para la celda actual de la hormiga."""
+        if not self.debug_mode or q_table is None or self.game is None:
+            # Si salimos del modo debug, eliminamos los objetos de texto para que no se vean
+            if self._q_value_text_objects:
+                self._q_value_text_objects = []
+            return
+
+        ant_x_logic, ant_y_logic = self.game.ant_pos
+        state_index = int(ant_y_logic) * self.game.grid_size + int(ant_x_logic)
+        cx, cy = self._cell_to_pixel(*self.ant_display_pos)
+
+        try:
+            q_values = q_table[state_index, :]
+        except IndexError:
+            return
+
+        # 2. Si es la primera vez que dibujamos texto, creamos los 8 objetos (4 de texto, 4 de sombra)
+        if not self._q_value_text_objects:
+            font_size = 9
+            font_color = (255, 255, 255, 220)
+            shadow_color = (0, 0, 0, 180)
+            for i in range(4):  # Creamos objetos para las 4 acciones
+                # Sombra
+                shadow_obj = self.arcade.Text(
+                    "", x=0, y=0, color=shadow_color, font_size=font_size, anchor_x='center', anchor_y='center')
+                # Texto principal
+                main_obj = self.arcade.Text(
+                    "", x=0, y=0, color=font_color, font_size=font_size, anchor_x='center', anchor_y='center')
+                self._q_value_text_objects.append((shadow_obj, main_obj))
+
+        offsets = {0: (0, self.CELL_SIZE*0.3), 1: (0, -self.CELL_SIZE*0.4),
+                   2: (-self.CELL_SIZE*0.3, 0), 3: (self.CELL_SIZE*0.3, 0)}
+
+        for action, q_value in enumerate(q_values):
+            # 3. En lugar de crear objetos, actualizamos los que ya existen
+            shadow_obj, main_obj = self._q_value_text_objects[action]
+
+            # Actualizamos el texto
+            new_text = f"{q_value:.1f}"
+            if main_obj.text != new_text:
+                main_obj.text = new_text
+                shadow_obj.text = new_text
+
+            # Actualizamos la posición
+            offset_x, offset_y = offsets[action]
+            pos_x, pos_y = cx + offset_x, cy + offset_y
+
+            main_obj.x, main_obj.y = pos_x, pos_y
+            shadow_obj.x, shadow_obj.y = pos_x + 1, pos_y - 1
+
+            # Y finalmente, los dibujamos
+            shadow_obj.draw()
+            main_obj.draw()
+
     def _draw_heatmap(self, q_table_to_render):
         # Dibuja la visualización de la Q-Table solo si el modo debug está activo.
         if not self.debug_mode or q_table_to_render is None:
@@ -481,23 +553,23 @@ class ArcadeRenderer:
 
             norm_q = (q_value - min_q) / q_range
 
-            # --- NUEVO GRADIENTE "VIRIDIS-LIKE" (Azul -> Verde -> Amarillo) ---
+            # --- NUEVO GRADIENTE "MAGMA-LIKE" (Morado -> Rojo -> Amarillo) ---
             if norm_q < 0.5:
-                # Interpola de Azul oscuro (44, 1, 105) a Verde brillante (30, 250, 100)
+                # Interpola de Morado oscuro (10, 8, 40) a Rojo anaranjado (252, 80, 50)
                 t = norm_q * 2
-                r = int(44 * (1 - t) + 30 * t)
-                g = int(1 * (1 - t) + 250 * t)
-                b = int(105 * (1 - t) + 100 * t)
+                r = int(10 * (1 - t) + 252 * t)
+                g = int(8 * (1 - t) + 80 * t)
+                b = int(40 * (1 - t) + 50 * t)
             else:
-                # Interpola de Verde brillante a Amarillo Fuego (253, 231, 37)
+                # Interpola de Rojo anaranjado a Amarillo brillante (252, 250, 100)
                 t = (norm_q - 0.5) * 2
-                r = int(30 * (1 - t) + 253 * t)
-                g = int(250 * (1 - t) + 231 * t)
-                b = int(100 * (1 - t) + 37 * t)
+                r = int(252 * (1 - t) + 252 * t)
+                g = int(80 * (1 - t) + 250 * t)
+                b = int(50 * (1 - t) + 100 * t)
 
             # Alpha ajustado para mayor contraste
-            base_alpha = 40
-            value_alpha = norm_q * 190
+            base_alpha = 50  # Un poco más opaco en la base
+            value_alpha = norm_q * 180
             final_alpha = int(base_alpha + value_alpha)
 
             heat_color = (r, g, b, final_alpha)
@@ -581,7 +653,7 @@ class ArcadeRenderer:
 
         # Guardamos la posición del agujero (en Píxeles) para la animación de éxito
         # El offset es para que la hormiga se vea más cerca del agujero al meterse
-        self.anthill_hole_visual_center = (cx, hole_center_y+15)
+        self.anthill_hole_visual_center = (cx, hole_center_y+13)
 
     def _draw_ant(self):
         # Dibuja la hormiga animada y procedural.
@@ -811,6 +883,9 @@ class ArcadeRenderer:
 
         # Dibujamos la hormiga (usando la posición y ángulo actualizados)
         self._draw_ant()
+
+        # Debug mode
+        self._draw_ant_q_values(q_table_to_render)
 
         # 4. Post-procesado: Partículas
         self._draw_particles()

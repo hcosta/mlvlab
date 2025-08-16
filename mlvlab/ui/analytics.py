@@ -164,7 +164,7 @@ class AnalyticsView:
 
         self.state = StateStore(
             defaults={
-                "sim": {"command": "run", "speed_multiplier": 2, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0},
+                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0},
                 "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
                 "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": effective_history_size},
                 "ui": {"sound_enabled": True, "chart_visible": True, "debug_mode": False, "dark_mode": dark},

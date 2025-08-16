@@ -44,7 +44,7 @@ class SimulationControls(UIComponent):
 
                     # Slider que ocupa el espacio restante en esta sección
                     slider = ui.slider(
-                        min=2, max=200, step=2).classes('flex-grow')
+                        min=0, max=200, step=5).classes('flex-grow')
                     slider.bind_value(state.full()['sim'], 'speed_multiplier')
 
                 # --- Sección 2: Switch de Turbo (1/3 del ancho) ---
