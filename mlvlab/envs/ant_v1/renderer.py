@@ -254,7 +254,6 @@ class ArcadeRenderer:
             self._update_rotation(delta_time, target_angle)
 
         # 4. Escalar la hormiga hacia abajo (Easing "EaseInOutCubic")
-
         def easeInOutCubic(t):
             if t < 0.5:
                 return 4 * t * t * t
@@ -581,7 +580,8 @@ class ArcadeRenderer:
             cx, hole_center_y, self.CELL_SIZE * 0.30, self.CELL_SIZE * 0.18, hole_color)
 
         # Guardamos la posición del agujero (en Píxeles) para la animación de éxito
-        self.anthill_hole_visual_center = (cx, hole_center_y)
+        # El offset es para que la hormiga se vea más cerca del agujero al meterse
+        self.anthill_hole_visual_center = (cx, hole_center_y+15)
 
     def _draw_ant(self):
         # Dibuja la hormiga animada y procedural.
