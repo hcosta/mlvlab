@@ -58,32 +58,13 @@ mlv help mlv/ant-v1
   ```bash
   mlv --install-completion  # Implementado
   ```
-* ⬜ Un comando `mlv panel`: Para lanzar directamente paneles interactivos prefabricados usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
-* ⬜ Un widget `ModelPersistance`: Con botones para guardar y cargar pesos (con un `file_dialog`) en/desde archivos para el agente actual que está configurado en el panel:
+* ✅ Extender el widget `SimulationControls` para personalizar los botones que quieras mostrar.
+* ✅ Extender el widget `MetricsDashboard` para personalizar las métricas que quieras mostrar.
+* ✅ Crear un widget `ModelPersistance`: Con botones para guardar y cargar pesos (con un `file_dialog`) en/desde archivos para el agente actual que está configurado en el panel:
   ```python
   ui.ModelPersistence(default_filename="ant_brain.npy") # U otro en los dialogs
   ```
-* Extender el widget `SimulationControls` para personalizar los botones que quieras mostrar:
-  ```python
-  # Botones por defecto: "play_pause", "reset", "sound", "debug"
-
-  # Caso 1: Comportamiento actual (todo incluido)
-  ui.SimulationControls()
-
-  # Caso 2: Interfaz mínima (sin controles de velocidad, solo Play/Pause y Reset)
-  ui.SimulationControls(
-      include_speed=False, 
-      include_turbo=False, 
-      buttons=["play_pause", "reset"]
-  )
-
-  # Caso 3: Entrenamiento rápido (solo Turbo y Reset)
-  ui.SimulationControls(
-      include_speed=False, 
-      buttons=["reset"]
-  )
-  ```
-* ⬜ Un comando `mlv clean`: Podría servir para realizar limpiezas de los archivos temporales en el directorio `data`, manteniendo el directorio de trabajo limpio.
+* ⬜ Un comando `mlv panel`: Para lanzar directamente paneles interactivos prefabricados usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
 * ⬜ Un comando `mlv compare`: Podría recibir dos semillas (`mlv compare mlv/ant-v1 --seeds 123,456`) y mostrar una tabla resumen con las métricas finales de cada una, o incluso abrir el panel de análisis con ambos gráficos de recompensa superpuestos.
 
 --- 

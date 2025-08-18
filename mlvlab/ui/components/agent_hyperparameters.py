@@ -10,27 +10,34 @@ def _pretty(name: str) -> str:
     return name.replace('_', ' ').strip().title()
 
 
+def _pretty(name: str) -> str:
+    return name.replace('_', ' ').strip().title()
+
+
 class AgentHyperparameters(UIComponent):
-    def __init__(self, agent: object, params: List[str]) -> None:
-        self.agent = agent
+    # El 'agent' se ha eliminado del constructor.
+    def __init__(self, params: List[str]) -> None:
         self.params = params
 
     def render(self, state, context: ComponentContext) -> None:
-        with ui.card().classes('w-full'):
+        # Obtenemos el agente desde el contexto, no desde 'self'.
+        agent = context.agent
+
+        with ui.card().classes('w-full mb-1'):
             ui.label('Configuración del Agente').classes(
-                'text-lg font-semibold text-center w-full mb-3')
+                'text-lg font-semibold text-center w-full mb-0')
 
             with ui.grid(columns=3).classes('w-full gap-x-2 items-center'):
                 for name in self.params:
                     ui.label(_pretty(name)).classes(
                         'col-span-2 justify-self-start')
 
-                    # preferencia: state.agent -> attr del agente -> defaults
                     value_from_state = state.get(['agent', name])
                     if value_from_state is not None:
                         initial_value = float(value_from_state)
                     else:
-                        attr_val = getattr(self.agent, name, None)
+                        # Usamos el 'agent' del contexto.
+                        attr_val = getattr(agent, name, None)
                         if attr_val is not None:
                             initial_value = float(attr_val)
                         else:
@@ -46,13 +53,7 @@ class AgentHyperparameters(UIComponent):
 
                     num = ui.number(value=initial_value,
                                     format='%.5f', step=0.00001, min=0, max=1)
-                    # Deshabilitar edición cuando la simulación está en marcha (pureza)
 
-                    def _is_running():
-                        try:
-                            return (state.get(['sim', 'command']) or 'run') == 'run'
-                        except Exception:
-                            return True
                     num.bind_enabled_from(state.full(), 'sim', lambda sim: (
                         sim or {}).get('command') != 'run')
 
@@ -62,9 +63,10 @@ class AgentHyperparameters(UIComponent):
                         except Exception:
                             val = 0.0
                         state.set(['agent', attr_name], val)
-                        if hasattr(self.agent, attr_name):
+                        # Actualizamos el 'agent' del contexto.
+                        if hasattr(agent, attr_name):
                             try:
-                                setattr(self.agent, attr_name, val)
+                                setattr(agent, attr_name, val)
                             except Exception:
                                 pass
 

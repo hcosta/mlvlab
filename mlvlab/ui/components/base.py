@@ -13,7 +13,10 @@ from ..state import StateStore
 class ComponentContext:
     state: StateStore
     env_lock: Lock
-    _timers: list = field(default_factory=list)
+    agent: Any
+    env: Any
+    _timers: list = field(default_factory=list, init=False)
+    # 'init=False' es una buena práctica aquí
 
     def register_timer(self, timer: Any) -> None:
         self._timers.append(timer)

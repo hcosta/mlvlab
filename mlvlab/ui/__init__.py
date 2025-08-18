@@ -17,6 +17,7 @@ from .components.simulation_controls import SimulationControls
 from .components.agent_hyperparameters import AgentHyperparameters
 from .components.metrics_dashboard import MetricsDashboard
 from .components.reward_chart import RewardChart
+from .components.model_persistance import ModelPersistence
 from .components.live_metric import LiveMetric
 from .components.dynamic_table import DynamicTable
 from .components.info_panel import InfoPanel
@@ -28,6 +29,7 @@ __all__ = [
     "SimulationControls",
     "AgentHyperparameters",
     "MetricsDashboard",
+    "ModelPersistence",
     "RewardChart",
     "LiveMetric",
     "DynamicTable",

@@ -24,7 +24,7 @@ class LiveMetric(UIComponent):
         self.fmt = fmt
 
     def render(self, state, context: ComponentContext) -> None:
-        with ui.card().classes('w-full mb-2'):
+        with ui.card().classes('w-full mb-1'):
             label = ui.label(f"{self.name}: ...")
 
             def tick():

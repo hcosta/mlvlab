@@ -162,12 +162,34 @@ class GenericQLearningAgent:
             self.epsilon = max(
                 self.min_epsilon, self.epsilon * self.epsilon_decay)
 
+    def save(self) -> dict:
+        """
+        Empaqueta todos los datos necesarios del agente en un diccionario.
+        """
+        return {
+            'q_table': self.q_table,
+            'hyperparameters': {
+                'learning_rate': self.learning_rate,
+                'discount_factor': self.discount_factor,
+                'epsilon_decay': self.epsilon_decay,
+                'epsilon': self.epsilon,
+            }
+        }
+
+    def load(self, data: dict) -> None:
+        """
+        Restaura el estado del agente a partir de un diccionario.
+        """
+        self.q_table = data.get('q_table')
+
+        # Carga los hiperparámetros
+        hparams = data.get('hyperparameters', {})
+        self.learning_rate = hparams.get('learning_rate', self.learning_rate)
+        self.discount_factor = hparams.get(
+            'discount_factor', self.discount_factor)
+        self.epsilon_decay = hparams.get('epsilon_decay', self.epsilon_decay)
+        self.epsilon = hparams.get('epsilon', self.epsilon)
+
     def reset(self) -> None:
         self.q_table.fill(0)
         self.epsilon = 1.0
-
-    def save(self, filepath: str) -> None:
-        np.save(filepath, self.q_table)
-
-    def load(self, filepath: str) -> None:
-        self.q_table = np.load(filepath)

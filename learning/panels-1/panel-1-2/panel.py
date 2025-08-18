@@ -56,17 +56,21 @@ def main():
     view = AnalyticsView(
         dark=True,
         trainer=trainer,
-        left_panel_components=[
-            ui.SimulationControls(),
-            ui.AgentHyperparameters(
-                trainer.agent, params=[
-                    'learning_rate',
-                    'discount_factor',
-                    'epsilon_decay']
+        left_panel=[
+            ui.SimulationControls(
+                includes=["speed", "turbo"],
+                buttons=["play", "reset", "sound", "debug"]
             ),
+            ui.AgentHyperparameters(
+                params=['learning_rate', 'discount_factor', 'epsilon_decay']
+            ),
+            ui.ModelPersistence(default_filename="ant_q_table.npz"),
         ],
-        right_panel_components=[
-            ui.MetricsDashboard(),
+        right_panel=[
+            ui.MetricsDashboard(
+                metrics=["epsilon", "current_reward",
+                         "episodes_completed", "steps_per_second"]
+            ),
             ui.RewardChart(history_size=500),
         ],
     )

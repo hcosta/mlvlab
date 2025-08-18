@@ -12,7 +12,7 @@ class DynamicTable(UIComponent):
         self.source = source
 
     def render(self, state, context: ComponentContext) -> None:
-        with ui.card().classes('w-full mb-2'):
+        with ui.card().classes('w-full mb-1'):
             ui.label(self.title).classes('text-lg font-semibold')
             table = ui.table(columns=[], rows=[]).classes('w-full')
 

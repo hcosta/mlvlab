@@ -1,7 +1,6 @@
 # mlvlab/ui/analytics.py
 
 from __future__ import annotations
-
 from typing import Any, List, Optional, Callable, Dict
 import time
 import threading
@@ -9,16 +8,15 @@ import asyncio
 from pathlib import Path
 import importlib.util
 import sys
-
 from nicegui import ui, app, Client
 import numpy as np
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
-from PySide6.QtCore import QUrl
-
+from PySide6.QtCore import QObject, Slot, QUrl
+from PySide6.QtWebChannel import QWebChannel
 from .state import StateStore
 from .runtime import SimulationRunner
 from mlvlab.core.trainer import Trainer
@@ -34,8 +32,6 @@ _server_started = threading.Event()
 
 
 class FrameBuffer:
-    """Buffer Thread-Safe para pasar frames desde el hilo de renderizado al servidor."""
-
     def __init__(self):
         self.current_frame = b""
         self.lock = threading.Lock()
@@ -59,7 +55,9 @@ class FrameBuffer:
 
 
 class RenderingThread(threading.Thread):
-    """Hilo dedicado para renderizar el entorno tan rápido como sea posible."""
+    """
+    Hilo dedicado para renderizar el entorno tan rápido como sea posible.
+    """
 
     def __init__(self, env, agent, env_lock, buffer: FrameBuffer, state: StateStore):
         super().__init__(daemon=True)
@@ -76,8 +74,6 @@ class RenderingThread(threading.Thread):
     def run(self):
         print(f"▶️ Hilo de Renderizado [ID: {self.ident}] iniciado.")
         while not self._stop_event.is_set():
-            # El bucle ahora intentará ejecutarse tan rápido como pueda,
-            # limitado únicamente por el tiempo que tarda en renderizar un fotograma.
             try:
                 debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
                 with self.env_lock:
@@ -103,31 +99,50 @@ class RenderingThread(threading.Thread):
                     except Exception:
                         pass
 
-                frame_bytes = encode_frame_fast_jpeg(frame_np, quality=100)
-                if frame_bytes:
-                    self.buffer.update_frame(frame_bytes)
+                # Comprobamos que el frame no sea None antes de procesarlo.
+                # Esto evita errores si el entorno se cierra mientras el hilo aún corre.
+                if frame_np is not None:
+                    frame_bytes = encode_frame_fast_jpeg(frame_np, quality=100)
+                    if frame_bytes:
+                        self.buffer.update_frame(frame_bytes)
 
             except Exception as e:
-                print(
-                    f"⚠️ Error en el hilo de renderizado [ID: {self.ident}]: {e}")
-                # Pequeña pausa en caso de error continuo
+                # No imprimimos el error si es porque el entorno ya no existe
+                if "AttributeError: 'NoneType' object has no attribute" not in str(e):
+                    print(
+                        f"⚠️ Error en el hilo de renderizado [ID: {self.ident}]: {e}")
                 self._stop_event.wait(0.1)
                 continue
 
-            # Damos una mínima oportunidad a otros hilos de ejecutarse para no saturar la CPU al 100%
             time.sleep(0.001)
 
         print(f"⏹️ Hilo de Renderizado [ID: {self.ident}] detenido.")
 
 
-class AnalyticsView:
-    """Vista principal declarativa que arma el panel de análisis estándar."""
+class Bridge(QObject):
+    @Slot(str, str)
+    def saveFile(self, file_content_base64, default_filename):
+        import base64
+        from pathlib import Path
+        filepath, _ = QFileDialog.getSaveFileName(
+            None, "Guardar Modelo del Agente", default_filename,
+            "Numpy Archives (*.npz);;All Files (*)")
+        if filepath:
+            try:
+                file_content_bytes = base64.b64decode(file_content_base64)
+                with open(filepath, 'wb') as f:
+                    f.write(file_content_bytes)
+                print(f"Fichero guardado exitosamente en: {filepath}")
+            except Exception as e:
+                print(f"Error al guardar el fichero: {e}")
 
+
+class AnalyticsView:
     def __init__(
         self,
         env: Any | None = None, agent: Any | None = None, trainer: Trainer | None = None,
-        left_panel_components: Optional[List[UIComponent]] = None,
-        right_panel_components: Optional[List[UIComponent]] = None,
+        left_panel: Optional[List[UIComponent]] = None,
+        right_panel: Optional[List[UIComponent]] = None,
         title: str = "", history_size: int = 100, dark: bool = False,
         subtitle: Optional[str] = None, state_from_obs: Optional[Callable[..., Any]] = None,
         agent_hparams_defaults: Optional[dict] = None,
@@ -141,8 +156,8 @@ class AnalyticsView:
                     "Debes proporcionar 'trainer' o bien 'env' y 'agent'.")
             self.env, self.agent = env, agent
 
-        self.left_components = left_panel_components or []
-        self.right_components = right_panel_components or []
+        self.left_components = left_panel or []
+        self.right_components = right_panel or []
         self.title = title
         self.history_size = history_size
         self.dark = dark
@@ -158,13 +173,13 @@ class AnalyticsView:
             'discount_factor': float(getattr(self.agent, 'discount_factor', 0.9) or 0.9),
         }
 
-        chart_component = next((c for c in (left_panel_components or [
-        ]) + (right_panel_components or []) if hasattr(c, 'history_size')), None)
+        chart_component = next((c for c in (
+            left_panel or []) + (right_panel or []) if hasattr(c, 'history_size')), None)
         effective_history_size = chart_component.history_size if chart_component else history_size
 
         self.state = StateStore(
             defaults={
-                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0},
+                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0,  "active_model_name": "Ninguno (Nuevo)"},
                 "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
                 "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": effective_history_size},
                 "ui": {"sound_enabled": True, "chart_visible": True, "debug_mode": False, "dark_mode": dark},
@@ -208,9 +223,29 @@ class AnalyticsView:
 
         @ui.page("/")
         def main_page(client: Client):
+            ui.add_head_html('''
+                <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+                <script type="text/javascript">
+                    document.addEventListener("DOMContentLoaded", function () {
+                        if (typeof qt !== 'undefined') {
+                            new QWebChannel(qt.webChannelTransport, function (channel) {
+                                window.backend = channel.objects.backend;
+                            });
+                        }
+                    });
+                    function saveModelWithNativeDialog(base64content, filename) {
+                        if (window.backend) {
+                            window.backend.saveFile(base64content, filename);
+                        } else {
+                            console.error("El puente QWebChannel 'backend' no está disponible.");
+                            alert("Error: La comunicación con la aplicación nativa ha fallado.");
+                        }
+                    }
+                </script>
+            ''')
             video_endpoint = f'/video_feed/{client.id}'
             context = ComponentContext(
-                state=self.state, env_lock=self.env_lock)
+                state=self.state, env_lock=self.env_lock, agent=self.agent, env=self.env)
             play_sound = setup_audio(self.env)
 
             if self.title:
@@ -320,8 +355,15 @@ class AnalyticsView:
         window.setWindowTitle("MLVLab Analytics Panel - " + self.env.spec.id)
         window.setGeometry(100, 100, 1280, 800)
         web_view = QWebEngineView()
+
+        channel = QWebChannel(web_view.page())
+        bridge = Bridge()
+        channel.registerObject("backend", bridge)
+        web_view.page().setWebChannel(channel)
+
         web_view.settings().setAttribute(
             QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False)
+
         web_view.setUrl(url)
         window.setCentralWidget(web_view)
         window.showMaximized()
