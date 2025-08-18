@@ -1,5 +1,6 @@
 import gymnasium as gym
-from mlvlab.agents.q_learning import QLearningAgent
+# from mlvlab.agents.q_learning import QLearningAgent
+from q_learning import QLearningAgent, GenericQLearningAgent
 from mlvlab.core.logic import InteractiveLogic
 from mlvlab.core.trainer import Trainer
 from mlvlab.ui import AnalyticsView
@@ -41,9 +42,14 @@ class AntLogic(InteractiveLogic):
 def main():
     env = gym.make("mlv/ant-v1", render_mode="rgb_array")
     grid_size = env.unwrapped.GRID_SIZE
-    agent = QLearningAgent(
-        observation_space=gym.spaces.Discrete(grid_size * grid_size),
-        action_space=env.action_space,
+    # agent = QLearningAgent(
+    #     observation_space=gym.spaces.Discrete(grid_size * grid_size),
+    #     action_space=env.action_space,
+    #     learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.99
+    # )
+    agent = GenericQLearningAgent(
+        num_states=grid_size * grid_size,
+        num_actions=env.action_space.n,
         learning_rate=0.1, discount_factor=0.9, epsilon_decay=0.99
     )
     trainer = Trainer(env, agent, AntLogic, True)

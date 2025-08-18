@@ -77,7 +77,6 @@ def eval_agent(
     run_dir: Path,
     episodes: int,
     seed: Optional[int] = None,
-    cleanup: bool = True,
     video: bool = False,
 ):
     def builder(env: gym.Env) -> QLearningAgent:
