@@ -5,11 +5,8 @@ from typing import Any, List, Optional, Callable, Dict
 import time
 import threading
 import asyncio
-from pathlib import Path
-import importlib.util
 import sys
 from nicegui import ui, app, Client
-import numpy as np
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
@@ -21,7 +18,8 @@ from .state import StateStore
 from .runtime import SimulationRunner
 from mlvlab.core.trainer import Trainer
 from .components.base import ComponentContext, UIComponent
-from mlvlab.helpers.ng import setup_audio, encode_frame_fast_jpeg, create_reward_chart
+from mlvlab.helpers.ng import setup_audio, encode_frame_fast_jpeg
+
 
 _ACTIVE_THREADS: Dict[str, Any] = {
     "renderer": None,
@@ -72,7 +70,7 @@ class RenderingThread(threading.Thread):
         self._stop_event.set()
 
     def run(self):
-        print(f"▶️ Hilo de Renderizado [ID: {self.ident}] iniciado.")
+        print(f"▶️  Hilo de Renderizado [ID: {self.ident}] iniciado.")
         while not self._stop_event.is_set():
             try:
                 debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
@@ -116,7 +114,7 @@ class RenderingThread(threading.Thread):
 
             time.sleep(0.001)
 
-        print(f"⏹️ Hilo de Renderizado [ID: {self.ident}] detenido.")
+        print(f"⏹️  Hilo de Renderizado [ID: {self.ident}] detenido.")
 
 
 class Bridge(QObject):
@@ -237,8 +235,10 @@ class AnalyticsView:
                         if (window.backend) {
                             window.backend.saveFile(base64content, filename);
                         } else {
-                            console.error("El puente QWebChannel 'backend' no está disponible.");
-                            alert("Error: La comunicación con la aplicación nativa ha fallado.");
+                            console.error(
+                                "El puente QWebChannel 'backend' no está disponible.");
+                            alert(
+                                "Error: La comunicación con la aplicación nativa ha fallado.");
                         }
                     }
                 </script>
@@ -280,12 +280,12 @@ class AnalyticsView:
     def run(self, host='127.0.0.1', port=8181) -> None:
         def run_nicegui():
             self._build_page()
-            ui.run(host=host, port=port, title=self.title,
-                   dark=self.dark, reload=False, show=False, native=False)
+            ui.run(host=host, port=port, title=self.title, dark=self.dark, reload=False, show=False,
+                   native=False, uvicorn_logging_level="critical", show_welcome_message=False)
 
         @app.on_startup
         def startup_handler():
-            print("\n--- INICIANDO APLICACIÓN (on_startup) ---")
+            print("🔥 Iniciando aplicación (on_startup)")
             try:
                 loop = asyncio.get_running_loop()
                 self.frame_buffer.set_loop(loop)
@@ -293,7 +293,7 @@ class AnalyticsView:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-            print("▶️ Creando nuevos hilos de simulación/renderizado...")
+            print("▶️  Creando nuevos hilos de simulación/renderizado...")
             _ACTIVE_THREADS["renderer"] = RenderingThread(
                 env=self.env, agent=self.agent, env_lock=self.env_lock,
                 buffer=self.frame_buffer, state=self.state
@@ -306,7 +306,7 @@ class AnalyticsView:
 
         @app.on_shutdown
         def shutdown_handler():
-            print("--- DETENIENDO APLICACIÓN (on_shutdown) ---")
+            print("⛔ Deteniendo aplicación (on_shutdown)")
 
             async def cancel_streams():
                 tasks_to_cancel = list(
