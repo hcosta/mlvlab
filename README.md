@@ -53,9 +53,11 @@ mlv ant-v1 help
 
 ## 📦 Entornos disponibles
 
-|  | Entorno    | ID (mlv/gym)                | Baseline    | Descripción                                                            |
-|--------------|-----------|-------------------|------------|------------------------------------------------------------------------|
-| <a href="./mlvlab/envs/ant_v1/README.md"><img src="./docs/ant_v1/mode_play.jpg" alt="modo play" width="120px"></a> | Lost Ant  | `ant-v1`<br>`mlv/ant-v1` | Q-Learning | Encuentra la colonia perdida evitando los obstáculos. Documentación: [README.md](./mlvlab/envs/ant_v1/README.md) |
+| Entorno    | ID (mlv, gym)                | Baseline    | Explicación|  |
+|-----------|-----------------------------|------------|----------------|--------------|
+| Lost Ant  | `ant-v1`, `mlv/ant-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_v1/README.md) | <a href="./mlvlab/envs/ant_v1/README.md"><img src="./docs/ant_v1/mode_play.jpg" alt="modo play" width="100px"></a> |
+
+
 
 ---
 
