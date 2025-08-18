@@ -69,6 +69,68 @@ def complete_unit_id(incomplete: str):
             yield unidad
 
 
+def register_env_shortcuts(application: typer.Typer) -> None:
+    """Crea subcomandos dinámicos por entorno: `mlv <env-id> <cmd>`.
+
+    Esto permite autocompletado de `<env-id>` en primera posición.
+    """
+    try:
+        env_ids = sorted(
+            [env_id for env_id in gym.envs.registry.keys() if env_id.startswith("mlv/")])
+    except Exception:
+        env_ids = []
+
+    for env_id in env_ids:
+        short = env_id.split('/')[-1]
+        env_app = typer.Typer(
+            no_args_is_help=True,
+            help=f"Comandos para {env_id}",
+            rich_markup_mode="rich",
+        )
+
+        @env_app.command(name="play")
+        def _env_play(
+            seed: Optional[int] = typer.Option(
+                None, "--seed", "-s", help="Semilla para reproducibilidad del mapa."),
+        ):
+            return play(env_id, seed)  # type: ignore[misc]
+
+        @env_app.command(name="panel")
+        def _env_panel():
+            return panel(env_id)  # type: ignore[misc]
+
+        @env_app.command(name="train")
+        def _env_train(
+            seed: Optional[int] = typer.Option(
+                None, "--seed", "-s", help="Semilla para el entrenamiento (si no se da, se genera una)."),
+            eps: Optional[int] = typer.Option(
+                None, "--eps", "-e", help="Sobrescribir el número de episodios."),
+            render: bool = typer.Option(
+                False, "--render", "-r", help="Renderizar el entrenamiento en tiempo real (lento)."),
+        ):
+            return train(env_id, seed, eps, render)  # type: ignore[misc]
+
+        @env_app.command(name="eval")
+        def _env_eval(
+            seed: Optional[int] = typer.Option(
+                None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
+            episodes: int = typer.Option(
+                5, "--eps", "-e", help="Número de episodios a ejecutar."),
+            speed: float = typer.Option(
+                1.0, "--speed", "-sp", help="Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad)."),
+            record: bool = typer.Option(
+                False, "--rec", "-r", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar."),
+        ):
+            # type: ignore[misc]
+            return evaluate(env_id, seed, episodes, speed, record)
+
+        @env_app.command(name="help")
+        def _env_help():
+            return help_env(env_id)  # type: ignore[misc]
+
+        application.add_typer(env_app, name=short)
+
+
 @app.command(name="list")
 def list_environments(
     unidad: Optional[str] = typer.Argument(
@@ -111,16 +173,19 @@ def list_environments(
     # Con unidad proporcionada: filtrar por config
     unit_envs = [env_id for env_id, u in env_id_to_unit.items() if u == unidad]
 
-    table = Table("ID del Entorno", "Descripción", "Baseline Agent")
+    table = Table("Nombre (MLV)", "ID (Gymnasium)",
+                  "Descripción", "Baseline Agent")
     for env_id in sorted(unit_envs):
         config = get_env_config(env_id)
         desc = config.get("DESCRIPTION", "N/D")
         baseline = config.get("BASELINE", {}).get("agent", "[red]N/A[/red]")
-        table.add_row(f"[cyan]{env_id}[/cyan]", desc, baseline)
+        short_name = env_id.split('/')[-1]
+        table.add_row(f"[cyan]{short_name}[/cyan]",
+                      f"[cyan]{env_id}[/cyan]", desc, baseline)
     console.print(table)
 
 
-@app.command(name="play")
+@app.command(name="play", hidden=True)
 def play(
     env_id: str = typer.Argument(...,
                                  help="ID del entorno a jugar (e.g., mlv/ant-v1).",
@@ -150,7 +215,7 @@ def play(
         raise typer.Exit(code=1)
 
 
-@app.command(name="panel")
+@app.command(name="panel", hidden=True)
 def panel(
     env_id: str = typer.Argument(
         ..., help="ID del entorno para abrir el panel (e.g., mlv/ant-v1).", autocompletion=complete_env_id
@@ -183,7 +248,7 @@ def panel(
         raise typer.Exit(code=1)
 
 
-@app.command(name="train")
+@app.command(name="train", hidden=True)
 def train(
     env_id: str = typer.Argument(...,
                                  help="ID del entorno a entrenar(e.g., mlv/ant-v1).",
@@ -235,7 +300,7 @@ def train(
         raise typer.Exit(code=1)
 
 
-@app.command(name="eval")
+@app.command(name="eval", hidden=True)
 def evaluate(
     env_id: str = typer.Argument(...,
                                  help="ID del entorno a evaluar(e.g., mlv/ant-v1).",
@@ -295,7 +360,7 @@ def evaluate(
         raise typer.Exit(code=1)
 
 
-@app.command(name="help")
+@app.command(name="help", hidden=True)
 def help_env(
     env_id: str = typer.Argument(...,
                                  help="ID del entorno a inspeccionar (e.g., mlv/ant-v1).",
@@ -349,32 +414,75 @@ def help_env(
 
 # Cargador de Plugins (Nivel 3: Arquitecto) ---
 
-def load_plugins(application: typer.Typer):
-    """Descubre y carga plugins registrados mediante 'mlvlab.plugins' entry points."""
+def load_plugins(application: typer.Typer) -> set[str]:
+    """Descubre y carga plugins registrados mediante 'mlvlab.plugins' entry points.
+
+    Retorna el conjunto de nombres de comandos de plugin registrados.
+    """
+    plugin_names: set[str] = set()
     try:
         discovered_plugins = entry_points(group='mlvlab.plugins')
     except Exception:
-        return
+        return plugin_names
 
     for plugin in discovered_plugins:
         try:
-            # Carga el objeto (generalmente otra aplicación Typer)
             plugin_app = plugin.load()
-            # Añade los comandos del plugin a la aplicación principal
             if isinstance(plugin_app, typer.Typer):
                 application.add_typer(plugin_app, name=plugin.name)
             else:
                 application.command(name=plugin.name)(plugin_app)
-            # console.print(f"🔌 Plugin cargado: [green]{plugin.name}[/green]")
+            plugin_names.add(plugin.name)
         except Exception as e:
             console.print(
                 f"❌ [red]Error al cargar plugin '{plugin.name}':[/red] {e}")
+    return plugin_names
 
 # Función principal que se ejecuta cuando se llama a 'mlv'
 
 
 def run_app():
-    load_plugins(app)
+    # Cargar plugins primero para conocer comandos adicionales
+    plugin_names = load_plugins(app)
+    # Registrar atajos por entorno para autocompletar `mlv <env-id> <cmd>`
+    register_env_shortcuts(app)
+
+    # Soporte sintaxis abreviada: `mlv <env-id> <comando> [...args]`
+    # Reescribe argv a la forma clásica: `mlv <comando> mlv/<env-id> [...args]`
+    try:
+        argv = list(sys.argv)
+        base_commands = {"list", "play", "panel",
+                         "train", "eval", "help"} | plugin_names
+        if len(argv) >= 3:
+            potential_env = argv[1]
+            potential_cmd = argv[2]
+            # Aceptar tanto "ant-v1" como "mlv/ant-v1"
+            normalized_env = potential_env if potential_env.startswith(
+                "mlv/") else f"mlv/{potential_env}"
+            # Verificamos que exista el entorno y que el comando sea conocido
+            if potential_cmd in base_commands:
+                try:
+                    gym.spec(normalized_env)
+                    new_argv = [argv[0], potential_cmd,
+                                normalized_env] + argv[3:]
+                    sys.argv = new_argv
+                except Exception:
+                    pass
+        elif len(argv) == 2:
+            # `mlv <env-id>` -> mostrar help del entorno
+            potential_env = argv[1]
+            normalized_env = potential_env if potential_env.startswith(
+                "mlv/") else f"mlv/{potential_env}"
+            try:
+                gym.spec(normalized_env)
+                new_argv = [argv[0], "help", normalized_env]
+                sys.argv = new_argv
+            except Exception:
+                pass
+    except Exception:
+        # Si algo sale mal en el rewriter, continuar con la CLI original
+        pass
+
     app()
 
 

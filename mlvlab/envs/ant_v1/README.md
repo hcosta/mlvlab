@@ -76,23 +76,23 @@ Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena e
 
 ```bash
 # Jugar interactivamente en el entorno
-mlv play mlv/ant-v1
+mlv ant-v1 play
 
 # Entrenar un agente para una semilla específica (p. ej. 42)
-mlv train mlv/ant-v1 --seed 42
+mlv ant-v1 train --seed 42
 
 # Entrenar con una semilla aleatoria
-mlv train mlv/ant-v1
+mlv ant-v1 train
 
 # Evaluar el último entrenamiento en modo ventana
-mlv eval mlv/ant-v1
+mlv ant-v1 eval
 
 # Evaluar un entrenamiento de una semilla específica
-mlv eval mlv/ant-v1 --seed 42
+mlv ant-v1 eval --seed 42
 
 # Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-mlv eval mlv/ant-v1 --seed 42 --record --eps 100
+mlv ant-v1 eval --seed 42 --record --eps 100
 
 # Ver esta ficha técnica desde la terminal
-mlv help mlv/ant-v1
+mlv ant-v1 help
 ```

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.43-darkred)](https://pypi.org/project/mlvlab/)
+[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.44-darkred)](https://pypi.org/project/mlvlab/)
 
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 
@@ -33,21 +33,21 @@ mlv list
 mlv list ql
 
 # 2. Juega para entender el objetivo (usa Flechas/WASD)
-mlv play mlv/ant-v1
+mlv ant-v1 play
 
 # 3. Entrena un agente con una semilla específica (ej. 123)
 #    (Se ejecuta rápido y guarda los "pesos" en data/mlv_ql_ant-v1/seed-123/)
-mlv train mlv/ant-v1 --seed 123
+mlv ant-v1 train --seed 123
 
 # 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
-mlv eval mlv/ant-v1 --seed 123
+mlv ant-v1 eval --seed 123
 
 # 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --record
-mlv eval mlv/ant-v1 --seed 123 --record
+mlv ant-v1 eval --seed 123 --record
 
 # 5. Consulta la ficha técnica y la documentación de un entorno
-mlv help mlv/ant-v1
+mlv ant-v1 help
 ```
 
 ---
@@ -153,11 +153,11 @@ Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[de
 
 ## ⚙️ Opciones de la CLI: play, train, eval
 
-### mlv play
+### mlv play (también: `mlv <env-id> play`)
 
 Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 
-- **Uso básico**: `mlv play <env_id>`
+- **Uso básico**: `mlv play <env_id>` o `mlv <env-id> play`
 - **Parámetros**:
   - **env_id**: ID del entorno (ej. `mlv/ant-v1`).
   - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
@@ -168,11 +168,11 @@ Ejemplo:
 mlv play mlv/ant-v1 --seed 42
 ```
 
-### mlv train
+### mlv train (también: `mlv <env-id> train`)
 
 Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<env>/<seed-XYZ>/`.
 
-- **Uso básico**: `mlv train <env_id>`
+- **Uso básico**: `mlv train <env_id>` o `mlv <env-id> train`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del entrenamiento. Si no se indica, se genera una aleatoria y se muestra por pantalla.
@@ -201,11 +201,11 @@ Ejemplos:
 
 ```bash
 # Visualizar el agente usando los pesos del último entrenamiento
-mlv eval mlv/ant-v1
+mlv ant-v1 eval
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv eval mlv/ant-v1 --seed 123 --record
+mlv ant-v1 eval --seed 123 --record
 
-# Evaluar 10 episodios y conservar clips temporales
-mlv eval mlv/ant-v1 --seed 123 --eps 10 --record --no-cleanup
+# Evaluar 10 episodios
+mlv ant-v1 eval --seed 123 --eps 10 --record
 ```
