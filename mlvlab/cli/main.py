@@ -95,9 +95,9 @@ def register_env_shortcuts(application: typer.Typer) -> None:
         ):
             return play(env_id, seed)  # type: ignore[misc]
 
-        @env_app.command(name="panel")
-        def _env_panel():
-            return panel(env_id)  # type: ignore[misc]
+        @env_app.command(name="view")
+        def _env_view():
+            return view(env_id)  # type: ignore[misc]
 
         @env_app.command(name="train")
         def _env_train(
@@ -215,19 +215,19 @@ def play(
         raise typer.Exit(code=1)
 
 
-@app.command(name="panel", hidden=True)
-def panel(
+@app.command(name="view", hidden=True)
+def view(
     env_id: str = typer.Argument(
-        ..., help="ID del entorno para abrir el panel (e.g., mlv/ant-v1).", autocompletion=complete_env_id
+        ..., help="ID del entorno para abrir la vista (e.g., mlv/ant-v1).", autocompletion=complete_env_id
     ),
 ):
-    """Lanza el panel interactivo asociado a un entorno."""
+    """Lanza la vista interactiva asociada a un entorno."""
     console.print(
-        f"🖥️  Abriendo panel para [bold cyan]{env_id}[/bold cyan]...")
+        f"🖥️  Abriendo view para [bold cyan]{env_id}[/bold cyan]...")
     try:
-        # Importar panel del paquete del entorno: mlvlab.envs.<pkg>.panel
+        # Importar vista del paquete del entorno: mlvlab.envs.<pkg>.view
         pkg = env_id.split('/')[-1].replace('-', '_')
-        module_path = f"mlvlab.envs.{pkg}.panel"
+        module_path = f"mlvlab.envs.{pkg}.view"
         mod = importlib.import_module(module_path)
         if hasattr(mod, "main"):
             mod.main()
@@ -243,7 +243,7 @@ def panel(
         raise typer.Exit(code=1)
     except Exception as e:
         console.print(
-            f"❌ [bold red]Error:[/bold red] No se pudo iniciar el panel: {e}"
+            f"❌ [bold red]Error:[/bold red] No se pudo iniciar la vista: {e}"
         )
         raise typer.Exit(code=1)
 
@@ -451,7 +451,7 @@ def run_app():
     # Reescribe argv a la forma clásica: `mlv <comando> mlv/<env-id> [...args]`
     try:
         argv = list(sys.argv)
-        base_commands = {"list", "play", "panel",
+        base_commands = {"list", "play", "view",
                          "train", "eval", "help"} | plugin_names
         if len(argv) >= 3:
             potential_env = argv[1]

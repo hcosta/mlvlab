@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.44-darkred)](https://pypi.org/project/mlvlab/)
+[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.45-darkred)](https://pypi.org/project/mlvlab/)
 
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 
@@ -60,11 +60,11 @@ mlv ant-v1 help
   ```
 * ✅ Extender el widget `SimulationControls` para personalizar los botones que quieras mostrar.
 * ✅ Extender el widget `MetricsDashboard` para personalizar las métricas que quieras mostrar.
-* ✅ Crear un widget `ModelPersistance`: Con botones para guardar y cargar pesos (con un `file_dialog`) en/desde archivos para el agente actual que está configurado en el panel:
+* ✅ Crear un widget `ModelPersistance`: Con botones para guardar y cargar pesos (con un `file_dialog`) en/desde archivos para el agente actual que está configurado en la vista:
   ```python
   ui.ModelPersistence(default_filename="ant_brain.npy") # U otro en los dialogs
   ```
-* ✅ Un comando `panel`: Para lanzar directamente paneles interactivos prefabricados usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
+* ✅ Un comando `view`: Para lanzar directamente vistas interactivas prefabricadas usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
 * ⬜ Un comando `mlv compare`: Podría recibir dos semillas (`mlv compare mlv/ant-v1 --seeds 123,456`) y mostrar una tabla resumen con las métricas finales de cada una, o incluso abrir el panel de análisis con ambos gráficos de recompensa superpuestos.
 
 --- 
@@ -105,9 +105,9 @@ env.close()
 
 ## 🏛️ Extender MLV-Lab (Plugins)
 
-Para usuarios avanzados, MLV-Lab puede ser extendido con nuevos comandos a través de un sistema de plugins. Esto te permite integrar tus propias herramientas (ej. un panel de visualización) directamente en la CLI `mlv`.
+Para usuarios avanzados, MLV-Lab puede ser extendido con nuevos comandos a través de un sistema de plugins. Esto te permite integrar tus propias herramientas (ej. una vista personalizada) directamente en la CLI `mlv`.
 
-### Ejemplo: Crear un comando `mlv panel`
+### Ejemplo: Crear un comando `mlv view`
 
 1.  **Crea tu herramienta** con Typer.
 2.  **Declara un "entry point"** en el `pyproject.toml` de tu herramienta para que MLV-Lab lo descubra:
@@ -115,13 +115,13 @@ Para usuarios avanzados, MLV-Lab puede ser extendido con nuevos comandos a trav�
 ```toml
 # pyproject.toml de tu plugin
 [project.entry-points."mlvlab.plugins"]
-panel = "mi_visualizador.cli:app"
+view = "mi_visualizador.cli:app"
 ```
 
 3.  **Instala tu herramienta** (`pip install -e .`).
 
 Ahora, tu nuevo comando estará disponible:
-`mlv panel mi-comando --argumentos`
+`mlv view mi-comando --argumentos`
 -->
 ---
 

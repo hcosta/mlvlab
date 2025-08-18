@@ -70,7 +70,7 @@ class RenderingThread(threading.Thread):
         self._stop_event.set()
 
     def run(self):
-        print(f"▶️  Hilo de Renderizado [ID: {self.ident}] iniciado.")
+        print(f"🎥 Hilo de Renderizado [ID: {self.ident}] iniciado.")
         while not self._stop_event.is_set():
             try:
                 debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
@@ -130,7 +130,7 @@ class Bridge(QObject):
                 file_content_bytes = base64.b64decode(file_content_base64)
                 with open(filepath, 'wb') as f:
                     f.write(file_content_bytes)
-                print(f"Fichero guardado exitosamente en: {filepath}")
+                print(f"📤 Modelo guardado exitosamente en: {filepath}")
             except Exception as e:
                 print(f"Error al guardar el fichero: {e}")
 
@@ -285,7 +285,7 @@ class AnalyticsView:
 
         @app.on_startup
         def startup_handler():
-            print("🔥 Iniciando aplicación (on_startup)")
+            print("🔥 Iniciando aplicación `on_startup`.")
             try:
                 loop = asyncio.get_running_loop()
                 self.frame_buffer.set_loop(loop)
@@ -293,7 +293,7 @@ class AnalyticsView:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-            print("▶️  Creando nuevos hilos de simulación/renderizado...")
+            print("🧵 Creando nuevos hilos de simulación/renderizado.")
             _ACTIVE_THREADS["renderer"] = RenderingThread(
                 env=self.env, agent=self.agent, env_lock=self.env_lock,
                 buffer=self.frame_buffer, state=self.state
@@ -301,12 +301,12 @@ class AnalyticsView:
             _ACTIVE_THREADS["runner"] = self.runner
             _ACTIVE_THREADS["renderer"].start()
             _ACTIVE_THREADS["runner"].start()
-            print("✅ Startup de hilos completado.")
+            print("🚩 Startup de hilos completado.")
             _server_started.set()
 
         @app.on_shutdown
         def shutdown_handler():
-            print("⛔ Deteniendo aplicación (on_shutdown)")
+            print("⛔ Deteniendo aplicación `on_shutdown`.")
 
             async def cancel_streams():
                 tasks_to_cancel = list(
@@ -352,7 +352,7 @@ class AnalyticsView:
                 event.accept()
 
         window = MainWindow()
-        window.setWindowTitle("MLVLab Analytics Panel - " + self.env.spec.id)
+        window.setWindowTitle("MLVLab Analytics View - " + self.env.spec.id)
         window.setGeometry(100, 100, 1280, 800)
         web_view = QWebEngineView()
 
@@ -368,5 +368,5 @@ class AnalyticsView:
         window.setCentralWidget(web_view)
         window.showMaximized()
         print(
-            f"🚀 Mostrando ventana nativa con PySide6. Cargando {url.toString()}...")
+            f"🚀 Mostrando ventana nativa con PySide6: Cargando {url.toString()}.")
         sys.exit(qt_app.exec())

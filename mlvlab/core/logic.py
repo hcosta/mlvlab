@@ -2,7 +2,7 @@
 
 class InteractiveLogic:
     """
-    Clase base para definir una lógica de episodio compatible con el panel interactivo.
+    Clase base para definir una lógica de episodio compatible con la vista interactiva.
     El alumno debe heredar de esta clase e implementar los métodos abstractos.
     """
 

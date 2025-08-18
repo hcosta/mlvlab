@@ -90,6 +90,8 @@ class ModelPersistence(UIComponent):
                     state.set(['sim', 'command'], 'run')
                     ui.notify(
                         f"Modelo '{e.name}' cargado y sincronizado.", type='positive')
+                    print(
+                        f"📥 Modelo cargado y sincronizado exitosamente: {e.name}")
                 except Exception as ex:
                     ui.notify(
                         f"Error al cargar el modelo: {ex}", type='negative')

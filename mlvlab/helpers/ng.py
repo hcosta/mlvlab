@@ -95,7 +95,7 @@ def setup_audio(env: Optional[Any] = None):
     # Servir carpeta encontrada bajo '/assets'
     try:
         app.add_static_files('/assets', str(assets_dir))
-        print(f"✅ Recursos de audio servidos desde: {assets_dir}")
+        print(f"🔊 Recursos de audio servidos desde: {assets_dir}")
     except Exception:
         pass
 
