@@ -64,7 +64,7 @@ mlv ant-v1 help
   ```python
   ui.ModelPersistence(default_filename="ant_brain.npy") # U otro en los dialogs
   ```
-* ⬜ Un comando `mlv panel`: Para lanzar directamente paneles interactivos prefabricados usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
+* ✅ Un comando `panel`: Para lanzar directamente paneles interactivos prefabricados usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
 * ⬜ Un comando `mlv compare`: Podría recibir dos semillas (`mlv compare mlv/ant-v1 --seeds 123,456`) y mostrar una tabla resumen con las métricas finales de cada una, o incluso abrir el panel de análisis con ambos gráficos de recompensa superpuestos.
 
 --- 
