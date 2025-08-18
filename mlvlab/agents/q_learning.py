@@ -103,11 +103,38 @@ class QLearningAgent(BaseAgent):
             self.epsilon = max(float(self.min_epsilon), float(
                 self.epsilon) * float(self.epsilon_decay))
 
-    def save(self, filepath: str) -> None:
-        np.save(filepath, self.q_table)
+    def save(self) -> dict:
+        """
+        Empaqueta todos los datos necesarios del agente en un diccionario.
+        """
+        return {
+            'q_table': self.q_table,
+            'hyperparameters': {
+                'learning_rate': self.learning_rate,
+                'discount_factor': self.discount_factor,
+                'epsilon_decay': self.epsilon_decay,
+                'epsilon': self.epsilon,
+            }
+        }
 
-    def load(self, filepath: str) -> None:
-        self._q_table = np.load(filepath)
+    def load(self, data: dict) -> None:
+        """
+        Restaura el estado del agente a partir de un diccionario.
+        """
+        # Restaurar Q-Table
+        self._q_table = data.get('q_table')
+
+        # Cargar hiperparámetros si se proporcionan
+        hparams = data.get('hyperparameters', {}) if isinstance(
+            data, dict) else {}
+        if isinstance(hparams, dict):
+            self.learning_rate = float(hparams.get(
+                'learning_rate', self.learning_rate))
+            self.discount_factor = float(hparams.get(
+                'discount_factor', self.discount_factor))
+            self.epsilon_decay = float(hparams.get(
+                'epsilon_decay', self.epsilon_decay))
+            self.epsilon = float(hparams.get('epsilon', self.epsilon))
 
     def reset(self) -> None:
         """Reinicia el conocimiento del agente poniendo la Q-Table a cero."""

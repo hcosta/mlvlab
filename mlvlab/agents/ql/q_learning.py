@@ -82,14 +82,16 @@ def eval_agent(
     def builder(env: gym.Env) -> QLearningAgent:
         agent = _agent_builder(env)
         q_table_file = run_dir / "q_table.npy"
-        try:
-            agent.load(str(q_table_file))
-        except Exception:
+        if q_table_file.exists():
             try:
-                # type: ignore[attr-defined]
-                agent._q_table = np.load(q_table_file)
+                q_arr = np.load(q_table_file)
+                agent.load({'q_table': q_arr})
             except Exception:
-                pass
+                try:
+                    # type: ignore[attr-defined]
+                    agent._q_table = np.load(q_table_file)
+                except Exception:
+                    pass
         return agent
 
     evaluate_with_optional_recording(

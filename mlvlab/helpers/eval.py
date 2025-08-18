@@ -86,10 +86,13 @@ def evaluate_with_optional_recording(
 
     agent = agent_builder(env)
     agent_file = run_dir / "q_table.npy"
-    if hasattr(agent, "load") and agent_file.exists():
+    if agent_file.exists():
         try:
-            agent.load(str(agent_file))
-            print(f"🧠 Cargado estado del agente desde {agent_file}.")
+            q_arr = np.load(agent_file)
+            # Nuevo contrato: pass diccionario a load
+            if hasattr(agent, "load"):
+                agent.load({'q_table': q_arr})
+                print(f"🧠 Cargado estado del agente desde {agent_file}.")
         except Exception as e:
             print(f"⚠️ No se pudo cargar el estado del agente: {e}")
 

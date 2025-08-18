@@ -128,7 +128,7 @@ def play(
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para reproducibilidad del mapa.")
 ):
-    """(Paso 1) Juega interactivamente a un entorno (render_mode=human)."""
+    """Juega interactivamente a un entorno (render_mode=human)."""
     console.print(f"🚀 Lanzando [bold cyan]{env_id}[/bold cyan]...")
 
     try:
@@ -147,6 +147,39 @@ def play(
     except NameNotFound:
         console.print(
             f"❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado.")
+        raise typer.Exit(code=1)
+
+
+@app.command(name="panel")
+def panel(
+    env_id: str = typer.Argument(
+        ..., help="ID del entorno para abrir el panel (e.g., mlv/ant-v1).", autocompletion=complete_env_id
+    ),
+):
+    """Lanza el panel interactivo asociado a un entorno."""
+    console.print(
+        f"🖥️  Abriendo panel para [bold cyan]{env_id}[/bold cyan]...")
+    try:
+        # Importar panel del paquete del entorno: mlvlab.envs.<pkg>.panel
+        pkg = env_id.split('/')[-1].replace('-', '_')
+        module_path = f"mlvlab.envs.{pkg}.panel"
+        mod = importlib.import_module(module_path)
+        if hasattr(mod, "main"):
+            mod.main()
+        else:
+            console.print(
+                f"❌ [bold red]Error:[/bold red] El módulo '{module_path}' no expone función main()."
+            )
+            raise typer.Exit(code=1)
+    except NameNotFound:
+        console.print(
+            f"❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado."
+        )
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(
+            f"❌ [bold red]Error:[/bold red] No se pudo iniciar el panel: {e}"
+        )
         raise typer.Exit(code=1)
 
 
@@ -216,7 +249,7 @@ def evaluate(
     record: bool = typer.Option(
         False, "--rec", "-r", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
 ):
-    """Evalúa un 'run'. Por defecto se visualiza en modo interactivo; usa --record para grabar."""
+    """Evalúa un agente en modo interactivo por defecto; usa --rec para grabar."""
     run_dir = None
     if seed is not None:
         run_dir = get_run_dir(env_id, seed)
