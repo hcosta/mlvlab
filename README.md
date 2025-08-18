@@ -49,25 +49,15 @@ mlv ant-v1 eval --seed 123 --record
 # 5. Consulta la ficha técnica y la documentación de un entorno
 mlv ant-v1 help
 ```
-
 ---
 
-## 🚀 Ideas para potenciar más el entorno
+## 📦 Entornos disponibles
 
-* ✅ Autocompletado en la terminal: Librerías como Typer facilitan la creación de scripts de autocompletado para bash, zsh, etc. Esto le da un toque final de profesionalismo. **Requiere instalación del usuario**, autocompleta comandos `mlv` como `list`, `play`, etc:
-  ```bash
-  mlv --install-completion  # Implementado
-  ```
-* ✅ Extender el widget `SimulationControls` para personalizar los botones que quieras mostrar.
-* ✅ Extender el widget `MetricsDashboard` para personalizar las métricas que quieras mostrar.
-* ✅ Crear un widget `ModelPersistance`: Con botones para guardar y cargar pesos (con un `file_dialog`) en/desde archivos para el agente actual que está configurado en la vista:
-  ```python
-  ui.ModelPersistence(default_filename="ant_brain.npy") # U otro en los dialogs
-  ```
-* ✅ Un comando `view`: Para lanzar directamente vistas interactivas prefabricadas usando agentes por defecto (como los de `train`) con un montón de opciones en tiempo real.
-* ⬜ Un comando `mlv compare`: Podría recibir dos semillas (`mlv compare mlv/ant-v1 --seeds 123,456`) y mostrar una tabla resumen con las métricas finales de cada una, o incluso abrir el panel de análisis con ambos gráficos de recompensa superpuestos.
+|  | Entorno    | ID (mlv/gym)                | Baseline    | Descripción                                                            |
+|--------------|-----------|-------------------|------------|------------------------------------------------------------------------|
+| <a href="./mlvlab/envs/ant_v1/README.md"><img src="./docs/ant_v1/mode_play.jpg" alt="modo play" width="120px"></a> | Lost Ant  | `ant-v1`<br>`mlv/ant-v1` | Q-Learning | Encuentra la colonia perdida evitando los obstáculos. Documentación: [README.md](./mlvlab/envs/ant_v1/README.md) |
 
---- 
+---
 
 ## 💻 Desarrollo de Agentes (API)
 
@@ -151,28 +141,42 @@ Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[de
 
 ---
 
-## ⚙️ Opciones de la CLI: play, train, eval
+## ⚙️ Opciones de la CLI: list, play, train, eval, view
 
-### mlv play (también: `mlv <env-id> play`)
+### Modo lista: `mlv list`
+
+Devuelve un listado de las categorías de entornos disponibles o
+
+- **Uso básico**: `mlv list`
+- **Opciones**: ID de la categoría a filtrar (ej. `mlv list ql`).
+
+Ejemplos:
+
+```bash
+mlv list
+mlv list ql
+```
+
+### Modo juego: `mlv <env-id> play`
 
 Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 
-- **Uso básico**: `mlv play <env_id>` o `mlv <env-id> play`
+- **Uso básico**: `mlv <env-id> play`
 - **Parámetros**:
-  - **env_id**: ID del entorno (ej. `mlv/ant-v1`).
+  - **env_id**: No del entorno (ej. `ant-v1`).
   - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
 
 Ejemplo:
 
 ```bash
-mlv play mlv/ant-v1 --seed 42
+mlv ant-v1 play --seed 42
 ```
 
-### mlv train (también: `mlv <env-id> train`)
+### Modo entrenamiento: `mlv <env-id> train`
 
 Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<env>/<seed-XYZ>/`.
 
-- **Uso básico**: `mlv train <env_id>` o `mlv <env-id> train`
+- **Uso básico**: `mlv <env-id> train`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del entrenamiento. Si no se indica, se genera una aleatoria y se muestra por pantalla.
@@ -185,11 +189,11 @@ Ejemplo:
 mlv train mlv/ant-v1 --seed 123 --eps 500 --render
 ```
 
-### mlv eval
+### Modo evaluación: `mlv <env-id> eval`
 
 Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--record`.
 
-- **Uso básico**: `mlv eval <env_id> [opciones]`
+- **Uso básico**: `mlv <env-id> eval [opciones]`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
@@ -208,4 +212,16 @@ mlv ant-v1 eval --seed 123 --record
 
 # Evaluar 10 episodios
 mlv ant-v1 eval --seed 123 --eps 10 --record
+```
+
+### Modo vista interactiva: `mlv <env-id> view`
+
+Lanza la vista interactiva (Analytics View) del entorno con controles de simulación, métricas y gestión de modelos.
+
+- Uso básico: `mlv <env-id> view`
+
+Ejemplo:
+
+```bash
+mlv ant-v1 view
 ```

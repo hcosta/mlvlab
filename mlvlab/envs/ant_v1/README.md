@@ -1,6 +1,8 @@
 # Entorno: Ant (LostAntEnv)
 
-Este fichero documenta el entorno `mlv/ant-v1`, también conocido como "La Colonia de Hormigas Perdida".
+Este fichero documenta el entorno `mlv/ant-v1`, también conocido como "El Hormiguero Perdido".
+
+<img src="../../../docs/ant_v1/mode_view.jpg" alt="modo view" width="100%">
 
 ## Descripción
 
@@ -91,7 +93,10 @@ mlv ant-v1 eval
 mlv ant-v1 eval --seed 42
 
 # Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-mlv ant-v1 eval --seed 42 --record --eps 100
+mlv ant-v1 eval --seed 42 --rec --eps 100
+
+# Lanza una vista interactiva para manipular el entorno usando controles
+mlv ant-v1 view
 
 # Ver esta ficha técnica desde la terminal
 mlv ant-v1 help
