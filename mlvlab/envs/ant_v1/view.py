@@ -54,7 +54,7 @@ def main():
         right_panel=[
             ui.MetricsDashboard(
                 metrics=["epsilon", "current_reward",
-                         "episodes_completed", "steps_per_second"],
+                         "episodes_completed", "steps_per_second", "seed"],
             ),
             ui.RewardChart(history_size=500),
         ],

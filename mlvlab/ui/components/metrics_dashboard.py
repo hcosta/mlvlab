@@ -17,8 +17,8 @@ class MetricsDashboard(UIComponent):
         """
         Args:
             metrics: Lista opcional de métricas a mostrar.
-                     Los valores posibles son: "epsilon", "current_reward",
-                     "episodes_completed", "steps_per_second".
+                     Valores posibles: "epsilon", "current_reward",
+                     "episodes_completed", "steps_per_second", "seed".
                      Si es None, se muestran todas las métricas por defecto.
         """
         super().__init__()
@@ -56,6 +56,12 @@ class MetricsDashboard(UIComponent):
                 ui.label().bind_text_from(
                     state.full(), 'metrics',
                     lambda m: f"Acciones por Segundo: {m.get('steps_per_second', 0):,d}"
+                )
+
+            if "seed" in self.metrics:
+                ui.label().bind_text_from(
+                    state.full(), 'sim',
+                    lambda s: f"Semilla del Mapa: {s.get('seed', 'N/D')}"
                 )
 
             # El botón original está comentado, se mantiene así.
