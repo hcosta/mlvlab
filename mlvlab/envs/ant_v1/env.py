@@ -107,6 +107,12 @@ class LostAntEnv(gym.Env):
         rng = self._get_respawn_rng()
         self._game.place_ant(rng)
         self._sync_game_state()
+        # Render inmediato en modo human para abrir/actualizar la ventana
+        if self.render_mode == "human":
+            try:
+                self.render()
+            except Exception:
+                pass
         return self._get_obs(), self._get_info()
 
     def step(self, action):
@@ -126,6 +132,12 @@ class LostAntEnv(gym.Env):
             info['play_sound'] = {'filename': 'bump.wav', 'volume': 5}
 
         self._sync_game_state()
+        # Render inmediato en modo human para reflejar el frame actual
+        if self.render_mode == "human":
+            try:
+                self.render()
+            except Exception:
+                pass
         return obs, reward, terminated, truncated, info
 
     def _lazy_init_renderer(self):

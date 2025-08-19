@@ -120,7 +120,7 @@ pip install -U git+https://github.com/hcosta/mlvlab
 import gymnasium as gym
 import mlvlab  # registra los entornos "mlv/..."
 
-env = gym.make("mlv/ant-v1", render_mode="rgb_array")
+env = gym.make("mlv/ant-v1", render_mode="human")
 obs, info = env.reset(seed=42)
 terminated = truncated = False
 while not (terminated or truncated):

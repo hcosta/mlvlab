@@ -53,9 +53,9 @@ mlv ant-v1 help
 
 ## 📦 Entornos disponibles
 
-| Entorno    | ID (mlv, gym)                | Baseline    | Explicación|  |
+| Entorno    | ID (mlv, gym)                | Baseline    | Detalles |  |
 |-----------|-----------------------------|------------|----------------|--------------|
-| Lost Ant  | `ant-v1`, `mlv/ant-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_v1/README.md) | <a href="./mlvlab/envs/ant_v1/README.md"><img src="./docs/ant_v1/mode_play.jpg" alt="modo play" width="100px"></a> |
+| Lost Ant  | `ant-v1`,<br>`mlv/ant-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_v1/README.md) | <a href="./mlvlab/envs/ant_v1/README.md"><img src="./docs/ant_v1/mode_play.jpg" alt="modo play" width="100px"></a> |
 
 
 
