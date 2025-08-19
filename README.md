@@ -53,11 +53,9 @@ mlv AntScout-v1 help
 
 ## 📦 Entornos disponibles
 
-| Entorno    | ID (mlv, gym)                | Baseline    | Detalles |  |
-|-----------|-----------------------------|------------|----------------|--------------|
-| Lost Ant  | `AntScout-v1`,<br>`mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="100px"></a> |
-
-
+| Saga | Entorno    | ID (Gym)                | Baseline    | Detalles |  |
+|------|-----------|-----------------------------|------------|----------------|--------------|
+| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="65px"></a> |
 
 ---
 
