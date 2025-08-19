@@ -3,8 +3,8 @@ from gymnasium.envs.registration import register
 
 # Registramos con namespace "mlv" y mantenemos compatibilidad con el ID antiguo
 register(
-    id="mlv/ant-v1",
-    entry_point="mlvlab.envs.ant_v1.env:LostAntEnv",
+    id="mlv/AntScout-v1",
+    entry_point="mlvlab.envs.ant_scout_v1.env:LostAntEnv",
     max_episode_steps=500,
     kwargs={'grid_size': 10}  # Argumentos por defecto
 )

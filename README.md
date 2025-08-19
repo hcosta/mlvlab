@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.46-darkred)](https://pypi.org/project/mlvlab/)
+[![PyPI Version](https://img.shields.io/badge/pypi-v0.1.47-darkred)](https://pypi.org/project/mlvlab/)
 
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 
@@ -55,7 +55,7 @@ mlv ant-v1 help
 
 | Entorno    | ID (mlv, gym)                | Baseline    | Detalles |  |
 |-----------|-----------------------------|------------|----------------|--------------|
-| Lost Ant  | `ant-v1`,<br>`mlv/ant-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_v1/README.md) | <a href="./mlvlab/envs/ant_v1/README.md"><img src="./docs/ant_v1/mode_play.jpg" alt="modo play" width="100px"></a> |
+| Lost Ant  | `AntScout-v1`,<br>`mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="100px"></a> |
 
 
 

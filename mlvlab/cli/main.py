@@ -188,7 +188,7 @@ def list_environments(
 @app.command(name="play", hidden=True)
 def play(
     env_id: str = typer.Argument(...,
-                                 help="ID del entorno a jugar (e.g., mlv/ant-v1).",
+                                 help="ID del entorno a jugar (e.g., mlv/AntScout-v1).",
                                  autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para reproducibilidad del mapa.")
@@ -218,16 +218,20 @@ def play(
 @app.command(name="view", hidden=True)
 def view(
     env_id: str = typer.Argument(
-        ..., help="ID del entorno para abrir la vista (e.g., mlv/ant-v1).", autocompletion=complete_env_id
+        ..., help="ID del entorno para abrir la vista (e.g., mlv/AntScout-v1).", autocompletion=complete_env_id
     ),
 ):
     """Lanza la vista interactiva asociada a un entorno."""
     console.print(
         f"🖥️  Abriendo view para [bold cyan]{env_id}[/bold cyan]...")
     try:
-        # Importar vista del paquete del entorno: mlvlab.envs.<pkg>.view
-        pkg = env_id.split('/')[-1].replace('-', '_')
-        module_path = f"mlvlab.envs.{pkg}.view"
+        # Resolver el módulo de view a partir del entry_point de Gym para evitar errores de mayúsculas
+        spec = gym.spec(env_id)
+        # p.ej., mlvlab.envs.ant_scout_v1.env
+        entry_point = spec.entry_point.split(':')[0]
+        # mlvlab.envs.ant_scout_v1
+        base_pkg = '.'.join(entry_point.split('.')[:-1])
+        module_path = f"{base_pkg}.view"
         mod = importlib.import_module(module_path)
         if hasattr(mod, "main"):
             mod.main()
@@ -251,7 +255,7 @@ def view(
 @app.command(name="train", hidden=True)
 def train(
     env_id: str = typer.Argument(...,
-                                 help="ID del entorno a entrenar(e.g., mlv/ant-v1).",
+                                 help="ID del entorno a entrenar(e.g., mlv/AntScout-v1).",
                                  autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla para el entrenamiento (si no se da, se genera una)."),
@@ -303,7 +307,7 @@ def train(
 @app.command(name="eval", hidden=True)
 def evaluate(
     env_id: str = typer.Argument(...,
-                                 help="ID del entorno a evaluar(e.g., mlv/ant-v1).",
+                                 help="ID del entorno a evaluar(e.g., mlv/AntScout-v1).",
                                  autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
@@ -363,7 +367,7 @@ def evaluate(
 @app.command(name="help", hidden=True)
 def help_env(
     env_id: str = typer.Argument(...,
-                                 help="ID del entorno a inspeccionar (e.g., mlv/ant-v1).",
+                                 help="ID del entorno a inspeccionar (e.g., mlv/AntScout-v1).",
                                  autocompletion=complete_env_id),
 ):
     """Muestra la ficha técnica y un enlace a la documentación del entorno."""
@@ -456,7 +460,7 @@ def run_app():
         if len(argv) >= 3:
             potential_env = argv[1]
             potential_cmd = argv[2]
-            # Aceptar tanto "ant-v1" como "mlv/ant-v1"
+            # Aceptar tanto "AntScout-v1" como "mlv/AntScout-v1"
             normalized_env = potential_env if potential_env.startswith(
                 "mlv/") else f"mlv/{potential_env}"
             # Verificamos que exista el entorno y que el comando sea conocido

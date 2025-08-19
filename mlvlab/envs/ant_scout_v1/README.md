@@ -1,8 +1,8 @@
 # Entorno: Ant (LostAntEnv)
 
-Este fichero documenta el entorno `mlv/ant-v1`, también conocido como "El Hormiguero Perdido".
+Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "El Hormiguero Perdido".
 
-<img src="../../../docs/ant_v1/mode_view.jpg" alt="modo view" width="100%">
+<img src="../../../docs/nest_ant_v1/mode_view.jpg" alt="modo view" width="100%">
 
 ## Descripción
 
@@ -78,28 +78,28 @@ Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena e
 
 ```bash
 # Jugar interactivamente en el entorno
-mlv ant-v1 play
+mlv AntScout-v1 play
 
 # Entrenar un agente para una semilla específica (p. ej. 42)
-mlv ant-v1 train --seed 42
+mlv AntScout-v1 train --seed 42
 
 # Entrenar con una semilla aleatoria
-mlv ant-v1 train
+mlv AntScout-v1 train
 
 # Evaluar el último entrenamiento en modo ventana
-mlv ant-v1 eval
+mlv AntScout-v1 eval
 
 # Evaluar un entrenamiento de una semilla específica
-mlv ant-v1 eval --seed 42
+mlv AntScout-v1 eval --seed 42
 
 # Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-mlv ant-v1 eval --rec --eps 100
+mlv AntScout-v1 eval --rec --eps 100
 
 # Lanza una vista interactiva para manipular el entorno usando controles
-mlv ant-v1 view
+mlv AntScout-v1 view
 
 # Ver esta ficha técnica desde la terminal
-mlv ant-v1 help
+mlv AntScout-v1 help
 ```
 
 ---
@@ -120,7 +120,7 @@ pip install -U git+https://github.com/hcosta/mlvlab
 import gymnasium as gym
 import mlvlab  # registra los entornos "mlv/..."
 
-env = gym.make("mlv/ant-v1", render_mode="human")
+env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset(seed=42)
 terminated = truncated = False
 while not (terminated or truncated):
@@ -135,7 +135,7 @@ import numpy as np
 import gymnasium as gym
 import mlvlab
 
-env = gym.make("mlv/ant-v1")
+env = gym.make("mlv/AntScout-v1")
 GRID = int(env.unwrapped.GRID_SIZE)
 N_S, N_A = GRID * GRID, env.action_space.n
 Q = np.zeros((N_S, N_A), dtype=np.float32)

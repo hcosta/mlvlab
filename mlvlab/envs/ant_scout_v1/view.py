@@ -26,7 +26,7 @@ class AntLogic(InteractiveLogic):
 
 
 def main():
-    env = gym.make("mlv/ant-v1", render_mode="rgb_array")
+    env = gym.make("mlv/AntScout-v1", render_mode="rgb_array")
     grid_size = int(env.unwrapped.GRID_SIZE)
     agent = QLearningAgent(
         observation_space=gym.spaces.Discrete(grid_size * grid_size),
