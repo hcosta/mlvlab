@@ -1,6 +1,6 @@
 import arcade
 
-DESCRIPTION = "Encuentra la colonia perdida evitando los obstáculos. (GridWorld)"
+DESCRIPTION = "Encuentra la colonia perdida"
 
 # Mapeo de teclas de Arcade a acciones del entorno (Action Space)
 # Esto permite que el Player genérico funcione con arcade/pyglet.
@@ -30,4 +30,5 @@ BASELINE = {
 }
 
 # Unidad pedagógica a la que pertenece este entorno (para mlv list)
-UNIT = "ql"
+UNIT = "ants"
+ALGORITHM = "ql"

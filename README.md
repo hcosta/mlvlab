@@ -33,21 +33,21 @@ mlv list
 mlv list ql
 
 # 2. Juega para entender el objetivo (usa Flechas/WASD)
-mlv ant-v1 play
+mlv AntScout-v1 play
 
 # 3. Entrena un agente con una semilla específica (ej. 123)
-#    (Se ejecuta rápido y guarda los "pesos" en data/mlv_ql_ant-v1/seed-123/)
-mlv ant-v1 train --seed 123
+#    (Se ejecuta rápido y guarda los "pesos" en data/mlv_AntScout-v1/seed-123/)
+mlv AntScout-v1 train --seed 123
 
 # 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
-mlv ant-v1 eval --seed 123
+mlv AntScout-v1 eval --seed 123
 
 # 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --record
-mlv ant-v1 eval --seed 123 --record
+mlv AntScout-v1 eval --seed 123 --record
 
 # 5. Consulta la ficha técnica y la documentación de un entorno
-mlv ant-v1 help
+mlv AntScout-v1 help
 ```
 ---
 
@@ -79,7 +79,7 @@ import gymnasium as gym
 import mlvlab  # ¡Importante! Esto registra los entornos "mlv/..." y mantiene compatibilidad con los antiguos
 
 # Crea el entorno como lo harías normalmente con Gymnasium
-env = gym.make("mlv/ant-v1", render_mode="human")
+env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset()
 
 for _ in range(100):
@@ -165,13 +165,13 @@ Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 
 - **Uso básico**: `mlv <env-id> play`
 - **Parámetros**:
-  - **env_id**: No del entorno (ej. `ant-v1`).
+  - **env_id**: No del entorno (ej. `AntScout-v1`).
   - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
 
 Ejemplo:
 
 ```bash
-mlv ant-v1 play --seed 42
+mlv AntScout-v1 play --seed 42
 ```
 
 ### Modo entrenamiento: `mlv <env-id> train`
@@ -188,7 +188,7 @@ Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<e
 Ejemplo:
 
 ```bash
-mlv train mlv/ant-v1 --seed 123 --eps 500 --render
+mlv train mlv/AntScout-v1 --seed 123 --eps 500 --render
 ```
 
 ### Modo evaluación: `mlv <env-id> eval`
@@ -207,13 +207,13 @@ Ejemplos:
 
 ```bash
 # Visualizar el agente usando los pesos del último entrenamiento
-mlv ant-v1 eval
+mlv AntScout-v1 eval
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv ant-v1 eval --seed 123 --record
+mlv AntScout-v1 eval --seed 123 --record
 
 # Evaluar 10 episodios
-mlv ant-v1 eval --seed 123 --eps 10 --record
+mlv AntScout-v1 eval --seed 123 --eps 10 --record
 ```
 
 ### Modo vista interactiva: `mlv <env-id> view`
@@ -225,5 +225,5 @@ Lanza la vista interactiva (Analytics View) del entorno con controles de simulac
 Ejemplo:
 
 ```bash
-mlv ant-v1 view
+mlv AntScout-v1 view
 ```

@@ -148,23 +148,30 @@ def list_environments(
 
     # Mapa env_id -> unidad desde su config
     env_id_to_unit: dict[str, str] = {}
+    configs: dict[str, dict] = {}
     for env_id in all_env_ids:
         cfg = get_env_config(env_id)
+        configs[env_id] = cfg
         unit = cfg.get("UNIT") or cfg.get("unit") or "otros"
         env_id_to_unit[env_id] = str(unit)
 
     # Si no pasan unidad, listamos las unidades disponibles
     if unidad is None:
         unidades = sorted(set(env_id_to_unit.values()))
-        table = Table("ID de la Unidad", "Descripción")
+        # Primera columna sin título para mostrar un emoji por unidad (🐜 para 'ants')
+        table = Table("", "ID de la Unidad", "Colección", "Descripción")
         for u in unidades:
-            desc = {
+            emoji = '🐜' if u == 'ants' else ''
+            coleccion = 'Saga de las hormigas' if u == 'ants' else '—'
+            desc_map = {
+                'ants': 'Simulaciones de Q-Learning',
                 'ql': 'Simulaciones de Q-Learning',
                 'sarsa': 'Simulaciones de SARSA',
                 'dqn': 'Simulaciones de DQN',
                 'dqnp': 'Simulaciones DQN Plus (avanzado)'
-            }.get(u, 'Unidad personalizada')
-            table.add_row(f"[cyan]{u}[/cyan]", desc)
+            }
+            desc = desc_map.get(u, 'Unidad personalizada')
+            table.add_row(emoji, f"[cyan]{u}[/cyan]", coleccion, desc)
         console.print(table)
         console.print(
             "Usa: [bold]mlv list <unidad>[/bold] para ver entornos de una unidad (ej. mlv list ql)")
@@ -173,16 +180,33 @@ def list_environments(
     # Con unidad proporcionada: filtrar por config
     unit_envs = [env_id for env_id, u in env_id_to_unit.items() if u == unidad]
 
-    table = Table("Nombre (MLV)", "ID (Gymnasium)",
-                  "Descripción", "Baseline Agent")
-    for env_id in sorted(unit_envs):
-        config = get_env_config(env_id)
-        desc = config.get("DESCRIPTION", "N/D")
-        baseline = config.get("BASELINE", {}).get("agent", "[red]N/A[/red]")
-        short_name = env_id.split('/')[-1]
-        table.add_row(f"[cyan]{short_name}[/cyan]",
-                      f"[cyan]{env_id}[/cyan]", desc, baseline)
-    console.print(table)
+    if unidad == 'ants':
+        # Vista extendida sin columna de emoji
+        table = Table("Nombre (MLV)", "ID (Gymnasium)",
+                      "Descripción", "Baseline Agent")
+        for env_id in sorted(unit_envs):
+            config = configs.get(env_id) or get_env_config(env_id)
+            desc = config.get("DESCRIPTION", "N/D")
+            baseline = config.get("BASELINE", {}).get(
+                "agent", "[red]N/A[/red]")
+            short_name = env_id.split('/')[-1]
+            table.add_row(f"[cyan]{short_name}[/cyan]",
+                          f"[cyan]{env_id}[/cyan]", desc, baseline)
+        console.print(table)
+    else:
+        table = Table("Nombre (MLV)", "ID (Gymnasium)", "Colección",
+                      "Descripción", "Baseline Agent")
+        for env_id in sorted(unit_envs):
+            config = configs.get(env_id) or get_env_config(env_id)
+            desc = config.get("DESCRIPTION", "N/D")
+            baseline = config.get("BASELINE", {}).get(
+                "agent", "[red]N/A[/red]")
+            short_name = env_id.split('/')[-1]
+            coleccion = 'Saga de las hormigas' if (
+                config.get("UNIT") == 'ants') else '—'
+            table.add_row(f"[cyan]{short_name}[/cyan]",
+                          f"[cyan]{env_id}[/cyan]", coleccion, desc, baseline)
+        console.print(table)
 
 
 @app.command(name="play", hidden=True)
