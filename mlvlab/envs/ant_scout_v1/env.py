@@ -5,6 +5,7 @@ from gymnasium import spaces
 import numpy as np
 import time
 import threading
+import os  # Importamos os
 
 # Importamos las clases modularizadas
 try:
@@ -27,6 +28,15 @@ class LostAntEnv(gym.Env):
                  reward_move=-1,
                  ):
         super().__init__()
+
+        # === FIX PARA HEADLESS RENDERING (Google Colab) ===
+        # Si el modo es rgb_array, activamos el modo headless de Pyglet (usado por Arcade).
+        # Esto permite el renderizado sin pantalla y debe hacerse
+        # antes de la primera importación de Arcade/Pyglet.
+        if render_mode == "rgb_array":
+            if "PYGLET_HEADLESS" not in os.environ:
+                os.environ["PYGLET_HEADLESS"] = "1"
+        # ==================================================
 
         # Parámetros del entorno
         self.GRID_SIZE = grid_size

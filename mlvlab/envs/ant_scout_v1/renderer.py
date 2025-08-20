@@ -452,20 +452,6 @@ class ArcadeRenderer:
         if len(highlight_points) > 1:
             self.arcade.draw_line_strip(highlight_points, highlight_color, 4)
 
-    def _spawn_collision_particles(self):
-        if self.ant_display_pos is None:
-            return
-        cx, cy = self._cell_to_pixel(*self.ant_display_pos)
-        vec_map = {0: (0, -1), 1: (0, 1), 2: (1, 0), 3: (-1, 0)}
-        impact_vector = vec_map.get(self.game.last_action, (0, 0))
-        for _ in range(15):
-            speed = self.rng_visual.uniform(0.5, 2.5)
-            angle_offset = self.rng_visual.uniform(-0.8, 0.8)
-            dx = (impact_vector[0] + angle_offset) * speed
-            dy = (impact_vector[1] + abs(angle_offset)) * speed
-            self.particles.append(ParticleFX(cx, cy, dx, dy, self.rng_visual.uniform(
-                1.5, 3.0), self.rng_visual.uniform(2, 6), self.COLOR_PARTICLE_DUST, gravity=0.1))
-
     # --- NUEVA FUNCIÓN PARA DIBUJAR LOS Q-VALUES DE LA HORMIGA ---
     def _draw_ant_q_values(self, q_table):
         """Dibuja los 4 valores Q solo para la celda actual de la hormiga."""

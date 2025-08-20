@@ -154,11 +154,6 @@
     "shutdown_cleanup": "✅ Shutdown cleanup completed.",
     "startup_failed": "❌ Startup failed: {error}"
   },
-  "environments": {
-    "descriptions": {
-      "ant_scout": "Find the lost colony"
-    }
-  },
   "common": {
     "not_available": "N/A",
     "no_description": "N/D",
