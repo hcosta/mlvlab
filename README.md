@@ -100,7 +100,7 @@ env.close()
 
 ---
 
-## ⚙️ CLI Options: list, config, play, train, eval, view, docs
+## ⚙️ CLI Options: list, play, train, eval, view, docs, config
 
 ### List mode: `mlv list`
 
@@ -183,6 +183,19 @@ Example:
 
 ```bash
 mlv view AntScout-v1
+```
+
+### Documentation mode: `mlv docs`
+
+Opens a browser with the `README.md` file associated with the environment, providing full details.
+It also displays a summary in the terminal in the configured language:
+
+- **Basic usage**: `mlv docs <env-id>`
+
+Example:
+
+```bash
+mlv docs AntScout-v1
 ```
 
 ### Configuration mode: `mlv config`

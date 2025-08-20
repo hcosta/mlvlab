@@ -97,32 +97,10 @@ for _ in range(100):
 
 env.close()
 ```
-<!--
+
 ---
 
-## 🏛️ Extender MLV-Lab (Plugins)
-
-Para usuarios avanzados, MLV-Lab puede ser extendido con nuevos comandos a través de un sistema de plugins. Esto te permite integrar tus propias herramientas (ej. una vista personalizada) directamente en la CLI `mlv`.
-
-### Ejemplo: Crear un comando `mlv view`
-
-1.  **Crea tu herramienta** con Typer.
-2.  **Declara un "entry point"** en el `pyproject.toml` de tu herramienta para que MLV-Lab lo descubra:
-
-```toml
-# pyproject.toml de tu plugin
-[project.entry-points."mlvlab.plugins"]
-view = "mi_visualizador.cli:app"
-```
-
-3.  **Instala tu herramienta** (`pip install -e .`).
-
-Ahora, tu nuevo comando estará disponible:
-`mlv view mi-comando --argumentos`
--->
----
-
-## ⚙️ Opciones de la CLI: list, config, play, train, eval, view, docs
+## ⚙️ Opciones de la CLI: list, play, train, eval, view, docs, config
 
 ### Modo lista: `mlv list`
 
@@ -205,6 +183,19 @@ Ejemplo:
 
 ```bash
 mlv view AntScout-v1
+```
+
+### Modo documentación: `mlv docs`
+
+Abre un navegador con el archivo `README.md` asociado al entorno, mostrando todos los detalles.
+Además, muestra un resumen en la terminal en el idioma configurado:
+
+- **Uso básico**: `mlv docs <env-id>`
+
+Example:
+
+```bash
+mlv docs AntScout-v1
 ```
 
 ### Modo configuración: `mlv config`
