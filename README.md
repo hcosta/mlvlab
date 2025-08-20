@@ -33,24 +33,24 @@ mlv list
 mlv list ants
 
 # 2. Play to understand the objective (use Arrow keys/WASD)
-mlv play mlv/AntScout-v1
+mlv play AntScout-v1
 
 # 3. Train an agent with a specific seed (e.g., 123)
 #    (Runs quickly and saves "weights" in data/mlv_AntScout-v1/seed-123/)
-mlv train mlv/AntScout-v1 --seed 123
+mlv train AntScout-v1 --seed 123
 
 # 4. Evaluate training visually (interactive mode by default)
 #    (Loads weights from seed 123 and opens window with agent using those weights)
-mlv eval mlv/AntScout-v1 --seed 123
+mlv eval AntScout-v1 --seed 123
 
 # 4b. If you want to record a video (instead of just viewing), add --rec
-mlv eval mlv/AntScout-v1 --seed 123 --rec
+mlv eval AntScout-v1 --seed 123 --rec
 
 # 5. Create an interactive view of the simulation
-mlv view mlv/AntScout-v1
+mlv view AntScout-v1
 
 # 6. Check technical specifications and environment documentation
-mlv help mlv/AntScout-v1
+mlv help AntScout-v1
 ```
 
 ---
@@ -153,7 +153,7 @@ Runs the environment in interactive mode (human) to test manual control.
 Example:
 
 ```bash
-mlv play mlv/AntScout-v1 --seed 42
+mlv play AntScout-v1 --seed 42
 ```
 
 ### Training mode: `mlv train <env-id>`
@@ -170,7 +170,7 @@ Trains the environment's baseline agent and saves weights/artifacts in `data/<en
 Example:
 
 ```bash
-mlv train mlv/AntScout-v1 --seed 123 --eps 500 --render
+mlv train AntScout-v1 --seed 123 --eps 500 --render
 ```
 
 ### Evaluation mode: `mlv eval <env-id>`
@@ -189,13 +189,13 @@ Examples:
 
 ```bash
 # Visualize agent using weights from latest training
-mlv eval mlv/AntScout-v1
+mlv eval AntScout-v1
 
 # Visualize specific training and record video
-mlv eval mlv/AntScout-v1 --seed 123 --record
+mlv eval AntScout-v1 --seed 123 --record
 
 # Evaluate 10 episodes
-mlv eval mlv/AntScout-v1 --seed 123 --eps 10 --rec
+mlv eval AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
 ### Interactive view mode: `mlv view <env-id>`
@@ -207,7 +207,7 @@ Launches the interactive view (Analytics View) of the environment with simulatio
 Example:
 
 ```bash
-mlv view mlv/AntScout-v1
+mlv view AntScout-v1
 ```
 
 ## 🛠️ Contributing to MLV-Lab

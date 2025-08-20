@@ -33,24 +33,24 @@ mlv list
 mlv list ants
 
 # 2. Juega para entender el objetivo (usa Flechas/WASD)
-mlv play mlv/AntScout-v1
+mlv play AntScout-v1
 
 # 3. Entrena un agente con una semilla específica (ej. 123)
 #    (Se ejecuta rápido y guarda los "pesos" en data/mlv_AntScout-v1/seed-123/)
-mlv train mlv/AntScout-v1 --seed 123
+mlv train AntScout-v1 --seed 123
 
 # 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
-mlv eval mlv/AntScout-v1 --seed 123
+mlv eval AntScout-v1 --seed 123
 
 # 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --rec
-mlv eval mlv/AntScout-v1 --seed 123 --rec
+mlv eval AntScout-v1 --seed 123 --rec
 
 # 5. Crea una vista interactiva de la simulación
-mlv view mlv/AntScout-v1
+mlv view AntScout-v1
 
 # 6. Consulta la ficha técnica y la documentación de un entorno
-mlv help mlv/AntScout-v1
+mlv help AntScout-v1
 ```
 ---
 
@@ -174,7 +174,7 @@ Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 Ejemplo:
 
 ```bash
-mlv play mlv/AntScout-v1 --seed 42
+mlv play AntScout-v1 --seed 42
 ```
 
 ### Modo entrenamiento: `mlv train <env-id>`
@@ -191,7 +191,7 @@ Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<e
 Ejemplo:
 
 ```bash
-mlv train mlv/AntScout-v1 --seed 123 --eps 500 --render
+mlv train AntScout-v1 --seed 123 --eps 500 --render
 ```
 
 ### Modo evaluación: `mlv eval <env-id>`
@@ -210,13 +210,13 @@ Ejemplos:
 
 ```bash
 # Visualizar el agente usando los pesos del último entrenamiento
-mlv eval mlv/AntScout-v1
+mlv eval AntScout-v1
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv eval mlv/AntScout-v1 --seed 123 --record
+mlv eval AntScout-v1 --seed 123 --record
 
 # Evaluar 10 episodios
-mlv eval mlv/AntScout-v1 --seed 123 --eps 10 --rec
+mlv eval AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
 ### Modo vista interactiva: `mlv view <env-id>`
@@ -228,7 +228,7 @@ Lanza la vista interactiva (Analytics View) del entorno con controles de simulac
 Ejemplo:
 
 ```bash
-mlv view mlv/AntScout-v1
+mlv view AntScout-v1
 ```
 
 ## 🛠️ Contribuir a MLV-Lab
