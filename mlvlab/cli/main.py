@@ -27,9 +27,12 @@ from mlvlab.cli.run_manager import get_run_dir, find_latest_run_dir
 from mlvlab.cli.utils import console, get_env_config
 from mlvlab.core.player import play_interactive
 
+# Importamos el sistema de internacionalización
+from mlvlab.i18n.core import i18n
+
 app = typer.Typer(
     rich_markup_mode="rich",
-    help="[bold green]MLV-Lab CLI[/bold green]: Ecosistema de aprendizaje de IA Visual.",
+    help=i18n.t("cli.help.main"),
     no_args_is_help=True
 )
 
@@ -84,14 +87,14 @@ def register_env_shortcuts(application: typer.Typer) -> None:
         short = env_id.split('/')[-1]
         env_app = typer.Typer(
             no_args_is_help=True,
-            help=f"Comandos para {env_id}",
+            help=i18n.t("cli.help.commands_for_env", env_id=env_id),
             rich_markup_mode="rich",
         )
 
         @env_app.command(name="play")
         def _env_play(
             seed: Optional[int] = typer.Option(
-                None, "--seed", "-s", help="Semilla para reproducibilidad del mapa."),
+                None, "--seed", "-s", help=i18n.t("cli.options.seed")),
         ):
             return play(env_id, seed)  # type: ignore[misc]
 
@@ -102,24 +105,24 @@ def register_env_shortcuts(application: typer.Typer) -> None:
         @env_app.command(name="train")
         def _env_train(
             seed: Optional[int] = typer.Option(
-                None, "--seed", "-s", help="Semilla para el entrenamiento (si no se da, se genera una)."),
+                None, "--seed", "-s", help=i18n.t("cli.options.seed")),
             eps: Optional[int] = typer.Option(
-                None, "--eps", "-e", help="Sobrescribir el número de episodios."),
+                None, "--eps", "-e", help=i18n.t("cli.options.episodes")),
             render: bool = typer.Option(
-                False, "--render", "-r", help="Renderizar el entrenamiento en tiempo real (lento)."),
+                False, "--render", "-r", help=i18n.t("cli.options.render")),
         ):
             return train(env_id, seed, eps, render)  # type: ignore[misc]
 
         @env_app.command(name="eval")
         def _env_eval(
             seed: Optional[int] = typer.Option(
-                None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
+                None, "--seed", "-s", help=i18n.t("cli.options.seed")),
             episodes: int = typer.Option(
-                5, "--eps", "-e", help="Número de episodios a ejecutar."),
+                5, "--eps", "-e", help=i18n.t("cli.options.episodes")),
             speed: float = typer.Option(
-                1.0, "--speed", "-sp", help="Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad)."),
+                1.0, "--speed", "-sp", help=i18n.t("cli.options.speed")),
             record: bool = typer.Option(
-                False, "--rec", "-r", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar."),
+                False, "--rec", "-r", help=i18n.t("cli.options.record")),
         ):
             # type: ignore[misc]
             return evaluate(env_id, seed, episodes, speed, record)
@@ -135,7 +138,7 @@ def register_env_shortcuts(application: typer.Typer) -> None:
 def list_environments(
     unidad: Optional[str] = typer.Argument(
         None,
-        help="Filtra por unidad (ej.: ql, sarsa, dqn, dqnp)",
+        help=i18n.t("cli.options.unit_filter"),
         autocompletion=complete_unit_id
     )
 ):
@@ -152,29 +155,21 @@ def list_environments(
     for env_id in all_env_ids:
         cfg = get_env_config(env_id)
         configs[env_id] = cfg
-        unit = cfg.get("UNIT") or cfg.get("unit") or "otros"
+        unit = cfg.get("UNIT") or cfg.get("unit") or i18n.t("common.other")
         env_id_to_unit[env_id] = str(unit)
 
     # Si no pasan unidad, listamos las unidades disponibles
     if unidad is None:
         unidades = sorted(set(env_id_to_unit.values()))
         # Primera columna sin título para mostrar un emoji por unidad (🐜 para 'ants')
-        table = Table("", "ID de la Unidad", "Colección", "Descripción")
+        table = Table("", i18n.t("cli.tables.unit_id"), i18n.t("cli.tables.collection"), i18n.t("cli.tables.description"))
         for u in unidades:
-            emoji = '🐜' if u == 'ants' else ''
-            coleccion = 'Saga de las hormigas' if u == 'ants' else '—'
-            desc_map = {
-                'ants': 'Simulaciones de Q-Learning',
-                'ql': 'Simulaciones de Q-Learning',
-                'sarsa': 'Simulaciones de SARSA',
-                'dqn': 'Simulaciones de DQN',
-                'dqnp': 'Simulaciones DQN Plus (avanzado)'
-            }
-            desc = desc_map.get(u, 'Unidad personalizada')
+            emoji = i18n.t(f"cli.units.{u}") if u in ['ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else ''
+            coleccion = i18n.t(f"cli.unit_names.{u}") if u in ['ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.dash")
+            desc = i18n.t(f"cli.unit_descriptions.{u}") if u in ['ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.custom_unit")
             table.add_row(emoji, f"[cyan]{u}[/cyan]", coleccion, desc)
         console.print(table)
-        console.print(
-            "Usa: [bold]mlv list <unidad>[/bold] para ver entornos de una unidad (ej. mlv list ql)")
+        console.print(i18n.t("cli.messages.use_list_unit"))
         return
 
     # Con unidad proporcionada: filtrar por config
@@ -182,28 +177,28 @@ def list_environments(
 
     if unidad == 'ants':
         # Vista extendida sin columna de emoji
-        table = Table("Nombre (MLV)", "ID (Gymnasium)",
-                      "Descripción", "Baseline Agent")
+        table = Table(i18n.t("cli.tables.name_mlv"), i18n.t("cli.tables.id_gymnasium"),
+                      i18n.t("cli.tables.description"), i18n.t("cli.tables.baseline_agent"))
         for env_id in sorted(unit_envs):
             config = configs.get(env_id) or get_env_config(env_id)
-            desc = config.get("DESCRIPTION", "N/D")
+            desc = config.get("DESCRIPTION", i18n.t("common.no_description"))
             baseline = config.get("BASELINE", {}).get(
-                "agent", "[red]N/A[/red]")
+                "agent", f"[red]{i18n.t('common.not_available')}[/red]")
             short_name = env_id.split('/')[-1]
             table.add_row(f"[cyan]{short_name}[/cyan]",
                           f"[cyan]{env_id}[/cyan]", desc, baseline)
         console.print(table)
     else:
-        table = Table("Nombre (MLV)", "ID (Gymnasium)", "Colección",
-                      "Descripción", "Baseline Agent")
+        table = Table(i18n.t("cli.tables.name_mlv"), i18n.t("cli.tables.id_gymnasium"), i18n.t("cli.tables.collection"),
+                      i18n.t("cli.tables.description"), i18n.t("cli.tables.baseline_agent"))
         for env_id in sorted(unit_envs):
             config = configs.get(env_id) or get_env_config(env_id)
-            desc = config.get("DESCRIPTION", "N/D")
+            desc = config.get("DESCRIPTION", i18n.t("common.no_description"))
             baseline = config.get("BASELINE", {}).get(
-                "agent", "[red]N/A[/red]")
+                "agent", f"[red]{i18n.t('common.not_available')}[/red]")
             short_name = env_id.split('/')[-1]
-            coleccion = 'Saga de las hormigas' if (
-                config.get("UNIT") == 'ants') else '—'
+            coleccion = i18n.t("cli.unit_names.ants") if (
+                config.get("UNIT") == 'ants') else i18n.t("common.dash")
             table.add_row(f"[cyan]{short_name}[/cyan]",
                           f"[cyan]{env_id}[/cyan]", coleccion, desc, baseline)
         console.print(table)
@@ -218,7 +213,7 @@ def play(
         None, "--seed", "-s", help="Semilla para reproducibilidad del mapa.")
 ):
     """Juega interactivamente a un entorno (render_mode=human)."""
-    console.print(f"🚀 Lanzando [bold cyan]{env_id}[/bold cyan]...")
+    console.print(i18n.t("cli.messages.launching", env_id=env_id))
 
     try:
         # Obtenemos la configuración específica (mapeo de teclas)
@@ -226,16 +221,14 @@ def play(
         key_map = config.get("KEY_MAP", None)
 
         if key_map is None:
-            console.print(
-                f"❌ [bold red]Error:[/bold red] No se encontró un mapeo de teclas para {env_id}.")
+            console.print(i18n.t("cli.messages.error_no_keymap", env_id=env_id))
             raise typer.Exit(code=1)
 
         # Usamos el player genérico
         play_interactive(env_id, key_map=key_map, seed=seed)
 
     except NameNotFound:
-        console.print(
-            f"❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado.")
+        console.print(i18n.t("cli.messages.error_env_not_found", env_id=env_id))
         raise typer.Exit(code=1)
 
 
@@ -260,19 +253,13 @@ def view(
         if hasattr(mod, "main"):
             mod.main()
         else:
-            console.print(
-                f"❌ [bold red]Error:[/bold red] El módulo '{module_path}' no expone función main()."
-            )
+            console.print(i18n.t("cli.messages.error_no_main_function", module_path=module_path))
             raise typer.Exit(code=1)
     except NameNotFound:
-        console.print(
-            f"❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado."
-        )
+        console.print(i18n.t("cli.messages.error_env_not_found", env_id=env_id))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(
-            f"❌ [bold red]Error:[/bold red] No se pudo iniciar la vista: {e}"
-        )
+        console.print(i18n.t("cli.messages.error_cannot_start_view", error=str(e)))
         raise typer.Exit(code=1)
 
 
@@ -296,8 +283,7 @@ def train(
     train_config = baseline.get("config", {}).copy()
 
     if not algorithm_key:
-        console.print(
-            f"❌ Error: No hay algoritmo de referencia definido para {env_id}.")
+        console.print(i18n.t("cli.messages.error_no_algorithm", env_id=env_id))
         raise typer.Exit(code=1)
 
     if eps:
@@ -307,13 +293,11 @@ def train(
     run_seed = seed
     if run_seed is None:
         run_seed = random.randint(0, 10000)
-        console.print(
-            f"🌱 No se especificó semilla. Usando una aleatoria: [bold yellow]{run_seed}[/bold yellow]")
+        console.print(i18n.t("cli.messages.no_seed_random", seed=run_seed))
 
     # Obtener/crear el directorio para este 'run'
     run_dir = get_run_dir(env_id, run_seed)
-    console.print(
-        f"📂 Trabajando en el directorio: [bold yellow]{run_dir}[/bold yellow]")
+    console.print(i18n.t("cli.messages.working_dir", run_dir=str(run_dir)))
 
     # Nuevo: usar registro de algoritmos (asegurar carga de plugins integrados)
     try:
@@ -323,8 +307,7 @@ def train(
         algo.train(env_id, train_config, run_dir=run_dir,
                    seed=run_seed, render=render)
     except Exception as e:
-        console.print(
-            f"❌ Error al entrenar con algoritmo '{algorithm_key}': {e}")
+        console.print(i18n.t("cli.messages.error_training", algorithm_key=algorithm_key, error=str(e)))
         raise typer.Exit(code=1)
 
 
@@ -347,23 +330,20 @@ def evaluate(
     if seed is not None:
         run_dir = get_run_dir(env_id, seed)
     else:
-        console.print(
-            "ℹ️ No se especificó semilla. Buscando el último entrenamiento...")
+        console.print(i18n.t("cli.messages.searching_last_training"))
         run_dir = find_latest_run_dir(env_id)
 
     if not run_dir or not (run_dir / "q_table.npy").exists():
-        console.print(
-            f"❌ Error: No se encontró un entrenamiento válido. Ejecuta 'mlv train' primero.")
+        console.print(i18n.t("cli.messages.error_no_training"))
         raise typer.Exit(code=1)
 
-    console.print(f"🎬 Evaluando desde [bold yellow]{run_dir}[/bold yellow]...")
+    console.print(i18n.t("cli.messages.evaluating_from", run_dir=str(run_dir)))
 
     # Extraer la semilla del nombre de la carpeta para la reproducibilidad del mapa
     try:
         eval_seed = int(run_dir.name.split('-')[1])
     except (IndexError, ValueError):
-        console.print(
-            f"⚠️ No se pudo extraer la semilla del nombre de la carpeta '{run_dir.name}'. La evaluación usará un mapa aleatorio.")
+        console.print(i18n.t("cli.messages.error_cannot_extract_seed", folder_name=run_dir.name))
         eval_seed = None
 
     config = get_env_config(env_id)
@@ -383,8 +363,7 @@ def evaluate(
             speed=speed
         )
     except Exception as e:
-        console.print(
-            f"❌ Error al evaluar con algoritmo '{algorithm_key}': {e}")
+        console.print(i18n.t("cli.messages.error_evaluation", algorithm_key=algorithm_key, error=str(e)))
         raise typer.Exit(code=1)
 
 
@@ -400,7 +379,7 @@ def help_env(
         spec = gym.spec(env_id)
 
         console.print(
-            f"\n[bold underline]Ficha Técnica de {env_id}[/bold underline]\n")
+            f"\n[bold underline]Technical Specifications for {env_id}[/bold underline]\n")
         console.print(
             f"[bold cyan]Observation Space:[/bold cyan]\n{env.observation_space}\n")
         console.print(
@@ -435,8 +414,7 @@ def help_env(
         env.close()
 
     except NameNotFound:
-        console.print(
-            f"❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado.")
+        console.print(i18n.t("cli.messages.error_env_not_found", env_id=env_id))
         raise typer.Exit(code=1)
 
 
@@ -462,8 +440,7 @@ def load_plugins(application: typer.Typer) -> set[str]:
                 application.command(name=plugin.name)(plugin_app)
             plugin_names.add(plugin.name)
         except Exception as e:
-            console.print(
-                f"❌ [red]Error al cargar plugin '{plugin.name}':[/red] {e}")
+            console.print(i18n.t("cli.messages.error_plugin_load", plugin_name=plugin.name, error=str(e)))
     return plugin_names
 
 # Función principal que se ejecuta cuando se llama a 'mlv'

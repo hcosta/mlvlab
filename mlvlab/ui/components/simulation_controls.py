@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import List, Optional
 from nicegui import app, ui
 from .base import UIComponent, ComponentContext
+from mlvlab.i18n.core import i18n
 
 
 class SimulationControls(UIComponent):
@@ -21,16 +22,16 @@ class SimulationControls(UIComponent):
 
     def render(self, state, context: ComponentContext) -> None:
         with ui.dialog() as dialog, ui.card():
-            ui.label('¿Estás seguro de que quieres cerrar la aplicación?')
+            ui.label(i18n.t("ui.components.simulation_controls.close_confirm"))
             with ui.row().classes('w-full justify-end'):
                 def do_shutdown_dialog():
                     ui.run_javascript("try { window.close(); } catch (e) {}")
                     app.shutdown()
-                ui.button('Sí, cerrar', on_click=do_shutdown_dialog, color='red')
-                ui.button('No, cancelar', on_click=dialog.close)
+                ui.button(i18n.t("ui.components.simulation_controls.yes_close"), on_click=do_shutdown_dialog, color='red')
+                ui.button(i18n.t("ui.components.simulation_controls.no_cancel"), on_click=dialog.close)
 
         with ui.card().classes('w-full mb-1'):
-            ui.label('Controles de Simulación').classes(
+            ui.label(i18n.t("ui.components.simulation_controls.title")).classes(
                 'text-lg font-semibold text-center w-full')
 
             if any(item in self.includes for item in ["speed", "turbo"]):
@@ -39,7 +40,7 @@ class SimulationControls(UIComponent):
                         width_class = 'w-2/3' if "turbo" in self.includes else 'w-full'
                         with ui.row().classes(f'{width_class} items-center gap-x-2 no-wrap'):
                             ui.label().bind_text_from(state.full(), 'sim',
-                                                      lambda s: f"Multi (x{s.get('speed_multiplier', 1)})").classes('w-36')
+                                                      lambda s: i18n.t("ui.components.simulation_controls.speed_multiplier", speed=s.get('speed_multiplier', 1))).classes('w-36')
                             slider = ui.slider(
                                 min=0, max=200, step=5).classes('flex-grow')
                             slider.bind_value(
@@ -47,7 +48,7 @@ class SimulationControls(UIComponent):
                     if "turbo" in self.includes:
                         width_class = 'w-1/3' if "speed" in self.includes else 'w-full'
                         with ui.row().classes(f'{width_class} justify-end'):
-                            switch = ui.switch('Turbo')
+                            switch = ui.switch(i18n.t("ui.components.simulation_controls.turbo"))
                             switch.bind_value(
                                 state.full()['sim'], 'turbo_mode')
 

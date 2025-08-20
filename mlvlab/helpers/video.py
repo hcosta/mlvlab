@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List
 from moviepy import VideoFileClip, TextClip, CompositeVideoClip, concatenate_videoclips
 from moviepy.video.fx.MultiplySpeed import MultiplySpeed
+from mlvlab.i18n.core import i18n
 
 
 def merge_videos_with_counter(
@@ -28,14 +29,14 @@ def merge_videos_with_counter(
         f for f in os.listdir(folder) if f.endswith('.mp4')]
     video_files.sort()
     if not video_files:
-        print("ℹ️ No se encontraron vídeos para unir.")
+        print(i18n.t("helpers.video.no_videos_found"))
         return False
 
     clips_originales = []
     clips_con_texto = []
     try:
         total_episodes = len(video_files)
-        print(f"📹 Procesando {total_episodes} vídeos para añadir texto...")
+        print(i18n.t("helpers.video.processing_videos", total_episodes=total_episodes))
         for i, filename in enumerate(video_files, 1):
             filepath = os.path.join(folder, filename)
             try:
@@ -60,18 +61,17 @@ def merge_videos_with_counter(
                 video_con_texto = CompositeVideoClip([clip, txt_clip])
                 clips_con_texto.append(video_con_texto)
             except Exception as e:
-                print(f"- {filename:25} | ❌ Error al procesar clip: {e}")
+                print(i18n.t("helpers.video.error_processing_clip", filename=filename, error=str(e)))
 
         if not clips_con_texto:
-            print("🛑 No se pudieron procesar los vídeos.")
+            print(i18n.t("helpers.video.error_processing_videos"))
             return False
 
-        print(
-            f"🎞️ Uniendo {len(clips_con_texto)} vídeos en '{output_path}'...")
+        print(i18n.t("helpers.video.merging_videos", count=len(clips_con_texto), output_path=output_path))
         final_clip = concatenate_videoclips(clips_con_texto, method='compose')
         final_clip.write_videofile(output_path, logger='bar')
     except Exception as e:
-        print(f"🛑 Error durante la creación del vídeo final: {e}")
+        print(i18n.t("helpers.video.error_creating_video", error=str(e)))
     finally:
         for clip in clips_con_texto:
             try:
@@ -86,7 +86,7 @@ def merge_videos_with_counter(
 
     ok = os.path.exists(output_path)
     if ok:
-        print("✅ Vídeo unificado y con texto creado con éxito.")
+        print(i18n.t("helpers.video.video_created_success"))
         if cleanup:
             for f in video_files:
                 try:
@@ -94,5 +94,5 @@ def merge_videos_with_counter(
                 except Exception:
                     pass
     else:
-        print("❌ Error: El vídeo final no se pudo crear.")
+        print(i18n.t("helpers.video.error_final_video"))
     return ok

@@ -19,6 +19,7 @@ from .runtime import SimulationRunner
 from mlvlab.core.trainer import Trainer
 from .components.base import ComponentContext, UIComponent
 from mlvlab.helpers.ng import setup_audio, encode_frame_fast_jpeg
+from mlvlab.i18n.core import i18n
 
 
 _ACTIVE_THREADS: Dict[str, Any] = {
@@ -70,7 +71,7 @@ class RenderingThread(threading.Thread):
         self._stop_event.set()
 
     def run(self):
-        print(f"🎥 Hilo de Renderizado [ID: {self.ident}] iniciado.")
+        print(i18n.t("analytics.render_thread_started", thread_id=self.ident))
         while not self._stop_event.is_set():
             try:
                 debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
@@ -114,7 +115,7 @@ class RenderingThread(threading.Thread):
 
             time.sleep(0.001)
 
-        print(f"⏹️  Hilo de Renderizado [ID: {self.ident}] detenido.")
+        print(i18n.t("analytics.render_thread_stopped", thread_id=self.ident))
 
 
 class Bridge(QObject):
@@ -130,9 +131,9 @@ class Bridge(QObject):
                 file_content_bytes = base64.b64decode(file_content_base64)
                 with open(filepath, 'wb') as f:
                     f.write(file_content_bytes)
-                print(f"📤 Modelo guardado exitosamente en: {filepath}")
+                print(i18n.t("analytics.model_saved", filepath=filepath))
             except Exception as e:
-                print(f"Error al guardar el fichero: {e}")
+                print(i18n.t("analytics.error_saving_file", error=str(e)))
 
 
 class AnalyticsView:
@@ -197,7 +198,7 @@ class AnalyticsView:
         @app.get('/video_feed/{client_id}')
         async def video_feed(request: Request, client_id: str):
             async def mjpeg_stream_generator():
-                print(f"🔌 Cliente {client_id} conectado al stream de video.")
+                print(i18n.t("analytics.client_connected", client_id=client_id))
                 task = asyncio.current_task()
                 _ACTIVE_THREADS["stream_tasks"][client_id] = task
                 try:
@@ -285,7 +286,7 @@ class AnalyticsView:
 
         @app.on_startup
         def startup_handler():
-            print("🔥 Iniciando aplicación `on_startup`.")
+            print(i18n.t("analytics.app_startup"))
             try:
                 loop = asyncio.get_running_loop()
                 self.frame_buffer.set_loop(loop)
@@ -293,7 +294,7 @@ class AnalyticsView:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
 
-            print("🧵 Creando nuevos hilos de simulación/renderizado.")
+            print(i18n.t("analytics.creating_threads"))
             _ACTIVE_THREADS["renderer"] = RenderingThread(
                 env=self.env, agent=self.agent, env_lock=self.env_lock,
                 buffer=self.frame_buffer, state=self.state
@@ -301,12 +302,12 @@ class AnalyticsView:
             _ACTIVE_THREADS["runner"] = self.runner
             _ACTIVE_THREADS["renderer"].start()
             _ACTIVE_THREADS["runner"].start()
-            print("🚩 Startup de hilos completado.")
+            print(i18n.t("analytics.startup_completed"))
             _server_started.set()
 
         @app.on_shutdown
         def shutdown_handler():
-            print("⛔ Deteniendo aplicación `on_shutdown`.")
+            print(i18n.t("analytics.app_shutdown"))
 
             async def cancel_streams():
                 tasks_to_cancel = list(
@@ -337,7 +338,7 @@ class AnalyticsView:
 
             _ACTIVE_THREADS["renderer"] = None
             _ACTIVE_THREADS["runner"] = None
-            print("✅ Limpieza de shutdown completada.")
+            print(i18n.t("analytics.shutdown_cleanup"))
 
         nicegui_thread = threading.Thread(target=run_nicegui, daemon=True)
         nicegui_thread.start()

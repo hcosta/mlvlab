@@ -5,6 +5,7 @@ from typing import Callable, Optional
 
 import gymnasium as gym
 from rich.progress import track
+from mlvlab.i18n.core import i18n
 
 
 def train_with_state_adapter(
@@ -31,7 +32,7 @@ def train_with_state_adapter(
     try:
         if hasattr(env.unwrapped, "set_respawn_unseeded"):
             env.unwrapped.set_respawn_unseeded(True)
-            print("ℹ️  Configurado respawn aleatorio (unseeded) para entrenamiento.")
+            print(i18n.t("helpers.train.random_respawn"))
     except Exception as e:
         print(
             f"⚠️ Advertencia: No se pudo configurar el respawn aleatorio: {e}")
@@ -65,7 +66,7 @@ def train_with_state_adapter(
                 return int(o[1]) * int(grid_size) + int(o[0])
             return o
 
-    for episode in track(range(total_episodes), description="Entrenando..."):
+    for episode in track(range(total_episodes), description=i18n.t("helpers.train.training")):
         if episode > 0:
             # En episodios subsiguientes, reset() reutiliza el mapa pero randomiza la posición (gracias al ajuste inicial)
             obs, info = env.reset()
@@ -121,9 +122,9 @@ def train_with_state_adapter(
         q_table = getattr(agent, "q_table", None)
         if q_table is not None:
             np.save(q_path, q_table)
-            print(f"✅ Entrenamiento completado. Q-Table guardada en: {q_path}")
+            print(i18n.t("helpers.train.training_completed", q_path=str(q_path)))
             return q_path
     except Exception:
         pass
-    print("⚠️ Entrenamiento completado, pero el agente no expone q_table. No se guardó archivo.")
+    print(i18n.t("helpers.train.training_no_qtable"))
     return q_path

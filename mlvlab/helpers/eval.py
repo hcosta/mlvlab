@@ -14,6 +14,7 @@ import gymnasium as gym
 import imageio
 import numpy as np
 from rich.progress import track
+from mlvlab.i18n.core import i18n
 
 
 @contextmanager
@@ -79,7 +80,7 @@ def evaluate_with_optional_recording(
     if hasattr(env.unwrapped, "set_respawn_unseeded"):
         try:
             env.unwrapped.set_respawn_unseeded(False)
-            print("ℹ️  Configurado respawn determinista (seeded) para evaluación.")
+            print(i18n.t("helpers.eval.deterministic_respawn"))
         except Exception as e:
             print(
                 f"⚠️ Advertencia: No se pudo configurar el respawn determinista: {e}")
@@ -92,9 +93,9 @@ def evaluate_with_optional_recording(
             # Nuevo contrato: pass diccionario a load
             if hasattr(agent, "load"):
                 agent.load({'q_table': q_arr})
-                print(f"🧠 Cargado estado del agente desde {agent_file}.")
+                print(i18n.t("helpers.eval.agent_state_loaded", agent_file=str(agent_file)))
         except Exception as e:
-            print(f"⚠️ No se pudo cargar el estado del agente: {e}")
+            print(i18n.t("helpers.eval.error_loading_agent", error=str(e)))
 
     if hasattr(agent, "epsilon"):
         setattr(agent, "epsilon", 0.0)
@@ -102,7 +103,7 @@ def evaluate_with_optional_recording(
     frames = []
     target_fps = env.metadata.get("render_fps", 60)
 
-    for ep in track(range(episodes), description="Evaluando..."):
+    for ep in track(range(episodes), description=i18n.t("helpers.eval.evaluating")):
         current_seed = seed if ep == 0 else None
         obs, info = env.reset(seed=current_seed)
         terminated, truncated = False, False
@@ -129,7 +130,7 @@ def evaluate_with_optional_recording(
             time.sleep(delay)
 
     if record:
-        print("Grabando escena final cinemática...")
+        print(i18n.t("helpers.eval.recording_final_scene"))
         # 0.25 segundos de animación final
         num_final_frames = int(target_fps * .25)
         for _ in range(num_final_frames):
@@ -147,19 +148,18 @@ def evaluate_with_optional_recording(
                 with suppress_stderr():
                     imageio.mimsave(str(final_video_path),
                                     frames, fps=playback_fps)
-                print(
-                    f"✅ Evaluación completada. Vídeo guardado en: {final_video_path}")
+                print(i18n.t("helpers.eval.video_saved", video_path=str(final_video_path)))
             except Exception as e:
-                print(f"❌ Error al guardar el vídeo con imageio: {e}")
+                print(i18n.t("helpers.eval.error_saving_video", error=str(e)))
                 final_video_path = None
         else:
-            print("⚠️ No se generaron frames para el vídeo.")
+            print(i18n.t("helpers.eval.no_frames_generated"))
             final_video_path = None
 
     env.close()
 
     if not record:
-        print("✅ Evaluación completada en modo interactivo.")
+        print(i18n.t("helpers.eval.evaluation_completed"))
         return None
 
     return final_video_path

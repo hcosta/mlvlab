@@ -4,6 +4,7 @@ from typing import List
 from nicegui import ui
 
 from .base import UIComponent, ComponentContext
+from mlvlab.i18n.core import i18n
 
 
 def _pretty(name: str) -> str:
@@ -24,7 +25,7 @@ class AgentHyperparameters(UIComponent):
         agent = context.agent
 
         with ui.card().classes('w-full mb-1'):
-            ui.label('Configuración del Agente').classes(
+            ui.label(i18n.t("ui.components.agent_hyperparameters.title")).classes(
                 'text-lg font-semibold text-center w-full mb-0')
 
             with ui.grid(columns=3).classes('w-full gap-x-2 items-center'):

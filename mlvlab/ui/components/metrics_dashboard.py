@@ -2,6 +2,7 @@ from __future__ import annotations
 from nicegui import ui
 from typing import List, Optional
 from .base import UIComponent, ComponentContext
+from mlvlab.i18n.core import i18n
 
 
 class MetricsDashboard(UIComponent):
@@ -30,7 +31,7 @@ class MetricsDashboard(UIComponent):
             return
 
         with ui.card().classes('w-full mb-1'):
-            ui.label('Métricas en Tiempo Real').classes(
+            ui.label(i18n.t("ui.components.metrics_dashboard.title")).classes(
                 'text-lg font-semibold text-center w-full')
 
             # Renderizar condicionalmente cada métrica si está en la lista

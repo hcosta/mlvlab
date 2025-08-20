@@ -1,0 +1,156 @@
+{
+  "cli": {
+    "help": {
+      "main": "[bold green]MLV-Lab CLI[/bold green]: Ecosistema de aprendizaje de IA Visual.",
+      "list": "Lista unidades disponibles o los entornos de una unidad concreta.",
+      "play": "Juega interactivamente a un entorno (render_mode=human).",
+      "train": "Entrena un agente. Si no se especifica una semilla, se genera una aleatoria.",
+      "eval": "Evalúa un agente en modo interactivo por defecto; usa --rec para grabar.",
+      "view": "Lanza la vista interactiva asociada a un entorno.",
+      "help": "Muestra la ficha técnica y un enlace a la documentación del entorno.",
+      "commands_for_env": "Comandos para {env_id}"
+    },
+    "messages": {
+      "launching": "🚀 Lanzando [bold cyan]{env_id}[/bold cyan]...",
+      "error_env_not_found": "❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado.",
+      "error_no_keymap": "❌ [bold red]Error:[/bold red] No se encontró un mapeo de teclas para {env_id}.",
+      "working_dir": "📂 Trabajando en el directorio: [bold yellow]{run_dir}[/bold yellow]",
+      "no_seed_random": "🌱 No se especificó semilla. Usando una aleatoria: [bold yellow]{seed}[/bold yellow]",
+      "searching_last_training": "ℹ️ No se especificó semilla. Buscando el último entrenamiento...",
+      "evaluating_from": "🎬 Evaluando desde [bold yellow]{run_dir}[/bold yellow]...",
+      "use_list_unit": "Usa: [bold]mlv list <unidad>[/bold] para ver entornos de una unidad (ej. mlv list ql)",
+      "error_no_algorithm": "❌ Error: No hay algoritmo de referencia definido para {env_id}.",
+      "error_training": "❌ Error al entrenar con algoritmo '{algorithm_key}': {error}",
+      "error_evaluation": "❌ Error al evaluar con algoritmo '{algorithm_key}': {error}",
+      "error_no_training": "❌ Error: No se encontró un entrenamiento válido. Ejecuta 'mlv train' primero.",
+      "error_cannot_extract_seed": "⚠️ No se pudo extraer la semilla del nombre de la carpeta '{folder_name}'. La evaluación usará un mapa aleatorio.",
+      "error_cannot_start_view": "❌ [bold red]Error:[/bold red] No se pudo iniciar la vista: {error}",
+      "error_no_main_function": "❌ [bold red]Error:[/bold red] El módulo '{module_path}' no expone función main().",
+      "error_plugin_load": "❌ [red]Error al cargar plugin '{plugin_name}':[/red] {error}",
+      "game_started": "Juego iniciado. Usa las teclas definidas. ESC para salir."
+    },
+    "options": {
+      "seed": "Semilla para reproducibilidad (si no se da, se genera una).",
+      "episodes": "Sobrescribir el número de episodios.",
+      "render": "Renderizar el entrenamiento en tiempo real (lento).",
+      "speed": "Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad).",
+      "record": "Graba y genera un vídeo de la evaluación en lugar de solo visualizar.",
+      "unit_filter": "Filtra por unidad (ej.: ql, sarsa, dqn, dqnp)"
+    },
+    "tables": {
+      "unit_id": "ID de la Unidad",
+      "collection": "Colección",
+      "description": "Descripción",
+      "name_mlv": "Nombre (MLV)",
+      "id_gymnasium": "ID (Gymnasium)",
+      "baseline_agent": "Baseline Agent",
+      "unit_description": "Descripción de la Unidad"
+    },
+    "units": {
+      "ants": "🐜",
+      "ql": "🧠",
+      "sarsa": "🔄",
+      "dqn": "🕸️",
+      "dqnp": "🚀"
+    },
+    "unit_names": {
+      "ants": "Saga de las hormigas",
+      "ql": "Simulaciones de Q-Learning",
+      "sarsa": "Simulaciones de SARSA",
+      "dqn": "Simulaciones de DQN",
+      "dqnp": "Simulaciones DQN Plus (avanzado)"
+    },
+    "unit_descriptions": {
+      "ants": "Simulaciones de Q-Learning",
+      "ql": "Simulaciones de Q-Learning",
+      "sarsa": "Simulaciones de SARSA",
+      "dqn": "Simulaciones de DQN",
+      "dqnp": "Simulaciones DQN Plus (avanzado)"
+    }
+  },
+  "ui": {
+    "components": {
+      "simulation_controls": {
+        "title": "Controles de Simulación",
+        "close_confirm": "¿Estás seguro de que quieres cerrar la aplicación?",
+        "yes_close": "Sí, cerrar",
+        "no_cancel": "No, cancelar",
+        "turbo": "Turbo",
+        "speed_multiplier": "Multi (x{speed})"
+      },
+      "agent_hyperparameters": {
+        "title": "Configuración del Agente"
+      },
+      "metrics_dashboard": {
+        "title": "Métricas en Tiempo Real"
+      },
+      "model_persistence": {
+        "title": "Gestión del Modelo"
+      },
+      "dynamic_table": {
+        "title": "Tabla Dinámica"
+      },
+      "info_panel": {
+        "title": "Panel de Información"
+      }
+    }
+  },
+  "helpers": {
+    "video": {
+      "no_videos_found": "ℹ️ No se encontraron vídeos para unir.",
+      "processing_videos": "📹 Procesando {total_episodes} vídeos para añadir texto...",
+      "error_processing_clip": "- {filename:25} | ❌ Error al procesar clip: {error}",
+      "error_processing_videos": "🛑 No se pudieron procesar los vídeos.",
+      "merging_videos": "🎞️ Uniendo {count} vídeos en '{output_path}'...",
+      "error_creating_video": "🛑 Error durante la creación del vídeo final: {error}",
+      "video_created_success": "✅ Vídeo unificado y con texto creado con éxito.",
+      "error_final_video": "❌ Error: El vídeo final no se pudo crear."
+    },
+    "train": {
+      "random_respawn": "ℹ️ Configurado respawn aleatorio (unseeded) para entrenamiento.",
+      "training": "Entrenando...",
+      "training_completed": "✅ Entrenamiento completado. Q-Table guardada en: {q_path}",
+      "training_no_qtable": "⚠️ Entrenamiento completado, pero el agente no expone q_table. No se guardó archivo."
+    },
+    "eval": {
+      "deterministic_respawn": "ℹ️ Configurado respawn determinista (seeded) para evaluación.",
+      "agent_state_loaded": "🧠 Cargado estado del agente desde {agent_file}.",
+      "error_loading_agent": "⚠️ No se pudo cargar el estado del agente: {error}",
+      "evaluating": "Evaluando...",
+      "recording_final_scene": "Grabando escena final cinemática...",
+      "video_saved": "✅ Vídeo guardado exitosamente: {video_path}",
+      "error_saving_video": "❌ Error al guardar el vídeo con imageio: {error}",
+      "no_frames_generated": "⚠️ No se generaron frames para el vídeo.",
+      "evaluation_completed": "✅ Evaluación completada en modo interactivo."
+    },
+    "ng": {
+      "audio_assets_not_found": "⚠️ Advertencia: No se encontró carpeta de assets para audio. El sonido no funcionará.{debug}",
+      "audio_served_from": "🔊 Recursos de audio servidos desde: {assets_dir}"
+    }
+  },
+  "analytics": {
+    "render_thread_started": "🎥 Hilo de Renderizado [ID: {thread_id}] iniciado.",
+    "render_thread_stopped": "⏹️ Hilo de Renderizado [ID: {thread_id}] detenido.",
+    "model_saved": "📤 Modelo guardado exitosamente en: {filepath}",
+    "error_saving_file": "Error al guardar el fichero: {error}",
+    "client_connected": "🔌 Cliente {client_id} conectado al stream de video.",
+    "app_startup": "🔥 Iniciando aplicación `on_startup`.",
+    "creating_threads": "🧵 Creando nuevos hilos de simulación/renderizado.",
+    "startup_completed": "🚩 Startup de hilos completado.",
+    "app_shutdown": "⛔ Deteniendo aplicación `on_shutdown`.",
+    "shutdown_cleanup": "✅ Limpieza de shutdown completada.",
+    "startup_failed": "❌ Startup falló: {error}"
+  },
+  "environments": {
+    "descriptions": {
+      "ant_scout": "Encuentra la colonia perdida"
+    }
+  },
+  "common": {
+    "not_available": "N/A",
+    "no_description": "N/D",
+    "custom_unit": "Unidad personalizada",
+    "other": "Otros",
+    "dash": "—"
+  }
+}

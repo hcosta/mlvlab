@@ -6,6 +6,7 @@ from typing import Optional
 import time
 import arcade
 import pyglet
+from mlvlab.i18n.core import i18n
 
 
 def find_asset_path(env: gym.Env, asset_name: str) -> Optional[Path]:
@@ -61,7 +62,7 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
         raise RuntimeError(
             "No se pudo acceder a la ventana de Arcade del entorno.")
 
-    print("Juego iniciado. Usa las teclas definidas. ESC para salir.")
+    print(i18n.t("cli.messages.game_started"))
 
     def on_key_press(symbol: int, modifiers: int):
         nonlocal pending_action, running
