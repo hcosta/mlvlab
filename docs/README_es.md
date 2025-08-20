@@ -1,4 +1,4 @@
-# MLV-Lab: Ecosistema Visual para Aprender RL
+# MLV-Lab: Ecosistema Educativo de IA Visual
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)

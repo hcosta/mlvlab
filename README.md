@@ -1,11 +1,18 @@
 # MLV-Lab: Visual AI Learning Ecosystem
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.2.0-darkred)](https://pypi.org/project/mlvlab/)
-&nbsp;&nbsp;
-[![en](https://img.shields.io/badge/lang-en-orange.svg)](./README.md)
-[![es](https://img.shields.io/badge/lang-es-blue.svg)](./docs/README_es.md)
+<table>
+  <tr>
+    <td>
+      <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"/></a>
+      <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.10%2B-brightgreen" alt="Python Version"/></a>
+      <a href="https://pypi.org/project/mlvlab/"><img src="https://img.shields.io/badge/pypi-v0.2.0-darkred" alt="PyPI Version"/></a>
+    </td>
+    <td align="right">
+      <a href="./README.md"><img src="https://img.shields.io/badge/lang-en-orange.svg" alt="English"/></a>
+      <a href="./docs/README_es.md"><img src="https://img.shields.io/badge/lang-es-blue.svg" alt="Español"/></a>
+    </td>
+  </tr>
+</table>
 
 > **Our Mission:** Democratize and raise awareness about Artificial Intelligence development through visual and interactive experimentation.
 
