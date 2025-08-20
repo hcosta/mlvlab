@@ -63,7 +63,7 @@ mlv docs AntScout-v1
 
 | Saga | Entorno    | ID (Gym)                | Baseline    | Detalles |  |
 |------|-----------|-----------------------------|------------|----------------|--------------|
-| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README_es.md](./mlvlab/envs/ant_scout_v1/README_es.md) | <a href="./mlvlab/envs/ant_scout_v1/README_es.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
+| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README_es.md](./mlvlab/envs/ant_scout_v1/README_es.md) | <a href="./mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
 
 ---
 
