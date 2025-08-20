@@ -8,7 +8,8 @@
       "eval": "Evalúa un agente en modo interactivo por defecto; usa --rec para grabar.",
       "view": "Lanza la vista interactiva asociada a un entorno.",
       "help": "Muestra la ficha técnica y un enlace a la documentación del entorno.",
-      "commands_for_env": "Comandos para {env_id}"
+      "config": "Gestiona la configuración de MLV-Lab (idioma, etc.)",
+      "commands_for_env": "Comandos para {env_cmd}"
     },
     "messages": {
       "launching": "🚀 Lanzando [bold cyan]{env_id}[/bold cyan]...",

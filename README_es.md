@@ -33,24 +33,24 @@ mlv list
 mlv list ants
 
 # 2. Juega para entender el objetivo (usa Flechas/WASD)
-mlv AntScout-v1 play
+mlv play mlv/AntScout-v1
 
 # 3. Entrena un agente con una semilla específica (ej. 123)
 #    (Se ejecuta rápido y guarda los "pesos" en data/mlv_AntScout-v1/seed-123/)
-mlv AntScout-v1 train --seed 123
+mlv train mlv/AntScout-v1 --seed 123
 
 # 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
-mlv AntScout-v1 eval --seed 123
+mlv eval mlv/AntScout-v1 --seed 123
 
 # 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --rec
-mlv AntScout-v1 eval --seed 123 --rec
+mlv eval mlv/AntScout-v1 --seed 123 --rec
 
-# 5. Crea una vista interactiva de la simulació 
-mlv AntScout-v1 view
+# 5. Crea una vista interactiva de la simulación
+mlv view mlv/AntScout-v1
 
 # 6. Consulta la ficha técnica y la documentación de un entorno
-mlv AntScout-v1 help
+mlv help mlv/AntScout-v1
 ```
 ---
 
@@ -58,7 +58,7 @@ mlv AntScout-v1 help
 
 | Saga | Entorno    | ID (Gym)                | Baseline    | Detalles |  |
 |------|-----------|-----------------------------|------------|----------------|--------------|
-| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
+| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README_es.md](./mlvlab/envs/ant_scout_v1/README_es.md) | <a href="./mlvlab/envs/ant_scout_v1/README_es.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
 
 ---
 
@@ -118,7 +118,7 @@ Ahora, tu nuevo comando estará disponible:
 -->
 ---
 
-## ⚙️ Opciones de la CLI: list, play, train, eval, view
+## ⚙️ Opciones de la CLI: list, config, play, train, eval, view, help
 
 ### Modo lista: `mlv list`
 
@@ -134,26 +134,54 @@ mlv list
 mlv list ants
 ```
 
-### Modo juego: `mlv <env-id> play`
+### Modo configuración: `mlv config`
+
+Gestiona la configuración de MLV-Lab incluyendo la configuración del idioma.
+
+- **Uso básico**: `mlv config <acción> [clave] [valor]`
+- **Acciones**:
+  - **get**: Mostrar configuración actual o clave específica
+  - **set**: Establecer un valor de configuración
+  - **reset**: Restablecer configuración a valores predeterminados
+- **Claves comunes**:
+  - **locale**: Configuración del idioma (`en` para inglés, `es` para español)
+
+Ejemplos:
+
+```bash
+# Mostrar configuración actual
+mlv config get
+
+# Mostrar configuración específica
+mlv config get locale
+
+# Establecer idioma a español
+mlv config set locale es
+
+# Restablecer a valores predeterminados
+mlv config reset
+```
+
+### Modo juego: `mlv play <env-id>`
 
 Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 
-- **Uso básico**: `mlv <env-id> play`
+- **Uso básico**: `mlv play <env-id>`
 - **Parámetros**:
-  - **env_id**: No del entorno (ej. `AntScout-v1`).
+  - **env_id**: ID del entorno (ej. `mlv/AntScout-v1`).
   - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
 
 Ejemplo:
 
 ```bash
-mlv AntScout-v1 play --seed 42
+mlv play mlv/AntScout-v1 --seed 42
 ```
 
-### Modo entrenamiento: `mlv <env-id> train`
+### Modo entrenamiento: `mlv train <env-id>`
 
 Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<env>/<seed-XYZ>/`.
 
-- **Uso básico**: `mlv <env-id> train`
+- **Uso básico**: `mlv train <env-id>`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del entrenamiento. Si no se indica, se genera una aleatoria y se muestra por pantalla.
@@ -166,11 +194,11 @@ Ejemplo:
 mlv train mlv/AntScout-v1 --seed 123 --eps 500 --render
 ```
 
-### Modo evaluación: `mlv <env-id> eval`
+### Modo evaluación: `mlv eval <env-id>`
 
 Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--rec`.
 
-- **Uso básico**: `mlv <env-id> eval [opciones]`
+- **Uso básico**: `mlv eval <env-id> [opciones]`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
@@ -182,25 +210,25 @@ Ejemplos:
 
 ```bash
 # Visualizar el agente usando los pesos del último entrenamiento
-mlv AntScout-v1 eval
+mlv eval mlv/AntScout-v1
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv AntScout-v1 eval --seed 123 --record
+mlv eval mlv/AntScout-v1 --seed 123 --record
 
 # Evaluar 10 episodios
-mlv AntScout-v1 eval --seed 123 --eps 10 --rec
+mlv eval mlv/AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
-### Modo vista interactiva: `mlv <env-id> view`
+### Modo vista interactiva: `mlv view <env-id>`
 
 Lanza la vista interactiva (Analytics View) del entorno con controles de simulación, métricas y gestión de modelos.
 
-- Uso básico: `mlv <env-id> view`
+- Uso básico: `mlv view <env-id>`
 
 Ejemplo:
 
 ```bash
-mlv AntScout-v1 view
+mlv view mlv/AntScout-v1
 ```
 
 ## 🛠️ Contribuir a MLV-Lab

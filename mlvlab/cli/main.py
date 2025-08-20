@@ -1,26 +1,15 @@
 # mlvlab/cli/main.py
-import random
-import typer
-import sys
-import gymnasium as gym
-import importlib.util
-import importlib
-from pathlib import Path
-from gymnasium.error import NameNotFound
 
-# Asegurar registro de entornos al cargar la CLI
-try:
-    import mlvlab as _mlvlab  # noqa: F401
-except Exception:
-    pass
+from __future__ import annotations
+
+import importlib
+import random
 from typing import Optional
-# Importamos la librería correcta para descubrir entry points
-if sys.version_info < (3, 10):
-    # Para Python < 3.10
-    from importlib_metadata import entry_points
-else:
-    # Para Python >= 3.10
-    from importlib.metadata import entry_points
+
+import gymnasium as gym
+import typer
+from gymnasium.error import NameNotFound
+from rich.console import Console
 
 # Importamos las nuevas utilidades de gestión de 'runs'
 from mlvlab.cli.run_manager import get_run_dir, find_latest_run_dir
@@ -36,7 +25,9 @@ app = typer.Typer(
     no_args_is_help=True
 )
 
-# Comandos Principales ---
+# =============================================================================
+# FUNCIONES DE AUTOCOMPLETADO
+# =============================================================================
 
 
 def complete_env_id(incomplete: str):
@@ -45,9 +36,8 @@ def complete_env_id(incomplete: str):
     """
     all_env_ids = [env_id for env_id in gym.envs.registry.keys()
                    if env_id.startswith("mlv/")]
-
     for env_id in all_env_ids:
-        if env_id.startswith(incomplete):
+        if env_id.startswith(f"mlv/{incomplete}"):
             yield env_id
 
 
@@ -55,83 +45,106 @@ def complete_unit_id(incomplete: str):
     """
     Función de autocompletado que devuelve las unidades (colecciones) disponibles.
     """
-    # Reutilizamos la misma lógica que ya tienes en el comando 'list'
     all_env_ids = [env_id for env_id in gym.envs.registry.keys()
                    if env_id.startswith("mlv/")]
-
     env_id_to_unit: dict[str, str] = {}
     for env_id in all_env_ids:
         cfg = get_env_config(env_id)
-        unit = cfg.get("UNIT") or cfg.get("unit") or "otros"
+        unit = cfg.get("UNIT") or cfg.get("unit") or i18n.t("common.other")
         env_id_to_unit[env_id] = str(unit)
 
     unidades = sorted(set(env_id_to_unit.values()))
-
     for unidad in unidades:
         if unidad.startswith(incomplete):
             yield unidad
 
 
-def register_env_shortcuts(application: typer.Typer) -> None:
-    """Crea subcomandos dinámicos por entorno: `mlv <env-id> <cmd>`.
+# =============================================================================
+# COMANDOS PRINCIPALES
+# =============================================================================
 
-    Esto permite autocompletado de `<env-id>` en primera posición.
-    """
-    try:
-        env_ids = sorted(
-            [env_id for env_id in gym.envs.registry.keys() if env_id.startswith("mlv/")])
-    except Exception:
-        env_ids = []
 
-    for env_id in env_ids:
-        short = env_id.split('/')[-1]
-        env_app = typer.Typer(
-            no_args_is_help=True,
-            help=i18n.t("cli.help.commands_for_env", env_id=env_id),
-            rich_markup_mode="rich",
-        )
-
-        @env_app.command(name="play")
-        def _env_play(
-            seed: Optional[int] = typer.Option(
-                None, "--seed", "-s", help=i18n.t("cli.options.seed")),
-        ):
-            return play(env_id, seed)  # type: ignore[misc]
-
-        @env_app.command(name="view")
-        def _env_view():
-            return view(env_id)  # type: ignore[misc]
-
-        @env_app.command(name="train")
-        def _env_train(
-            seed: Optional[int] = typer.Option(
-                None, "--seed", "-s", help=i18n.t("cli.options.seed")),
-            eps: Optional[int] = typer.Option(
-                None, "--eps", "-e", help=i18n.t("cli.options.episodes")),
-            render: bool = typer.Option(
-                False, "--render", "-r", help=i18n.t("cli.options.render")),
-        ):
-            return train(env_id, seed, eps, render)  # type: ignore[misc]
-
-        @env_app.command(name="eval")
-        def _env_eval(
-            seed: Optional[int] = typer.Option(
-                None, "--seed", "-s", help=i18n.t("cli.options.seed")),
-            episodes: int = typer.Option(
-                5, "--eps", "-e", help=i18n.t("cli.options.episodes")),
-            speed: float = typer.Option(
-                1.0, "--speed", "-sp", help=i18n.t("cli.options.speed")),
-            record: bool = typer.Option(
-                False, "--rec", "-r", help=i18n.t("cli.options.record")),
-        ):
-            # type: ignore[misc]
-            return evaluate(env_id, seed, episodes, speed, record)
-
-        @env_app.command(name="help")
-        def _env_help():
-            return help_env(env_id)  # type: ignore[misc]
-
-        application.add_typer(env_app, name=short)
+@app.command(name="config")
+def config_command(
+    action: str = typer.Argument(..., help="Action to perform: get, set, reset"),
+    key: Optional[str] = typer.Argument(None, help="Configuration key (e.g., locale)"),
+    value: Optional[str] = typer.Argument(None, help="Value to set"),
+):
+    """Manage MLV-Lab configuration."""
+    from pathlib import Path
+    import json
+    
+    config_dir = Path.home() / '.mlvlab'
+    config_file = config_dir / 'config.json'
+    
+    if action == "get":
+        if not config_file.exists():
+            console.print("No configuration file found. Using defaults.")
+            return
+        
+        try:
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+            
+            if key:
+                if key in config:
+                    console.print(f"{key}: {config[key]}")
+                else:
+                    console.print(f"Key '{key}' not found in configuration.")
+            else:
+                console.print("Current configuration:")
+                for k, v in config.items():
+                    console.print(f"  {k}: {v}")
+        except Exception as e:
+            console.print(f"Error reading configuration: {e}")
+    
+    elif action == "set":
+        if not key or not value:
+            console.print("Both key and value are required for 'set' action.")
+            raise typer.Exit(1)
+        
+        # Validate locale setting
+        if key == "locale" and value not in ["en", "es"]:
+            console.print("Invalid locale. Use 'en' for English or 'es' for Spanish.")
+            raise typer.Exit(1)
+        
+        try:
+            config_dir.mkdir(exist_ok=True)
+            
+            # Load existing config or create new
+            if config_file.exists():
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+            else:
+                config = {}
+            
+            config[key] = value
+            
+            with open(config_file, 'w') as f:
+                json.dump(config, f, indent=2)
+            
+            console.print(f"Configuration updated: {key} = {value}")
+            
+            # Reload i18n if locale was changed
+            if key == "locale":
+                from mlvlab.i18n.core import i18n
+                i18n.set_locale(value)
+                console.print(f"Language changed to: {value}")
+                
+        except Exception as e:
+            console.print(f"Error updating configuration: {e}")
+            raise typer.Exit(1)
+    
+    elif action == "reset":
+        if config_file.exists():
+            config_file.unlink()
+            console.print("Configuration reset to defaults.")
+        else:
+            console.print("No configuration file to reset.")
+    
+    else:
+        console.print(f"Unknown action: {action}. Use: get, set, or reset")
+        raise typer.Exit(1)
 
 
 @app.command(name="list")
@@ -142,7 +155,7 @@ def list_environments(
         autocompletion=complete_unit_id
     )
 ):
-    """Lista unidades disponibles o los entornos de una unidad concreta."""
+    """List available units or environments from a specific unit."""
     from rich.table import Table
 
     # Detectar entornos por el namespace "mlv" (IDs sin unidad)
@@ -204,15 +217,13 @@ def list_environments(
         console.print(table)
 
 
-@app.command(name="play", hidden=True)
-def play(
-    env_id: str = typer.Argument(...,
-                                 help="ID del entorno a jugar (e.g., mlv/AntScout-v1).",
-                                 autocompletion=complete_env_id),
+@app.command(name="play")
+def play_command(
+    env_id: str = typer.Argument(..., help="Environment ID to play (e.g., mlv/AntScout-v1)."),
     seed: Optional[int] = typer.Option(
-        None, "--seed", "-s", help="Semilla para reproducibilidad del mapa.")
+        None, "--seed", "-s", help=i18n.t("cli.options.seed")),
 ):
-    """Juega interactivamente a un entorno (render_mode=human)."""
+    """Play interactively in an environment (render_mode=human)."""
     console.print(i18n.t("cli.messages.launching", env_id=env_id))
 
     try:
@@ -232,13 +243,11 @@ def play(
         raise typer.Exit(code=1)
 
 
-@app.command(name="view", hidden=True)
-def view(
-    env_id: str = typer.Argument(
-        ..., help="ID del entorno para abrir la vista (e.g., mlv/AntScout-v1).", autocompletion=complete_env_id
-    ),
+@app.command(name="view")
+def view_command(
+    env_id: str = typer.Argument(..., help="Environment ID to open view (e.g., mlv/AntScout-v1)."),
 ):
-    """Lanza la vista interactiva asociada a un entorno."""
+    """Launch the interactive view associated with an environment."""
     console.print(
         f"🖥️  Abriendo view para [bold cyan]{env_id}[/bold cyan]...")
     try:
@@ -263,19 +272,17 @@ def view(
         raise typer.Exit(code=1)
 
 
-@app.command(name="train", hidden=True)
-def train(
-    env_id: str = typer.Argument(...,
-                                 help="ID del entorno a entrenar(e.g., mlv/AntScout-v1).",
-                                 autocompletion=complete_env_id),
+@app.command(name="train")
+def train_command(
+    env_id: str = typer.Argument(..., help="Environment ID to train (e.g., mlv/AntScout-v1)."),
     seed: Optional[int] = typer.Option(
-        None, "--seed", "-s", help="Semilla para el entrenamiento (si no se da, se genera una)."),
+        None, "--seed", "-s", help=i18n.t("cli.options.seed")),
     eps: Optional[int] = typer.Option(
-        None, "--eps", "-e", help="Sobrescribir el número de episodios."),
+        None, "--eps", "-e", help=i18n.t("cli.options.episodes")),
     render: bool = typer.Option(
-        False, "--render", "-r", help="Renderizar el entrenamiento en tiempo real (lento).")
+        False, "--render", "-r", help=i18n.t("cli.options.render")),
 ):
-    """Entrena un agente. Si no se especifica una semilla, se genera una aleatoria."""
+    """Train an agent. If no seed is specified, a random one is generated."""
     config = get_env_config(env_id)
     baseline = config.get("BASELINE", {})
     # Nuevo flujo: seleccionar algoritmo desde ALGORITHM/UNIT
@@ -285,9 +292,6 @@ def train(
     if not algorithm_key:
         console.print(i18n.t("cli.messages.error_no_algorithm", env_id=env_id))
         raise typer.Exit(code=1)
-
-    if eps:
-        train_config['episodes'] = eps
 
     # LÓGICA DE SEMILLA ALEATORIA ---
     run_seed = seed
@@ -300,10 +304,10 @@ def train(
     console.print(i18n.t("cli.messages.working_dir", run_dir=str(run_dir)))
 
     # Nuevo: usar registro de algoritmos (asegurar carga de plugins integrados)
+    from mlvlab.algorithms.registry import get_algorithm
+
     try:
-        import mlvlab.algorithms as _mlv_algos  # activa auto-registro de plugins
-        from mlvlab.algorithms.registry import get_algorithm
-        algo = get_algorithm(str(algorithm_key))
+        algo = get_algorithm(algorithm_key)
         algo.train(env_id, train_config, run_dir=run_dir,
                    seed=run_seed, render=render)
     except Exception as e:
@@ -311,21 +315,19 @@ def train(
         raise typer.Exit(code=1)
 
 
-@app.command(name="eval", hidden=True)
-def evaluate(
-    env_id: str = typer.Argument(...,
-                                 help="ID del entorno a evaluar(e.g., mlv/AntScout-v1).",
-                                 autocompletion=complete_env_id),
+@app.command(name="eval")
+def eval_command(
+    env_id: str = typer.Argument(..., help="Environment ID to evaluate (e.g., mlv/AntScout-v1)."),
     seed: Optional[int] = typer.Option(
-        None, "--seed", "-s", help="Semilla del 'run' a evaluar (por defecto, la última)."),
+        None, "--seed", "-s", help=i18n.t("cli.options.seed")),
     episodes: int = typer.Option(
-        5, "--eps", "-e", help="Número de episodios a ejecutar."),
+        5, "--eps", "-e", help=i18n.t("cli.options.episodes")),
     speed: float = typer.Option(
-        1.0, "--speed", "-sp", help="Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad)."),
+        1.0, "--speed", "-sp", help=i18n.t("cli.options.speed")),
     record: bool = typer.Option(
-        False, "--rec", "-r", help="Graba y genera un vídeo de la evaluación en lugar de solo visualizar.")
+        False, "--rec", "-r", help=i18n.t("cli.options.record")),
 ):
-    """Evalúa un agente en modo interactivo por defecto; usa --rec para grabar."""
+    """Evaluate an agent interactively by default; use --rec to record."""
     run_dir = None
     if seed is not None:
         run_dir = get_run_dir(env_id, seed)
@@ -346,14 +348,18 @@ def evaluate(
         console.print(i18n.t("cli.messages.error_cannot_extract_seed", folder_name=run_dir.name))
         eval_seed = None
 
+    # Obtener algoritmo desde la configuración del entorno
     config = get_env_config(env_id)
     algorithm_key = config.get("ALGORITHM") or config.get("UNIT", None)
 
-    # Nuevo: usar registro de algoritmos (asegurar carga de plugins)
+    if not algorithm_key:
+        console.print(i18n.t("cli.messages.error_no_algorithm", env_id=env_id))
+        raise typer.Exit(code=1)
+
+    from mlvlab.algorithms.registry import get_algorithm
+
     try:
-        import mlvlab.algorithms as _mlv_algos
-        from mlvlab.algorithms.registry import get_algorithm
-        algo = get_algorithm(str(algorithm_key))
+        algo = get_algorithm(algorithm_key)
         algo.eval(
             env_id,
             run_dir=run_dir,
@@ -367,17 +373,13 @@ def evaluate(
         raise typer.Exit(code=1)
 
 
-@app.command(name="help", hidden=True)
-def help_env(
-    env_id: str = typer.Argument(...,
-                                 help="ID del entorno a inspeccionar (e.g., mlv/AntScout-v1).",
-                                 autocompletion=complete_env_id),
+@app.command(name="help")
+def help_command(
+    env_id: str = typer.Argument(..., help="Environment ID to inspect (e.g., mlv/AntScout-v1)."),
 ):
-    """Muestra la ficha técnica y un enlace a la documentación del entorno."""
+    """Show technical specifications and documentation link for an environment."""
     try:
         env = gym.make(env_id)
-        spec = gym.spec(env_id)
-
         console.print(
             f"\n[bold underline]Technical Specifications for {env_id}[/bold underline]\n")
         console.print(
@@ -385,111 +387,39 @@ def help_env(
         console.print(
             f"[bold cyan]Action Space:[/bold cyan]\n{env.action_space}\n")
 
-        # LÓGICA PARA CONSTRUIR LA URL DINÁMICA AL README ---
-        try:
-            # 1. Define la URL base de tu repositorio
-            base_repo_url = "https://github.com/hcosta/mlvlab/tree/master"
-
-            # 2. Extrae la ruta del módulo del entry point
-            #    Ej: "mlvlab.envs.ant.env:LostAntEnv" -> "mlvlab.envs.ant.env"
-            entry_point = spec.entry_point
-            module_path_str = entry_point.split(':')[0]
-
-            # 3. Convierte la ruta del módulo a una ruta de directorio
-            #    Ej: "mlvlab.envs.ant.env" -> "mlvlab/envs/ant"
-            path_parts = module_path_str.split('.')
-            # Nos quedamos con todo menos el último elemento (el nombre del fichero _env.py)
-            relative_path = "/".join(path_parts[:-1])
-
-            # 4. Construye la URL final
-            readme_url = f"{base_repo_url}/{relative_path}/README.md"
-
+        # Mostrar documentación si existe
+        config = get_env_config(env_id)
+        if "DOCS_URL" in config:
             console.print(
-                f"[bold cyan]For more details, check the README:[/bold cyan]\n[green]{readme_url}[/green]\n")
-
-        except Exception:
-            # Si algo falla, simplemente no mostramos el enlace
-            pass
+                f"[bold cyan]Documentation:[/bold cyan]\n{config['DOCS_URL']}\n")
 
         env.close()
-
     except NameNotFound:
         console.print(i18n.t("cli.messages.error_env_not_found", env_id=env_id))
         raise typer.Exit(code=1)
 
 
-# Cargador de Plugins (Nivel 3: Arquitecto) ---
+# =============================================================================
+# PLUGINS
+# =============================================================================
 
-def load_plugins(application: typer.Typer) -> set[str]:
-    """Descubre y carga plugins registrados mediante 'mlvlab.plugins' entry points.
 
-    Retorna el conjunto de nombres de comandos de plugin registrados.
-    """
-    plugin_names: set[str] = set()
-    try:
-        discovered_plugins = entry_points(group='mlvlab.plugins')
-    except Exception:
-        return plugin_names
+def _load_plugins():
+    """Carga plugins registrados en entry_points."""
+    import pkg_resources
+    plugin_names = set()
 
-    for plugin in discovered_plugins:
+    for entry_point in pkg_resources.iter_entry_points("mlvlab.plugins"):
         try:
-            plugin_app = plugin.load()
-            if isinstance(plugin_app, typer.Typer):
-                application.add_typer(plugin_app, name=plugin.name)
-            else:
-                application.command(name=plugin.name)(plugin_app)
-            plugin_names.add(plugin.name)
+            plugin = entry_point.load()
+            if hasattr(plugin, "app"):
+                app.add_typer(plugin.app, name=entry_point.name)
+                plugin_names.add(entry_point.name)
         except Exception as e:
-            console.print(i18n.t("cli.messages.error_plugin_load", plugin_name=plugin.name, error=str(e)))
+            console.print(i18n.t("cli.messages.error_plugin_load", plugin_name=entry_point.name, error=str(e)))
     return plugin_names
-
-# Función principal que se ejecuta cuando se llama a 'mlv'
-
-
-def run_app():
-    # Cargar plugins primero para conocer comandos adicionales
-    plugin_names = load_plugins(app)
-    # Registrar atajos por entorno para autocompletar `mlv <env-id> <cmd>`
-    register_env_shortcuts(app)
-
-    # Soporte sintaxis abreviada: `mlv <env-id> <comando> [...args]`
-    # Reescribe argv a la forma clásica: `mlv <comando> mlv/<env-id> [...args]`
-    try:
-        argv = list(sys.argv)
-        base_commands = {"list", "play", "view",
-                         "train", "eval", "help"} | plugin_names
-        if len(argv) >= 3:
-            potential_env = argv[1]
-            potential_cmd = argv[2]
-            # Aceptar tanto "AntScout-v1" como "mlv/AntScout-v1"
-            normalized_env = potential_env if potential_env.startswith(
-                "mlv/") else f"mlv/{potential_env}"
-            # Verificamos que exista el entorno y que el comando sea conocido
-            if potential_cmd in base_commands:
-                try:
-                    gym.spec(normalized_env)
-                    new_argv = [argv[0], potential_cmd,
-                                normalized_env] + argv[3:]
-                    sys.argv = new_argv
-                except Exception:
-                    pass
-        elif len(argv) == 2:
-            # `mlv <env-id>` -> mostrar help del entorno
-            potential_env = argv[1]
-            normalized_env = potential_env if potential_env.startswith(
-                "mlv/") else f"mlv/{potential_env}"
-            try:
-                gym.spec(normalized_env)
-                new_argv = [argv[0], "help", normalized_env]
-                sys.argv = new_argv
-            except Exception:
-                pass
-    except Exception:
-        # Si algo sale mal en el rewriter, continuar con la CLI original
-        pass
-
-    app()
 
 
 if __name__ == "__main__":
-    run_app()
+    _load_plugins()
+    app()

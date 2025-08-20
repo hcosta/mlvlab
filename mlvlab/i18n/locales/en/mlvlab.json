@@ -8,6 +8,7 @@
       "eval": "Evaluate an agent interactively by default; use --rec to record.",
       "view": "Launch the interactive view associated with an environment.",
       "help": "Show technical specifications and documentation link for an environment.",
+      "config": "Manage MLV-Lab configuration (locale, etc.)",
       "commands_for_env": "Commands for {env_id}"
     },
     "messages": {

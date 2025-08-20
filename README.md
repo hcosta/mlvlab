@@ -33,24 +33,24 @@ mlv list
 mlv list ants
 
 # 2. Play to understand the objective (use Arrow keys/WASD)
-mlv AntScout-v1 play
+mlv play mlv/AntScout-v1
 
 # 3. Train an agent with a specific seed (e.g., 123)
 #    (Runs quickly and saves "weights" in data/mlv_AntScout-v1/seed-123/)
-mlv AntScout-v1 train --seed 123
+mlv train mlv/AntScout-v1 --seed 123
 
 # 4. Evaluate training visually (interactive mode by default)
 #    (Loads weights from seed 123 and opens window with agent using those weights)
-mlv AntScout-v1 eval --seed 123
+mlv eval mlv/AntScout-v1 --seed 123
 
 # 4b. If you want to record a video (instead of just viewing), add --rec
-mlv AntScout-v1 eval --seed 123 --rec
+mlv eval mlv/AntScout-v1 --seed 123 --rec
 
 # 5. Create an interactive view of the simulation
-mlv AntScout-v1 view
+mlv view mlv/AntScout-v1
 
 # 6. Check technical specifications and environment documentation
-mlv AntScout-v1 help
+mlv help mlv/AntScout-v1
 ```
 
 ---
@@ -97,7 +97,7 @@ env.close()
 
 ---
 
-## ⚙️ CLI Options: list, play, train, eval, view
+## ⚙️ CLI Options: list, config, play, train, eval, view, help
 
 ### List mode: `mlv list`
 
@@ -113,26 +113,54 @@ mlv list
 mlv list ants
 ```
 
-### Play mode: `mlv <env-id> play`
+### Configuration mode: `mlv config`
+
+Manages MLV-Lab configuration including language settings.
+
+- **Basic usage**: `mlv config <action> [key] [value]`
+- **Actions**:
+  - **get**: Show current configuration or specific key
+  - **set**: Set a configuration value
+  - **reset**: Reset configuration to defaults
+- **Common keys**:
+  - **locale**: Language setting (`en` for English, `es` for Spanish)
+
+Examples:
+
+```bash
+# Show current configuration
+mlv config get
+
+# Show specific setting
+mlv config get locale
+
+# Set language to Spanish
+mlv config set locale es
+
+# Reset to defaults
+mlv config reset
+```
+
+### Play mode: `mlv play <env-id>`
 
 Runs the environment in interactive mode (human) to test manual control.
 
-- **Basic usage**: `mlv <env-id> play`
+- **Basic usage**: `mlv play <env-id>`
 - **Parameters**:
-  - **env_id**: Environment ID (e.g., `AntScout-v1`).
+  - **env_id**: Environment ID (e.g., `mlv/AntScout-v1`).
   - **--seed, -s**: Seed for map reproducibility. If not specified, uses environment default.
 
 Example:
 
 ```bash
-mlv AntScout-v1 play --seed 42
+mlv play mlv/AntScout-v1 --seed 42
 ```
 
-### Training mode: `mlv <env-id> train`
+### Training mode: `mlv train <env-id>`
 
 Trains the environment's baseline agent and saves weights/artifacts in `data/<env>/<seed-XYZ>/`.
 
-- **Basic usage**: `mlv <env-id> train`
+- **Basic usage**: `mlv train <env-id>`
 - **Parameters**:
   - **env_id**: Environment ID.
   - **--seed, -s**: Training seed. If not indicated, generates a random one and displays it.
@@ -145,11 +173,11 @@ Example:
 mlv train mlv/AntScout-v1 --seed 123 --eps 500 --render
 ```
 
-### Evaluation mode: `mlv <env-id> eval`
+### Evaluation mode: `mlv eval <env-id>`
 
 Evaluates an existing training by loading Q-Table/weights from the corresponding `run` directory. By default, opens window (human mode) and visualizes agent using its weights. To record video to disk, add `--rec`.
 
-- **Basic usage**: `mlv <env-id> eval [options]`
+- **Basic usage**: `mlv eval <env-id> [options]`
 - **Parameters**:
   - **env_id**: Environment ID.
   - **--seed, -s**: Seed of `run` to evaluate. If not indicated, uses latest `run` available for that environment.
@@ -161,25 +189,25 @@ Examples:
 
 ```bash
 # Visualize agent using weights from latest training
-mlv AntScout-v1 eval
+mlv eval mlv/AntScout-v1
 
 # Visualize specific training and record video
-mlv AntScout-v1 eval --seed 123 --record
+mlv eval mlv/AntScout-v1 --seed 123 --record
 
 # Evaluate 10 episodes
-mlv AntScout-v1 eval --seed 123 --eps 10 --rec
+mlv eval mlv/AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
-### Interactive view mode: `mlv <env-id> view`
+### Interactive view mode: `mlv view <env-id>`
 
 Launches the interactive view (Analytics View) of the environment with simulation controls, metrics, and model management.
 
-- Basic usage: `mlv <env-id> view`
+- Basic usage: `mlv view <env-id>`
 
 Example:
 
 ```bash
-mlv AntScout-v1 view
+mlv view mlv/AntScout-v1
 ```
 
 ## 🛠️ Contributing to MLV-Lab
