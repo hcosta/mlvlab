@@ -8,6 +8,7 @@
       "eval": "Evalúa un agente en modo interactivo por defecto; usa --rec para grabar.",
       "view": "Lanza la vista interactiva asociada a un entorno.",
       "help": "Muestra la ficha técnica y un enlace a la documentación del entorno.",
+      "docs": "Muestra las especificaciones técnicas y abre la documentación en el navegador.",
       "config": "Gestiona la configuración de MLV-Lab (idioma, etc.)",
       "commands_for_env": "Comandos para {env_cmd}"
     },
@@ -28,7 +29,12 @@
       "error_cannot_start_view": "❌ [bold red]Error:[/bold red] No se pudo iniciar la vista: {error}",
       "error_no_main_function": "❌ [bold red]Error:[/bold red] El módulo '{module_path}' no expone función main().",
       "error_plugin_load": "❌ [red]Error al cargar plugin '{plugin_name}':[/red] {error}",
-      "game_started": "Juego iniciado. Usa las teclas definidas. ESC para salir."
+      "game_started": "Juego iniciado. Usa las teclas definidas. ESC para salir.",
+      "docs_browser_opened": "📖 [bold green]Documentación abierta en el navegador[/bold green]",
+      "docs_browser_error": "⚠️  [yellow]No se pudo abrir el navegador: {error}[/yellow]",
+      "docs_full_documentation": "Documentación Online:",
+      "docs_observation_space": "Observation Space:",
+      "docs_action_space": "Action Space:"
     },
     "options": {
       "seed": "Semilla para reproducibilidad (si no se da, se genera una).",

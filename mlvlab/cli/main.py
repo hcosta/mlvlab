@@ -44,9 +44,15 @@ def complete_env_id(incomplete: str):
     """
     Función de autocompletado que devuelve los IDs de entorno que coinciden.
     """
+    # Importar automáticamente todos los entornos para asegurar que estén registrados
+    try:
+        import mlvlab.envs
+    except ImportError:
+        pass
+
     all_env_ids = [env_id for env_id in gym.envs.registry.keys()
                    if env_id.startswith("mlv/")]
-    
+
     # Si el usuario está escribiendo sin el prefijo mlv/, mostrar opciones sin prefijo
     if not incomplete.startswith("mlv/"):
         for env_id in all_env_ids:
@@ -64,6 +70,12 @@ def complete_unit_id(incomplete: str):
     """
     Función de autocompletado que devuelve las unidades (colecciones) disponibles.
     """
+    # Importar automáticamente todos los entornos para asegurar que estén registrados
+    try:
+        import mlvlab.envs
+    except ImportError:
+        pass
+
     all_env_ids = [env_id for env_id in gym.envs.registry.keys()
                    if env_id.startswith("mlv/")]
     env_id_to_unit: dict[str, str] = {}
@@ -85,26 +97,28 @@ def complete_unit_id(incomplete: str):
 
 @app.command(name="config")
 def config_command(
-    action: str = typer.Argument(..., help="Action to perform: get, set, reset"),
-    key: Optional[str] = typer.Argument(None, help="Configuration key (e.g., locale)"),
+    action: str = typer.Argument(...,
+                                 help="Action to perform: get, set, reset"),
+    key: Optional[str] = typer.Argument(
+        None, help="Configuration key (e.g., locale)"),
     value: Optional[str] = typer.Argument(None, help="Value to set"),
 ):
     """Manage MLV-Lab configuration."""
     from pathlib import Path
     import json
-    
+
     config_dir = Path.home() / '.mlvlab'
     config_file = config_dir / 'config.json'
-    
+
     if action == "get":
         if not config_file.exists():
             console.print("No configuration file found. Using defaults.")
             return
-        
+
         try:
             with open(config_file, 'r') as f:
                 config = json.load(f)
-            
+
             if key:
                 if key in config:
                     console.print(f"{key}: {config[key]}")
@@ -116,51 +130,52 @@ def config_command(
                     console.print(f"  {k}: {v}")
         except Exception as e:
             console.print(f"Error reading configuration: {e}")
-    
+
     elif action == "set":
         if not key or not value:
             console.print("Both key and value are required for 'set' action.")
             raise typer.Exit(1)
-        
+
         # Validate locale setting
         if key == "locale" and value not in ["en", "es"]:
-            console.print("Invalid locale. Use 'en' for English or 'es' for Spanish.")
+            console.print(
+                "Invalid locale. Use 'en' for English or 'es' for Spanish.")
             raise typer.Exit(1)
-        
+
         try:
             config_dir.mkdir(exist_ok=True)
-            
+
             # Load existing config or create new
             if config_file.exists():
                 with open(config_file, 'r') as f:
                     config = json.load(f)
             else:
                 config = {}
-            
+
             config[key] = value
-            
+
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
-            
+
             console.print(f"Configuration updated: {key} = {value}")
-            
+
             # Reload i18n if locale was changed
             if key == "locale":
                 from mlvlab.i18n.core import i18n
                 i18n.set_locale(value)
                 console.print(f"Language changed to: {value}")
-                
+
         except Exception as e:
             console.print(f"Error updating configuration: {e}")
             raise typer.Exit(1)
-    
+
     elif action == "reset":
         if config_file.exists():
             config_file.unlink()
             console.print("Configuration reset to defaults.")
         else:
             console.print("No configuration file to reset.")
-    
+
     else:
         console.print(f"Unknown action: {action}. Use: get, set, or reset")
         raise typer.Exit(1)
@@ -176,14 +191,14 @@ def list_environments(
 ):
     """List available units or environments from a specific unit."""
     from rich.table import Table
-    
+
     # Recargar configuración del i18n para detectar cambios
     i18n._detect_locale()
     # Recargar traducciones si el locale cambió
     if i18n.current_locale != i18n._last_detected_locale:
         i18n.translations = i18n._load_translations()
         i18n._last_detected_locale = i18n.current_locale
-    
+
     # Verificar configuración del usuario directamente
     try:
         from pathlib import Path
@@ -216,11 +231,15 @@ def list_environments(
     if unidad is None:
         unidades = sorted(set(env_id_to_unit.values()))
         # Primera columna sin título para mostrar un emoji por unidad (🐜 para 'ants')
-        table = Table("", i18n.t("cli.tables.unit_id"), i18n.t("cli.tables.collection"), i18n.t("cli.tables.description"))
+        table = Table("", i18n.t("cli.tables.unit_id"), i18n.t(
+            "cli.tables.collection"), i18n.t("cli.tables.description"))
         for u in unidades:
-            emoji = i18n.t(f"cli.units.{u}") if u in ['ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else ''
-            coleccion = i18n.t(f"cli.unit_names.{u}") if u in ['ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.dash")
-            desc = i18n.t(f"cli.unit_descriptions.{u}") if u in ['ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.custom_unit")
+            emoji = i18n.t(f"cli.units.{u}") if u in [
+                'ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else ''
+            coleccion = i18n.t(f"cli.unit_names.{u}") if u in [
+                'ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.dash")
+            desc = i18n.t(f"cli.unit_descriptions.{u}") if u in [
+                'ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.custom_unit")
             table.add_row(emoji, f"[cyan]{u}[/cyan]", coleccion, desc)
         console.print(table)
         console.print(i18n.t("cli.messages.use_list_unit"))
@@ -260,7 +279,8 @@ def list_environments(
 
 @app.command(name="play")
 def play_command(
-    env_id: str = typer.Argument(..., help="Environment ID to play (e.g., AntScout-v1 or mlv/AntScout-v1)."),
+    env_id: str = typer.Argument(..., help="Environment ID to play (e.g., AntScout-v1 or mlv/AntScout-v1).",
+                                 autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
 ):
@@ -275,20 +295,23 @@ def play_command(
         key_map = config.get("KEY_MAP", None)
 
         if key_map is None:
-            console.print(i18n.t("cli.messages.error_no_keymap", env_id=normalized_env_id))
+            console.print(i18n.t("cli.messages.error_no_keymap",
+                          env_id=normalized_env_id))
             raise typer.Exit(code=1)
 
         # Usamos el player genérico
         play_interactive(normalized_env_id, key_map=key_map, seed=seed)
 
     except NameNotFound:
-        console.print(i18n.t("cli.messages.error_env_not_found", env_id=normalized_env_id))
+        console.print(i18n.t("cli.messages.error_env_not_found",
+                      env_id=normalized_env_id))
         raise typer.Exit(code=1)
 
 
 @app.command(name="view")
 def view_command(
-    env_id: str = typer.Argument(..., help="Environment ID to open view (e.g., AntScout-v1 or mlv/AntScout-v1)."),
+    env_id: str = typer.Argument(..., help="Environment ID to open view (e.g., AntScout-v1 or mlv/AntScout-v1).",
+                                 autocompletion=complete_env_id),
 ):
     """Launch the interactive view associated with an environment."""
     # Normalizar el ID del entorno
@@ -307,19 +330,23 @@ def view_command(
         if hasattr(mod, "main"):
             mod.main()
         else:
-            console.print(i18n.t("cli.messages.error_no_main_function", module_path=module_path))
+            console.print(
+                i18n.t("cli.messages.error_no_main_function", module_path=module_path))
             raise typer.Exit(code=1)
     except NameNotFound:
-        console.print(i18n.t("cli.messages.error_env_not_found", env_id=normalized_env_id))
+        console.print(i18n.t("cli.messages.error_env_not_found",
+                      env_id=normalized_env_id))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(i18n.t("cli.messages.error_cannot_start_view", error=str(e)))
+        console.print(
+            i18n.t("cli.messages.error_cannot_start_view", error=str(e)))
         raise typer.Exit(code=1)
 
 
 @app.command(name="train")
 def train_command(
-    env_id: str = typer.Argument(..., help="Environment ID to train (e.g., AntScout-v1 or mlv/AntScout-v1)."),
+    env_id: str = typer.Argument(..., help="Environment ID to train (e.g., AntScout-v1 or mlv/AntScout-v1).",
+                                 autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
     eps: Optional[int] = typer.Option(
@@ -337,7 +364,8 @@ def train_command(
     train_config = baseline.get("config", {}).copy()
 
     if not algorithm_key:
-        console.print(i18n.t("cli.messages.error_no_algorithm", env_id=normalized_env_id))
+        console.print(i18n.t("cli.messages.error_no_algorithm",
+                      env_id=normalized_env_id))
         raise typer.Exit(code=1)
 
     # LÓGICA DE SEMILLA ALEATORIA ---
@@ -358,13 +386,15 @@ def train_command(
         algo.train(normalized_env_id, train_config, run_dir=run_dir,
                    seed=run_seed, render=render)
     except Exception as e:
-        console.print(i18n.t("cli.messages.error_training", algorithm_key=algorithm_key, error=str(e)))
+        console.print(i18n.t("cli.messages.error_training",
+                      algorithm_key=algorithm_key, error=str(e)))
         raise typer.Exit(code=1)
 
 
 @app.command(name="eval")
 def eval_command(
-    env_id: str = typer.Argument(..., help="Environment ID to evaluate (e.g., AntScout-v1 or mlv/AntScout-v1)."),
+    env_id: str = typer.Argument(..., help="Environment ID to evaluate (e.g., AntScout-v1 or mlv/AntScout-v1).",
+                                 autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
     episodes: int = typer.Option(
@@ -394,7 +424,8 @@ def eval_command(
     try:
         eval_seed = int(run_dir.name.split('-')[1])
     except (IndexError, ValueError):
-        console.print(i18n.t("cli.messages.error_cannot_extract_seed", folder_name=run_dir.name))
+        console.print(
+            i18n.t("cli.messages.error_cannot_extract_seed", folder_name=run_dir.name))
         eval_seed = None
 
     # Obtener algoritmo desde la configuración del entorno
@@ -402,7 +433,8 @@ def eval_command(
     algorithm_key = config.get("ALGORITHM") or config.get("UNIT", None)
 
     if not algorithm_key:
-        console.print(i18n.t("cli.messages.error_no_algorithm", env_id=normalized_env_id))
+        console.print(i18n.t("cli.messages.error_no_algorithm",
+                      env_id=normalized_env_id))
         raise typer.Exit(code=1)
 
     from mlvlab.algorithms.registry import get_algorithm
@@ -418,35 +450,72 @@ def eval_command(
             speed=speed
         )
     except Exception as e:
-        console.print(i18n.t("cli.messages.error_evaluation", algorithm_key=algorithm_key, error=str(e)))
+        console.print(i18n.t("cli.messages.error_evaluation",
+                      algorithm_key=algorithm_key, error=str(e)))
         raise typer.Exit(code=1)
 
 
-@app.command(name="help")
-def help_command(
-    env_id: str = typer.Argument(..., help="Environment ID to inspect (e.g., AntScout-v1 or mlv/AntScout-v1)."),
+@app.command(name="docs")
+def docs_command(
+    env_id: str = typer.Argument(..., help="Environment ID to show documentation (e.g., AntScout-v1 or mlv/AntScout-v1).",
+                                 autocompletion=complete_env_id),
 ):
-    """Show technical specifications and documentation link for an environment."""
+    """Show technical specifications and open documentation in browser."""
+    import webbrowser
+    from pathlib import Path
+
     # Normalizar el ID del entorno
     normalized_env_id = normalize_env_id(env_id)
+
     try:
         env = gym.make(normalized_env_id)
-        console.print(
-            f"\n[bold underline]Technical Specifications for {normalized_env_id}[/bold underline]\n")
-        console.print(
-            f"[bold cyan]Observation Space:[/bold cyan]\n{env.observation_space}\n")
-        console.print(
-            f"[bold cyan]Action Space:[/bold cyan]\n{env.action_space}\n")
 
-        # Mostrar documentación si existe
+        # Obtener configuración del entorno
         config = get_env_config(normalized_env_id)
-        if "DOCS_URL" in config:
+
+        # Construir URL de documentación basada en el idioma configurado
+        base_url = "https://github.com/hcosta/mlvlab/blob/master"
+        env_name = normalized_env_id.replace("mlv/", "").lower()
+
+        # Mapear nombres de entorno a nombres de directorio
+        env_dir_mapping = {
+            "antscout-v1": "ant_scout_v1",
+            # Agregar más mapeos según sea necesario
+        }
+
+        # Usar el mapeo si existe, sino convertir a snake_case
+        dir_name = env_dir_mapping.get(env_name, env_name.replace("-", "_"))
+
+        # Determinar el idioma para la documentación
+        locale = i18n.current_locale
+        if locale == "es":
+            docs_url = f"{base_url}/mlvlab/envs/{dir_name}/README_es.md"
+        else:
+            docs_url = f"{base_url}/mlvlab/envs/{dir_name}/README.md"
+
+        # Intentar abrir en el navegador
+        try:
+            webbrowser.open(docs_url)
+            console.print(i18n.t("cli.messages.docs_browser_opened"))
+        except Exception as e:
             console.print(
-                f"[bold cyan]Documentation:[/bold cyan]\n{config['DOCS_URL']}\n")
+                i18n.t("cli.messages.docs_browser_error", error=str(e)))
+
+        # Mostrar información en terminal
+        console.print(
+            f"\n[bold cyan]{i18n.t('cli.messages.docs_full_documentation')}[/bold cyan]")
+        console.print(f"{docs_url}\n")
+        console.print(
+            f"[bold cyan]{i18n.t('cli.messages.docs_observation_space')}[/bold cyan]")
+        console.print(f"{env.observation_space}\n")
+        console.print(
+            f"[bold cyan]{i18n.t('cli.messages.docs_action_space')}[/bold cyan]")
+        console.print(f"{env.action_space}\n")
 
         env.close()
     except NameNotFound:
-        console.print(i18n.t("cli.messages.error_env_not_found", env_id=normalized_env_id))
+        console.print(i18n.t("cli.messages.error_env_not_found",
+                      env_id=normalized_env_id))
         raise typer.Exit(code=1)
 
 
@@ -467,7 +536,8 @@ def _load_plugins():
                 app.add_typer(plugin.app, name=entry_point.name)
                 plugin_names.add(entry_point.name)
         except Exception as e:
-            console.print(i18n.t("cli.messages.error_plugin_load", plugin_name=entry_point.name, error=str(e)))
+            console.print(i18n.t("cli.messages.error_plugin_load",
+                          plugin_name=entry_point.name, error=str(e)))
     return plugin_names
 
 

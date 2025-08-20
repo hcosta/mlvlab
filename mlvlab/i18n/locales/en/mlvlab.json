@@ -8,6 +8,7 @@
       "eval": "Evaluate an agent interactively by default; use --rec to record.",
       "view": "Launch the interactive view associated with an environment.",
       "help": "Show technical specifications and documentation link for an environment.",
+      "docs": "Show technical specifications and open documentation in browser.",
       "config": "Manage MLV-Lab configuration (locale, etc.)",
       "commands_for_env": "Commands for {env_id}"
     },
@@ -28,7 +29,12 @@
       "error_cannot_start_view": "❌ [bold red]Error:[/bold red] Could not start view: {error}",
       "error_no_main_function": "❌ [bold red]Error:[/bold red] Module '{module_path}' does not expose main() function.",
       "error_plugin_load": "❌ [red]Error loading plugin '{plugin_name}':[/red] {error}",
-      "game_started": "Game started. Use the defined keys. ESC to exit."
+      "game_started": "Game started. Use the defined keys. ESC to exit.",
+      "docs_browser_opened": "📖 [bold green]Documentation opened in browser[/bold green]",
+      "docs_browser_error": "⚠️  [yellow]Can't open browser: {error}[/yellow]",
+      "docs_full_documentation": "Full Documentation:",
+      "docs_observation_space": "Observation Space:",
+      "docs_action_space": "Action Space:"
     },
     "options": {
       "seed": "Seed for reproducibility (if not given, one is generated).",
