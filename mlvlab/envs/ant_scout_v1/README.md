@@ -5,7 +5,7 @@
 
 This file documents the `mlv/AntScout-v1` environment, also known as "The Lost Colony".
 
-<img src="../../../docs/ant_scout_v1/mode_view_es.jpg" alt="view mode" width="100%">
+<img src="../../../docs/ant_scout_v1/mode_view_en.jpg" alt="view mode" width="100%">
 
 ## Description
 
