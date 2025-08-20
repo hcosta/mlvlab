@@ -38,7 +38,7 @@ dev = [
 
 # Esta sección es CRUCIAL: Define el comando 'mlv' en la terminal.
 [project.scripts]
-mlv = "mlvlab.cli.main:run_app"
+mlv = "mlvlab.cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
