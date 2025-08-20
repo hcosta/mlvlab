@@ -1,6 +1,6 @@
 # MLV-Lab: Visual AI Learning Ecosystem
 
-<table>
+<table width="100%" cellspacing="0" cellpadding="0" style="border: none;">
   <tr>
     <td>
       <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"/></a>
