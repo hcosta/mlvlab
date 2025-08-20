@@ -4,6 +4,15 @@
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
 [![PyPI Version](https://img.shields.io/badge/pypi-v0.2.0-darkred)](https://pypi.org/project/mlvlab/)
 
+<div style="position: absolute; top: 15px; right: 15px;">
+    <a href="./README.md">
+        <img src="https://flagicons.lipis.dev/flags/4x3/gb.svg" alt="English version" width="25"/>
+    </a>
+    <a href="./README_es.md" style="margin-left: 8px;">
+        <img src="https://flagicons.lipis.dev/flags/4x3/es.svg" alt="Versión en español" width="25"/>
+    </a>
+</div>
+
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 
 MLV-Lab es un ecosistema pedagógico diseñado para explorar los conceptos fundamentales de la IA sin necesidad de conocimientos matemáticas avanzados. Nuestra filosofía es **"Show, don't tell"**: pasamos de la teoría abstracta a la práctica concreta y visual.
@@ -50,7 +59,7 @@ mlv eval AntScout-v1 --seed 123 --rec
 mlv view AntScout-v1
 
 # 6. Consulta la ficha técnica y la documentación de un entorno
-mlv help AntScout-v1
+mlv docs AntScout-v1
 ```
 ---
 
@@ -118,7 +127,7 @@ Ahora, tu nuevo comando estará disponible:
 -->
 ---
 
-## ⚙️ Opciones de la CLI: list, config, play, train, eval, view, help
+## ⚙️ Opciones de la CLI: list, config, play, train, eval, view, docs
 
 ### Modo lista: `mlv list`
 

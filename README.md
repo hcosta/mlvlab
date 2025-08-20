@@ -1,3 +1,12 @@
+<div style="position: absolute; top: 15px; right: 15px;">
+    <a href="./README.md">
+        <img src="https://flagicons.lipis.dev/flags/4x3/gb.svg" alt="English version" width="25"/>
+    </a>
+    <a href="./README_es.md" style="margin-left: 8px;">
+        <img src="https://flagicons.lipis.dev/flags/4x3/es.svg" alt="Versión en español" width="25"/>
+    </a>
+</div>
+
 # MLV-Lab: Visual AI Learning Ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -6,7 +15,7 @@
 
 > **Our Mission:** Democratize and raise awareness about Artificial Intelligence development through visual and interactive experimentation.
 
-MLV-Lab is a pedagogical ecosystem designed to explore the fundamental concepts of AI without requiring advanced mathematical knowledge. Our philosophy is **"Show, don't tell"**: we move from abstract theory to concrete, visual practice.
+MLV-Lab is a pedagogical ecosystem designed to explore the fundamental concepts of AI without requiring advanced mathematical knowledge. Our philosophy is **"Show, don't tell"**: we move from abstract theory to concrete, visual practice.*
 
 This project has two main audiences:
 1. **AI Enthusiasts:** A tool to play, train, and observe intelligent agents solving complex problems from the terminal.
@@ -50,7 +59,7 @@ mlv eval AntScout-v1 --seed 123 --rec
 mlv view AntScout-v1
 
 # 6. Check technical specifications and environment documentation
-mlv help AntScout-v1
+mlv docs AntScout-v1
 ```
 
 ---
@@ -97,7 +106,7 @@ env.close()
 
 ---
 
-## ⚙️ CLI Options: list, config, play, train, eval, view, help
+## ⚙️ CLI Options: list, config, play, train, eval, view, docs
 
 ### List mode: `mlv list`
 

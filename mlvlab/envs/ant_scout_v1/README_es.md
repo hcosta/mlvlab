@@ -1,5 +1,14 @@
 # Entorno: Ant (LostAntEnv)
 
+<div style="position: absolute; top: 15px; right: 15px;">
+    <a href="./README.md">
+        <img src="https://flagicons.lipis.dev/flags/4x3/gb.svg" alt="English version" width="25"/>
+    </a>
+    <a href="./README_es.md" style="margin-left: 8px;">
+        <img src="https://flagicons.lipis.dev/flags/4x3/es.svg" alt="Versión en español" width="25"/>
+    </a>
+</div>
+
 Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "El Hormiguero Perdido".
 
 <img src="../../../docs/ant_scout_v1/mode_view.jpg" alt="modo view" width="100%">
@@ -99,7 +108,7 @@ mlv eval AntScout-v1 --rec --eps 100
 mlv view AntScout-v1
 
 # Ver esta ficha técnica desde la terminal
-mlv help AntScout-v1
+mlv docs AntScout-v1
 ```
 
 ---

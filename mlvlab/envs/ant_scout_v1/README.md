@@ -1,124 +1,133 @@
-# Entorno: Ant (LostAntEnv)
+# Environment: Ant (LostAntEnv)
 
-Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "El Hormiguero Perdido".
+<div style="position: absolute; top: 15px; right: 15px;">
+    <a href="./README.md">
+        <img src="https://flagicons.lipis.dev/flags/4x3/gb.svg" alt="English version" width="25"/>
+    </a>
+    <a href="./README_es.md" style="margin-left: 8px;">
+        <img src="https://flagicons.lipis.dev/flags/4x3/es.svg" alt="Versión en español" width="25"/>
+    </a>
+</div>
 
-<img src="../../../docs/ant_scout_v1/mode_view.jpg" alt="modo view" width="100%">
+This file documents the `mlv/AntScout-v1` environment, also known as "The Lost Colony".
 
-## Descripción
+<img src="../../../docs/ant_scout_v1/mode_view.jpg" alt="view mode" width="100%">
 
-En este entorno, un agente (la hormiga) se encuentra en una rejilla de 15x15. El objetivo de la hormiga es encontrar su hormiguero (la meta) en el menor número de pasos posible, mientras evita los obstáculos repartidos por el mapa.
+## Description
 
-Este es un problema clásico de **navegación en un Grid World**, diseñado para enseñar los fundamentos del aprendizaje por refuerzo tabular.
+In this environment, an agent (the ant) is placed on a 15x15 grid. The ant's objective is to find its colony (the goal) in the minimum number of steps possible, while avoiding obstacles scattered throughout the map.
+
+This is a classic **Grid World navigation problem**, designed to teach the fundamentals of tabular reinforcement learning.
 
 ---
 
-## Ficha Técnica
+## Technical Specifications
 
 ### Observation Space
 
-El espacio de observación define lo que el agente "ve" en cada paso.
+The observation space defines what the agent "sees" at each step.
 ```
 Box(0, 14, (2,), int32)
 ```
-* **Significado:** La observación es un vector con 2 números enteros, que representan la posición `[x, y]` de la hormiga en la rejilla.
-* **Límites:** Cada coordenada va de 0 a 14, correspondiendo a una rejilla de 15x15.
-* **Total de Estados:** $15 \times 15 = 225$ estados únicos posibles.
+* **Meaning:** The observation is a vector with 2 integers representing the ant's position `[x, y]` on the grid.
+* **Bounds:** Each coordinate ranges from 0 to 14, corresponding to a 15x15 grid.
+* **Total States:** $15 \times 15 = 225$ unique possible states.
 
 ### Action Space
 
-El espacio de acciones define qué movimientos puede realizar el agente.
+The action space defines what movements the agent can perform.
 ```
 Discrete(4)
 ```
-* **Significado:** El agente puede elegir una de 4 acciones discretas, representadas por un número entero:
-    * `0`: Moverse **Arriba** (disminuye la coordenada `y`)
-    * `1`: Moverse **Abajo** (aumenta la coordenada `y`)
-    * `2`: Moverse a la **Izquierda** (disminuye la coordenada `x`)
-    * `3`: Moverse a la **Derecha** (aumenta la coordenada `x`)
+* **Meaning:** The agent can choose one of 4 discrete actions, represented by an integer:
+    * `0`: Move **Up** (decreases the `y` coordinate)
+    * `1`: Move **Down** (increases the `y` coordinate)
+    * `2`: Move **Left** (decreases the `x` coordinate)
+    * `3`: Move **Right** (increases the `x` coordinate)
 
 ---
 
-## Dinámica del Entorno
+## Environment Dynamics
 
-### Recompensas (Rewards)
+### Rewards
 
-El agente recibe una señal (recompensa) después de cada acción para guiar su aprendizaje:
-* **`+100`**: Por llegar al hormiguero (la meta).
-* **`-100`**: Por chocar contra un obstáculo.
-* **`-1`**: Por cada paso que da. Esto incentiva al agente a encontrar la ruta más corta.
+The agent receives a signal (reward) after each action to guide its learning:
+* **`+100`**: For reaching the colony (the goal).
+* **`-100`**: For hitting an obstacle.
+* **`-1`**: For each step taken. This incentivizes the agent to find the shortest path.
 
-### Fin del Episodio (Termination & Truncation)
+### Episode End (Termination & Truncation)
 
-Un "episodio" (un intento de encontrar el hormiguero) termina bajo las siguientes condiciones:
-* **`terminated = True`**: El agente llega al hormiguero. El episodio termina con éxito.
-* **`truncated = True`**: El agente alcanza el límite máximo de pasos (`max_episode_steps=500`) sin encontrar el hormiguero. Esto evita que el agente vague indefinidamente.
+An "episode" (an attempt to find the colony) ends under the following conditions:
+* **`terminated = True`**: The agent reaches the colony. The episode ends successfully.
+* **`truncated = True`**: The agent reaches the maximum step limit (`max_episode_steps=500`) without finding the colony. This prevents the agent from wandering indefinitely.
 
-**Nota importante:** Si la hormiga choca contra un obstáculo, recibe la penalización de `-100` pero **el episodio no termina**. En su lugar, la hormiga es devuelta a la casilla en la que estaba antes de chocar.
-
----
-
-## Información Adicional (Diccionario `info`)
-
-Las funciones `reset()` y `step()` devuelven un diccionario `info` que contiene datos útiles para depuración, pero que no deben ser usados directamente para el entrenamiento.
-* `info['food_pos']`: Devuelve un array con las coordenadas `[x, y]` del hormiguero.
+**Important note:** If the ant hits an obstacle, it receives the `-100` penalty but **the episode does not end**. Instead, the ant is returned to the cell it was in before hitting the obstacle.
 
 ---
 
-## Estrategia de Entrenamiento Recomendada
+## Additional Information (Info Dictionary)
 
-### Algoritmo: Q-Learning (tabular)
-
-La combinación de un **espacio de estados discreto y pequeño (225 estados)** y un **espacio de acciones discreto (4 acciones)** hace que este entorno sea un candidato perfecto para algoritmos tabulares como **Q-Learning**.
-
-Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena el valor esperado para cada acción en cada una de las 225 casillas, permitiendo al agente determinar la política óptima.
+The `reset()` and `step()` functions return an `info` dictionary containing useful data for debugging, but should not be used directly for training.
+* `info['food_pos']`: Returns an array with the colony coordinates `[x, y]`.
 
 ---
 
-## Ejemplos de Uso con la CLI
+## Recommended Training Strategy
+
+### Algorithm: Q-Learning (tabular)
+
+The combination of a **discrete and small state space (225 states)** and a **discrete action space (4 actions)** makes this environment a perfect candidate for tabular algorithms like **Q-Learning**.
+
+This method learns by creating a "lookup table" (the Q-Table) that stores the expected value for each action in each of the 225 cells, allowing the agent to determine the optimal policy.
+
+---
+
+## CLI Usage Examples
 
 ```bash
-# Jugar interactivamente en el entorno
+# Play interactively in the environment
 mlv play AntScout-v1
 
-# Entrenar un agente para una semilla específica (p. ej. 42)
+# Train an agent for a specific seed (e.g., 42)
 mlv train AntScout-v1 --seed 42
 
-# Entrenar con una semilla aleatoria
+# Train with a random seed
 mlv train AntScout-v1
 
-# Evaluar el último entrenamiento en modo ventana
+# Evaluate the latest training in window mode
 mlv eval AntScout-v1
 
-# Evaluar un entrenamiento de una semilla específica
+# Evaluate a training with a specific seed
 mlv eval AntScout-v1 --seed 42
 
-# Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
+# Evaluate a training in headless mode recording a video of 100 episodes
 mlv eval AntScout-v1 --rec --eps 100
 
-# Lanza una vista interactiva para manipular el entorno usando controles
+# Launch an interactive view to manipulate the environment using controls
 mlv view AntScout-v1
 
-# Ver esta ficha técnica desde la terminal
-mlv help AntScout-v1
+# View this technical specification from the terminal
+mlv docs AntScout-v1
 ```
 
 ---
 
-## Compatibilidad con Notebooks
+## Notebook Compatibility
 
-Puedes experimentar con este entorno directamente desde Jupyter o Google Colab.
+You can experiment with this environment directly from Jupyter or Google Colab.
 
-Ejemplos rápidos para cuadernos:
+Quick examples for notebooks:
 
 ```bash
-# (Opcional) Instalación si estás en Colab
+# (Optional) Installation if you're in Colab
 pip install -U git+https://github.com/hcosta/mlvlab
 ```
 
 ```python
-# 1) Crear el entorno y ejecutar un episodio aleatorio
+# 1) Create the environment and run a random episode
 import gymnasium as gym
-import mlvlab  # registra los entornos "mlv/..."
+import mlvlab  # registers the "mlv/..." environments
 
 env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset(seed=42)
@@ -130,7 +139,7 @@ env.close()
 ```
 
 ```python
-# 2) Mini-entrenamiento tabular (Q-Table) simplificado
+# 2) Simplified tabular training (Q-Table)
 import numpy as np
 import gymnasium as gym
 import mlvlab
@@ -160,4 +169,4 @@ for ep in range(100):
 env.close()
 ```
 
-Sugerencia: guarda y carga la Q-Table/pesos para reutilizarlos entre sesiones. También puedes entrenar desde la CLI y evaluar en notebook, o al revés.
+Suggestion: save and load the Q-Table/weights to reuse them between sessions. You can also train from the CLI and evaluate in notebook, or vice versa.
