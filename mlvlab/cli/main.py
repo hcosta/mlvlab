@@ -157,6 +157,28 @@ def list_environments(
 ):
     """List available units or environments from a specific unit."""
     from rich.table import Table
+    
+    # Recargar configuración del i18n para detectar cambios
+    i18n._detect_locale()
+    # Recargar traducciones si el locale cambió
+    if i18n.current_locale != i18n._last_detected_locale:
+        i18n.translations = i18n._load_translations()
+        i18n._last_detected_locale = i18n.current_locale
+    
+    # Verificar configuración del usuario directamente
+    try:
+        from pathlib import Path
+        import json
+        config_file = Path.home() / '.mlvlab' / 'config.json'
+        if config_file.exists():
+            with open(config_file, 'r') as f:
+                user_config = json.load(f)
+                user_locale = user_config.get('locale')
+                if user_locale and user_locale in ['en', 'es'] and user_locale != i18n.current_locale:
+                    i18n.current_locale = user_locale
+                    i18n.translations = i18n._load_translations()
+    except:
+        pass
 
     # Detectar entornos por el namespace "mlv" (IDs sin unidad)
     all_env_ids = [env_id for env_id in gym.envs.registry.keys()

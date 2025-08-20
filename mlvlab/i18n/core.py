@@ -18,6 +18,7 @@ class I18nManager:
 
     def __init__(self):
         self.current_locale = self._detect_locale()
+        self._last_detected_locale = self.current_locale
         self.translations = self._load_translations()
         self._fallback_translations = self._load_fallback_translations()
 

@@ -96,6 +96,12 @@
       }
     }
   },
+  "environments": {
+    "ant_scout_v1": {
+      "description": "Find the lost colony",
+      "unit": "ants"
+    }
+  },
   "helpers": {
     "video": {
       "no_videos_found": "ℹ️ No videos found to merge.",

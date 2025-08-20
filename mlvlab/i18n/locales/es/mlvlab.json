@@ -96,6 +96,12 @@
       }
     }
   },
+  "environments": {
+    "ant_scout_v1": {
+      "description": "Encuentra la colonia perdida",
+      "unit": "ants"
+    }
+  },
   "helpers": {
     "video": {
       "no_videos_found": "ℹ️ No se encontraron vídeos para unir.",
