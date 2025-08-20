@@ -3,8 +3,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
 [![PyPI Version](https://img.shields.io/badge/pypi-v0.2.0-darkred)](https://pypi.org/project/mlvlab/)
+&nbsp;&nbsp;
 [![en](https://img.shields.io/badge/lang-en-orange.svg)](../README.md)
 [![es](https://img.shields.io/badge/lang-es-blue.svg)](./docs/README_es.md)
+
 
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 
@@ -136,34 +138,6 @@ mlv list
 mlv list ants
 ```
 
-### Modo configuración: `mlv config`
-
-Gestiona la configuración de MLV-Lab incluyendo la configuración del idioma.
-
-- **Uso básico**: `mlv config <acción> [clave] [valor]`
-- **Acciones**:
-  - **get**: Mostrar configuración actual o clave específica
-  - **set**: Establecer un valor de configuración
-  - **reset**: Restablecer configuración a valores predeterminados
-- **Claves comunes**:
-  - **locale**: Configuración del idioma (`en` para inglés, `es` para español)
-
-Ejemplos:
-
-```bash
-# Mostrar configuración actual
-mlv config get
-
-# Mostrar configuración específica
-mlv config get locale
-
-# Establecer idioma a español
-mlv config set locale es
-
-# Restablecer a valores predeterminados
-mlv config reset
-```
-
 ### Modo juego: `mlv play <env-id>`
 
 Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
@@ -233,6 +207,36 @@ Ejemplo:
 mlv view AntScout-v1
 ```
 
+### Modo configuración: `mlv config`
+
+Gestiona la configuración de MLV-Lab incluyendo la configuración del idioma (el paquete detecta el idioma del sistema automáticamente):
+
+- **Uso básico**: `mlv config <acción> [clave] [valor]`
+- **Acciones**:
+  - **get**: Mostrar configuración actual o clave específica
+  - **set**: Establecer un valor de configuración
+  - **reset**: Restablecer configuración a valores predeterminados
+- **Claves comunes**:
+  - **locale**: Configuración del idioma (`en` para inglés, `es` para español)
+
+Ejemplos:
+
+```bash
+# Mostrar configuración actual
+mlv config get
+
+# Mostrar configuración específica
+mlv config get locale
+
+# Establecer idioma a español
+mlv config set locale es
+
+# Restablecer a valores predeterminados
+mlv config reset
+```
+
+---
+
 ## 🛠️ Contribuir a MLV-Lab
 
 Si quieres añadir nuevos entornos o funcionalidades al núcleo de MLV-Lab:
@@ -286,10 +290,3 @@ Puedes establecer el idioma de varias formas:
 
 - **Inglés (en)**: Idioma por defecto
 - **Español (es)**: Alternativa completamente traducida
-
----
-
-## 📄 Documentación en Múltiples Idiomas
-
-- **Inglés**: [README.md](./README.md)
-- **Español**: [README_es.md](./README_es.md) (este archivo)

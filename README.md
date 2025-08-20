@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
 [![PyPI Version](https://img.shields.io/badge/pypi-v0.2.0-darkred)](https://pypi.org/project/mlvlab/)
+&nbsp;&nbsp;
 [![en](https://img.shields.io/badge/lang-en-orange.svg)](./README.md)
 [![es](https://img.shields.io/badge/lang-es-blue.svg)](./docs/README_es.md)
 
@@ -20,7 +21,7 @@ This project has two main audiences:
 
 MLV-Lab is controlled through the `mlv` command. The workflow is designed to be intuitive.
 
-**Requirement:** Python 3.9+
+**Requirement:** Python 3.10+
 
 ### 1. Installation
 ```bash
@@ -115,34 +116,6 @@ mlv list
 mlv list ants
 ```
 
-### Configuration mode: `mlv config`
-
-Manages MLV-Lab configuration including language settings.
-
-- **Basic usage**: `mlv config <action> [key] [value]`
-- **Actions**:
-  - **get**: Show current configuration or specific key
-  - **set**: Set a configuration value
-  - **reset**: Reset configuration to defaults
-- **Common keys**:
-  - **locale**: Language setting (`en` for English, `es` for Spanish)
-
-Examples:
-
-```bash
-# Show current configuration
-mlv config get
-
-# Show specific setting
-mlv config get locale
-
-# Set language to Spanish
-mlv config set locale es
-
-# Reset to defaults
-mlv config reset
-```
-
 ### Play mode: `mlv play <env-id>`
 
 Runs the environment in interactive mode (human) to test manual control.
@@ -212,6 +185,36 @@ Example:
 mlv view AntScout-v1
 ```
 
+### Configuration mode: `mlv config`
+
+Manages MLV-Lab configuration including language settings (the package detects the system language automatically):
+
+- **Basic usage**: `mlv config <action> [key] [value]`
+- **Actions**:
+  - **get**: Show current configuration or specific key
+  - **set**: Set a configuration value
+  - **reset**: Reset configuration to defaults
+- **Common keys**:
+  - **locale**: Language setting (`en` for English, `es` for Spanish)
+
+Examples:
+
+```bash
+# Show current configuration
+mlv config get
+
+# Show specific setting
+mlv config get locale
+
+# Set language to Spanish
+mlv config set locale es
+
+# Reset to defaults
+mlv config reset
+```
+
+---
+
 ## 🛠️ Contributing to MLV-Lab
 
 If you want to add new environments or functionality to MLV-Lab core:
@@ -265,10 +268,3 @@ You can set the language in several ways:
 
 - **English (en)**: Default language
 - **Spanish (es)**: Fully translated alternative
-
----
-
-## 📄 Documentation in Multiple Languages
-
-- **English**: [README.md](./README.md) (this file)
-- **Spanish**: [README_es.md](./README_es.md)
