@@ -1,17 +1,10 @@
-<div style="position: absolute; top: 15px; right: 15px;">
-    <a href="./README.md">
-        <img src="https://flagicons.lipis.dev/flags/4x3/gb.svg" alt="English version" width="25"/>
-    </a>
-    <a href="./README_es.md" style="margin-left: 8px;">
-        <img src="https://flagicons.lipis.dev/flags/4x3/es.svg" alt="Versión en español" width="25"/>
-    </a>
-</div>
-
 # MLV-Lab: Visual AI Learning Ecosystem
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
 [![PyPI Version](https://img.shields.io/badge/pypi-v0.2.0-darkred)](https://pypi.org/project/mlvlab/)
+[![en](https://img.shields.io/badge/lang-en-orange.svg)](./README.md)
+[![es](https://img.shields.io/badge/lang-es-blue.svg)](./docs/README_es.md)
 
 > **Our Mission:** Democratize and raise awareness about Artificial Intelligence development through visual and interactive experimentation.
 

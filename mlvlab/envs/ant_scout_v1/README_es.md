@@ -1,13 +1,7 @@
-# Entorno: Ant (LostAntEnv)
+# AntScout-v1: Documentación Entorno 
 
-<div style="position: absolute; top: 15px; right: 15px;">
-    <a href="./README.md">
-        <img src="https://flagicons.lipis.dev/flags/4x3/gb.svg" alt="English version" width="25"/>
-    </a>
-    <a href="./README_es.md" style="margin-left: 8px;">
-        <img src="https://flagicons.lipis.dev/flags/4x3/es.svg" alt="Versión en español" width="25"/>
-    </a>
-</div>
+[![en](https://img.shields.io/badge/lang-en-orange.svg)](./README.md)
+[![es](https://img.shields.io/badge/lang-es-blue.svg)](./README_es.md)
 
 Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "El Hormiguero Perdido".
 
