@@ -30,7 +30,7 @@ pip install -U git+https://github.com/hcosta/mlvlab
 ```bash
 # 1. Descubre las unidades disponibles o lista por unidad
 mlv list
-mlv list ql
+mlv list ants
 
 # 2. Juega para entender el objetivo (usa Flechas/WASD)
 mlv AntScout-v1 play
@@ -43,10 +43,13 @@ mlv AntScout-v1 train --seed 123
 #    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
 mlv AntScout-v1 eval --seed 123
 
-# 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --record
-mlv AntScout-v1 eval --seed 123 --record
+# 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --rec
+mlv AntScout-v1 eval --seed 123 --rec
 
-# 5. Consulta la ficha técnica y la documentación de un entorno
+# 5. Crea una vista interactiva de la simulació 
+mlv AntScout-v1 view
+
+# 6. Consulta la ficha técnica y la documentación de un entorno
 mlv AntScout-v1 help
 ```
 ---
@@ -55,7 +58,7 @@ mlv AntScout-v1 help
 
 | Saga | Entorno    | ID (Gym)                | Baseline    | Detalles |  |
 |------|-----------|-----------------------------|------------|----------------|--------------|
-| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="65px"></a> |
+| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
 
 ---
 
@@ -115,32 +118,6 @@ Ahora, tu nuevo comando estará disponible:
 -->
 ---
 
-## 🛠️ Contribuir a MLV-Lab
-
-Si quieres añadir nuevos entornos o funcionalidades al núcleo de MLV-Lab:
-
-1.  Clona el repositorio.
-2.  Crea un entorno virtual.
-   
-    ```bash
-    python -m venv .venv
-    ``` 
-
-3.  Activa tu entorno virtual.
-
-    * macOS/Linux: `source .venv/bin/activate`
-    * Windows (PowerShell): `.\.venv\Scripts\Activate.ps1`
-
-4.  Instala el proyecto en modo editable con las dependencias de desarrollo:
-
-    ```bash
-    pip install -e ".[dev]"
-    ```
-
-Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[dev]`.
-
----
-
 ## ⚙️ Opciones de la CLI: list, play, train, eval, view
 
 ### Modo lista: `mlv list`
@@ -148,13 +125,13 @@ Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[de
 Devuelve un listado de las categorías de entornos disponibles o
 
 - **Uso básico**: `mlv list`
-- **Opciones**: ID de la categoría a filtrar (ej. `mlv list ql`).
+- **Opciones**: ID de la categoría a filtrar (ej. `mlv list ants`).
 
 Ejemplos:
 
 ```bash
 mlv list
-mlv list ql
+mlv list ants
 ```
 
 ### Modo juego: `mlv <env-id> play`
@@ -191,7 +168,7 @@ mlv train mlv/AntScout-v1 --seed 123 --eps 500 --render
 
 ### Modo evaluación: `mlv <env-id> eval`
 
-Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--record`.
+Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--rec`.
 
 - **Uso básico**: `mlv <env-id> eval [opciones]`
 - **Parámetros**:
@@ -211,7 +188,7 @@ mlv AntScout-v1 eval
 mlv AntScout-v1 eval --seed 123 --record
 
 # Evaluar 10 episodios
-mlv AntScout-v1 eval --seed 123 --eps 10 --record
+mlv AntScout-v1 eval --seed 123 --eps 10 --rec
 ```
 
 ### Modo vista interactiva: `mlv <env-id> view`
@@ -225,3 +202,29 @@ Ejemplo:
 ```bash
 mlv AntScout-v1 view
 ```
+
+## 🛠️ Contribuir a MLV-Lab
+
+Si quieres añadir nuevos entornos o funcionalidades al núcleo de MLV-Lab:
+
+1.  Clona el repositorio.
+2.  Crea un entorno virtual.
+   
+    ```bash
+    python -m venv .venv
+    ``` 
+
+3.  Activa tu entorno virtual.
+
+    * macOS/Linux: `source .venv/bin/activate`
+    * Windows (PowerShell): `.\.venv\Scripts\Activate.ps1`
+
+4.  Instala el proyecto en modo editable con las dependencias de desarrollo:
+
+    ```bash
+    pip install -e ".[dev]"
+    ```
+
+Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[dev]`.
+
+---
