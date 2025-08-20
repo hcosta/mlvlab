@@ -9,7 +9,7 @@
 
 > **Our Mission:** Democratize and raise awareness about Artificial Intelligence development through visual and interactive experimentation.
 
-MLV-Lab is a pedagogical ecosystem designed to explore the fundamental concepts of AI without requiring advanced mathematical knowledge. Our philosophy is **"Show, don't tell"**: we move from abstract theory to concrete, visual practice.*
+MLV-Lab is a pedagogical ecosystem designed to explore the fundamental concepts of AI without requiring advanced mathematical knowledge. Our philosophy is **"Show, don't tell"**: we move from abstract theory to concrete, visual practice.
 
 This project has two main audiences:
 1. **AI Enthusiasts:** A tool to play, train, and observe intelligent agents solving complex problems from the terminal.
@@ -26,6 +26,7 @@ MLV-Lab is controlled through the `mlv` command. The workflow is designed to be 
 ### 1. Installation
 ```bash
 pip install -U git+https://github.com/hcosta/mlvlab
+mlv --install-completion # Optional for command autocompletion
 ```
 
 ### 2. Basic Workflow
