@@ -9,6 +9,7 @@ from nicegui import ui
 import base64
 from .base import UIComponent, ComponentContext
 from ..state import StateStore
+from mlvlab.i18n.core import i18n
 
 
 class ModelPersistence(UIComponent):
@@ -18,7 +19,7 @@ class ModelPersistence(UIComponent):
 
     def render(self, state: StateStore, context: ComponentContext) -> None:
         with ui.card().classes('w-full mb-1'):
-            ui.label('Gestión del Modelo').classes(
+            ui.label(i18n.t("ui.components.model_persistence.title")).classes(
                 'text-lg font-semibold text-center w-full')
 
             # La lógica de 'save_model' no cambia
@@ -26,17 +27,18 @@ class ModelPersistence(UIComponent):
                 agent = context.agent
                 env = context.env
                 if not hasattr(agent, 'save'):
-                    ui.notify("El agente no tiene el método 'save'.",
+                    ui.notify(i18n.t("ui.components.model_persistence.agent_no_save_method"),
                               type='negative')
                     return
                 try:
                     data_to_save = agent.save()
                     if not isinstance(data_to_save, dict):
                         ui.notify(
-                            "El método 'save' debe devolver un diccionario.", type='warning')
+                            i18n.t("ui.components.model_persistence.save_must_return_dict"), type='warning')
                         return
                 except Exception as ex:
-                    ui.notify(f"Error en agent.save(): {ex}", type='negative')
+                    ui.notify(i18n.t("ui.components.model_persistence.error_agent_save", error=str(
+                        ex)), type='negative')
                     return
                 full_metadata = {
                     'env_id': getattr(env.spec, 'id', 'unknown_env'),
@@ -55,13 +57,14 @@ class ModelPersistence(UIComponent):
                 file_base64 = base64.b64encode(file_bytes).decode('utf-8')
                 js_command = f"saveModelWithNativeDialog('{file_base64}', '{self.default_filename}')"
                 ui.run_javascript(js_command)
-                ui.notify("Abriendo diálogo de guardado...", type='info')
+                ui.notify(
+                    i18n.t("ui.components.model_persistence.opening_save_dialog"), type='info')
 
             # La lógica de 'load_model' no cambia
             async def load_model(e: ui.UploadEventArguments):
                 agent = context.agent
                 if not hasattr(agent, 'load'):
-                    ui.notify("El agente no tiene método 'load'.",
+                    ui.notify(i18n.t("ui.components.model_persistence.agent_no_load_method"),
                               type='negative')
                     return
                 try:
@@ -89,20 +92,20 @@ class ModelPersistence(UIComponent):
                         context.env.reset(seed=seed)
                     state.set(['sim', 'command'], 'run')
                     ui.notify(
-                        f"Modelo '{e.name}' cargado y sincronizado.", type='positive')
-                    print(
-                        f"📥 Modelo cargado y sincronizado exitosamente: {e.name}")
+                        i18n.t("ui.components.model_persistence.model_loaded_synced", filename=e.name), type='positive')
+                    print("📂 " +
+                          i18n.t("ui.components.model_persistence.model_loaded_synced", filename=e.name))
                 except Exception as ex:
                     ui.notify(
-                        f"Error al cargar el modelo: {ex}", type='negative')
+                        i18n.t("ui.components.model_persistence.error_loading_model", error=str(ex)), type='negative')
 
             # Se elimina la función 'clear_model' y el botón 'Nuevo'.
             # Se elimina el 'label' de "Modelo Activo".
             with ui.column().classes('w-full items-stretch gap-y-2'):
-                ui.button('GUARDAR', on_click=save_model,
+                ui.button(i18n.t("ui.components.model_persistence.save"), on_click=save_model,
                           icon='save').props('color=primary')
 
-                upload_widget = ui.upload(on_upload=load_model, label="CARGAR", auto_upload=True).props(
+                upload_widget = ui.upload(on_upload=load_model, label=i18n.t("ui.components.model_persistence.load"), auto_upload=True).props(
                     'icon=upload color=secondary').classes('w-full')
 
             def check_and_clear_upload():

@@ -95,7 +95,8 @@ def setup_audio(env: Optional[Any] = None):
     # Servir carpeta encontrada bajo '/assets'
     try:
         app.add_static_files('/assets', str(assets_dir))
-        print(f"🔊 Recursos de audio servidos desde: {assets_dir}")
+        from mlvlab.i18n.core import i18n
+        print(i18n.t("helpers.ng.audio_served_from", assets_dir=str(assets_dir)))
     except Exception:
         pass
 
@@ -147,9 +148,13 @@ def create_reward_chart(container, number=None, dark: bool = False) -> ui.highch
                 destination[key] = value
         return destination
 
-    title_text = 'Recompensas por Episodio'
+    from mlvlab.i18n.core import i18n
+
+    title_text = i18n.t(
+        "ui.components.metrics_dashboard.last_rewards", count="todos")
     if number is not None:
-        title_text = f'Últimas {number} recompensas'
+        title_text = i18n.t(
+            "ui.components.metrics_dashboard.last_rewards", count=number)
 
     # Opciones base para todos los gráficos
     chart_options = {
@@ -158,7 +163,7 @@ def create_reward_chart(container, number=None, dark: bool = False) -> ui.highch
         'series': [{'name': 'Recompensa', 'data': []}],
         'credits': {'enabled': False},
         'xAxis': {
-            'title': {'text': 'Episodio'},
+            'title': {'text': i18n.t("ui.components.metrics_dashboard.episode")},
             'gridLineWidth': 0  # Ocultar líneas de la cuadrícula vertical
         },
         'yAxis': {
@@ -168,8 +173,8 @@ def create_reward_chart(container, number=None, dark: bool = False) -> ui.highch
         'accessibility': {'enabled': False},
         'legend': {'enabled': False},
         'tooltip': {
-            'headerFormat': '<b>Episodio {point.x}</b><br/>',
-            'pointFormat': 'Recompensa: {point.y:.2f}'
+            'headerFormat': f'<b>{i18n.t("ui.components.metrics_dashboard.episode")} {{point.x}}</b><br/>',
+            'pointFormat': f'{i18n.t("ui.components.metrics_dashboard.reward")}: {{point.y:.2f}}'
         }
     }
 

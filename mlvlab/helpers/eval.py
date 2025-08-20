@@ -93,7 +93,8 @@ def evaluate_with_optional_recording(
             # Nuevo contrato: pass diccionario a load
             if hasattr(agent, "load"):
                 agent.load({'q_table': q_arr})
-                print(i18n.t("helpers.eval.agent_state_loaded", agent_file=str(agent_file)))
+                print(i18n.t("helpers.eval.agent_state_loaded",
+                      agent_file=str(agent_file)))
         except Exception as e:
             print(i18n.t("helpers.eval.error_loading_agent", error=str(e)))
 
@@ -108,7 +109,7 @@ def evaluate_with_optional_recording(
         obs, info = env.reset(seed=current_seed)
         terminated, truncated = False, False
 
-        stamp_text = f"Episodio: {ep + 1}/{episodes}"
+        stamp_text = f"{i18n.t('ui.components.metrics_dashboard.episode')}: {ep + 1}/{episodes}"
 
         while not (terminated or truncated):
             q_table = getattr(agent, "q_table", None)
@@ -148,7 +149,8 @@ def evaluate_with_optional_recording(
                 with suppress_stderr():
                     imageio.mimsave(str(final_video_path),
                                     frames, fps=playback_fps)
-                print(i18n.t("helpers.eval.video_saved", video_path=str(final_video_path)))
+                print(i18n.t("helpers.eval.video_saved",
+                      video_path=str(final_video_path)))
             except Exception as e:
                 print(i18n.t("helpers.eval.error_saving_video", error=str(e)))
                 final_video_path = None

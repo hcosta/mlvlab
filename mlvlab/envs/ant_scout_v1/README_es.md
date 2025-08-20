@@ -5,7 +5,7 @@
 
 Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "El Hormiguero Perdido".
 
-<img src="../../../docs/ant_scout_v1/mode_view.jpg" alt="modo view" width="100%">
+<img src="../../../docs/ant_scout_v1/mode_view_es.jpg" alt="modo view" width="100%">
 
 ## Descripción
 

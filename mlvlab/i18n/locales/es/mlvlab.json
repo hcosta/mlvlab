@@ -12,6 +12,23 @@
       "config": "Gestiona la configuración de MLV-Lab (idioma, etc.)",
       "commands_for_env": "Comandos para {env_cmd}"
     },
+    "config": {
+      "no_config_file": "No se encontró archivo de configuración. Usando valores por defecto.",
+      "key_not_found": "Clave '{config_key}' no encontrada en la configuración.",
+      "current_configuration": "Configuración actual:",
+      "error_reading_config": "Error leyendo configuración: {error}",
+      "key_value_required": "Tanto la clave como el valor son requeridos para la acción 'set'.",
+      "invalid_locale": "Locale inválido. Usa 'en' para inglés o 'es' para español.",
+      "config_updated": "Configuración actualizada: {config_key} = {value}",
+      "language_changed": "Idioma cambiado a: {value}",
+      "error_updating_config": "Error actualizando configuración: {error}",
+      "config_reset": "Configuración reiniciada a valores por defecto.",
+      "no_config_to_reset": "No hay archivo de configuración para reiniciar.",
+      "unknown_action": "Acción desconocida: {action}. Usa: get, set, o reset"
+    },
+    "view": {
+      "opening_view": "🖥️  Abriendo view para [bold cyan]{env_id}[/bold cyan]..."
+    },
     "messages": {
       "launching": "🚀 Lanzando [bold cyan]{env_id}[/bold cyan]...",
       "error_env_not_found": "❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado.",
@@ -89,10 +106,27 @@
         "title": "Configuración del Agente"
       },
       "metrics_dashboard": {
-        "title": "Métricas en Tiempo Real"
+        "title": "Métricas en Tiempo Real",
+        "current_reward": "Recompensa Actual: {reward}",
+        "episodes_completed": "Episodios Completados: {episodes}",
+        "map_seed": "Semilla del Mapa: {seed}",
+        "epsilon_exploration": "Epsilon Exploración: {epsilon}",
+        "steps_per_second": "Acciones por Segundo: {steps}",
+        "last_rewards": "Últimas {count} recompensas",
+        "episode": "Episodio",
+        "reward": "Recompensa"
       },
       "model_persistence": {
-        "title": "Gestión del Modelo"
+        "title": "Gestión del Modelo",
+        "save": "Guardar",
+        "load": "Cargar",
+        "agent_no_save_method": "El agente no tiene el método 'save'.",
+        "save_must_return_dict": "El método 'save' debe devolver un diccionario.",
+        "error_agent_save": "Error en agent.save(): {error}",
+        "opening_save_dialog": "Abriendo diálogo de guardado...",
+        "agent_no_load_method": "El agente no tiene método 'load'.",
+        "model_loaded_synced": "Modelo '{filename}' cargado y sincronizado.",
+        "error_loading_model": "Error al cargar el modelo: {error}"
       },
       "dynamic_table": {
         "title": "Tabla Dinámica"
@@ -144,15 +178,16 @@
   "analytics": {
     "render_thread_started": "🎥 Hilo de Renderizado [ID: {thread_id}] iniciado.",
     "render_thread_stopped": "⏹️ Hilo de Renderizado [ID: {thread_id}] detenido.",
-    "model_saved": "📤 Modelo guardado exitosamente en: {filepath}",
-    "error_saving_file": "Error al guardar el fichero: {error}",
+    "model_saved": "💾 Modelo guardado exitosamente en: {filepath}",
+    "error_saving_file": "❌ Error al guardar el fichero: {error}",
     "client_connected": "🔌 Cliente {client_id} conectado al stream de video.",
     "app_startup": "🔥 Iniciando aplicación `on_startup`.",
     "creating_threads": "🧵 Creando nuevos hilos de simulación/renderizado.",
     "startup_completed": "🚩 Startup de hilos completado.",
     "app_shutdown": "⛔ Deteniendo aplicación `on_shutdown`.",
     "shutdown_cleanup": "✅ Limpieza de shutdown completada.",
-    "startup_failed": "❌ Startup falló: {error}"
+    "startup_failed": "❌ Startup falló: {error}",
+    "showing_native_window": "🚀 Mostrando ventana nativa con PySide6: Cargando {url}."
   },
   "common": {
     "not_available": "N/A",

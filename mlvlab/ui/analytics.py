@@ -368,6 +368,5 @@ class AnalyticsView:
         web_view.setUrl(url)
         window.setCentralWidget(web_view)
         window.showMaximized()
-        print(
-            f"🚀 Mostrando ventana nativa con PySide6: Cargando {url.toString()}.")
+        print(i18n.t("analytics.showing_native_window", url=url.toString()))
         sys.exit(qt_app.exec())

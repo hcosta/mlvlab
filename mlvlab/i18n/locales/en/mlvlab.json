@@ -12,6 +12,23 @@
       "config": "Manage MLV-Lab configuration (locale, etc.)",
       "commands_for_env": "Commands for {env_id}"
     },
+    "config": {
+      "no_config_file": "No configuration file found. Using defaults.",
+      "key_not_found": "Key '{config_key}' not found in configuration.",
+      "current_configuration": "Current configuration:",
+      "error_reading_config": "Error reading configuration: {error}",
+      "key_value_required": "Both key and value are required for 'set' action.",
+      "invalid_locale": "Invalid locale. Use 'en' for English or 'es' for Spanish.",
+      "config_updated": "Configuration updated: {config_key} = {value}",
+      "language_changed": "Language changed to: {value}",
+      "error_updating_config": "Error updating configuration: {error}",
+      "config_reset": "Configuration reset to defaults.",
+      "no_config_to_reset": "No configuration file to reset.",
+      "unknown_action": "Unknown action: {action}. Use: get, set, or reset"
+    },
+    "view": {
+      "opening_view": "🖥️  Opening view for [bold cyan]{env_id}[/bold cyan]..."
+    },
     "messages": {
       "launching": "🚀 Launching [bold cyan]{env_id}[/bold cyan]...",
       "error_env_not_found": "❌ [bold red]Error:[/bold red] Environment '{env_id}' not found.",
@@ -83,16 +100,33 @@
         "yes_close": "Yes, close",
         "no_cancel": "No, cancel",
         "turbo": "Turbo",
-        "speed_multiplier": "Multiplier (x{speed})"
+        "speed_multiplier": "Multi (x{speed})"
       },
       "agent_hyperparameters": {
         "title": "Agent Configuration"
       },
       "metrics_dashboard": {
-        "title": "Real-time Metrics"
+        "title": "Real-time Metrics",
+        "current_reward": "Current Reward: {reward}",
+        "episodes_completed": "Episodes Completed: {episodes}",
+        "map_seed": "Map Seed: {seed}",
+        "epsilon_exploration": "Epsilon Exploration: {epsilon}",
+        "steps_per_second": "Actions per Second: {steps}",
+        "last_rewards": "Last {count} rewards",
+        "episode": "Episode",
+        "reward": "Reward"
       },
       "model_persistence": {
-        "title": "Model Management"
+        "title": "Model Management",
+        "save": "Save",
+        "load": "Load",
+        "agent_no_save_method": "The agent does not have a 'save' method.",
+        "save_must_return_dict": "The 'save' method must return a dictionary.",
+        "error_agent_save": "Error in agent.save(): {error}",
+        "opening_save_dialog": "Opening save dialog...",
+        "agent_no_load_method": "The agent does not have a 'load' method.",
+        "model_loaded_synced": "Model '{filename}' loaded and synchronized.",
+        "error_loading_model": "Error loading model: {error}"
       },
       "dynamic_table": {
         "title": "Dynamic Table"
@@ -144,15 +178,16 @@
   "analytics": {
     "render_thread_started": "🎥 Render Thread [ID: {thread_id}] started.",
     "render_thread_stopped": "⏹️ Render Thread [ID: {thread_id}] stopped.",
-    "model_saved": "📤 Model saved successfully in: {filepath}",
-    "error_saving_file": "Error saving file: {error}",
+    "model_saved": "💾 Model saved successfully in: {filepath}",
+    "error_saving_file": "❌ Error saving file: {error}",
     "client_connected": "🔌 Client {client_id} connected to video stream.",
     "app_startup": "🔥 Starting application `on_startup`.",
     "creating_threads": "🧵 Creating new simulation/rendering threads.",
     "startup_completed": "🚩 Thread startup completed.",
     "app_shutdown": "⛔ Stopping application `on_shutdown`.",
     "shutdown_cleanup": "✅ Shutdown cleanup completed.",
-    "startup_failed": "❌ Startup failed: {error}"
+    "startup_failed": "❌ Startup failed: {error}",
+    "showing_native_window": "🚀 Showing native window with PySide6: Loading {url}."
   },
   "common": {
     "not_available": "N/A",

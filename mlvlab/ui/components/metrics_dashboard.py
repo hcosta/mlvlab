@@ -38,31 +38,36 @@ class MetricsDashboard(UIComponent):
             if "epsilon" in self.metrics:
                 ui.label().bind_text_from(
                     state.full(), 'agent',
-                    lambda a: f"Epsilon (Exploración): {float(a.get('epsilon', 1.0)):.3f}"
+                    lambda a: i18n.t("ui.components.metrics_dashboard.epsilon_exploration",
+                                     epsilon=f"{float(a.get('epsilon', 1.0)):.3f}")
                 )
 
             if "current_reward" in self.metrics:
                 ui.label().bind_text_from(
                     state.full(), 'sim',
-                    lambda s: f"Recompensa Actual: {s.get('current_episode_reward', 0)}"
+                    lambda s: i18n.t("ui.components.metrics_dashboard.current_reward", reward=s.get(
+                        'current_episode_reward', 0))
                 )
 
             if "episodes_completed" in self.metrics:
                 ui.label().bind_text_from(
                     state.full(), 'metrics',
-                    lambda m: f"Episodios Completados: {m.get('episodes_completed', 0)}"
+                    lambda m: i18n.t("ui.components.metrics_dashboard.episodes_completed", episodes=m.get(
+                        'episodes_completed', 0))
                 )
 
             if "steps_per_second" in self.metrics:
                 ui.label().bind_text_from(
                     state.full(), 'metrics',
-                    lambda m: f"Acciones por Segundo: {m.get('steps_per_second', 0):,d}"
+                    lambda m: i18n.t("ui.components.metrics_dashboard.steps_per_second",
+                                     steps=f"{m.get('steps_per_second', 0):,d}")
                 )
 
             if "seed" in self.metrics:
                 ui.label().bind_text_from(
                     state.full(), 'sim',
-                    lambda s: f"Semilla del Mapa: {s.get('seed', 'N/D')}"
+                    lambda s: i18n.t(
+                        "ui.components.metrics_dashboard.map_seed", seed=s.get('seed', 'N/D'))
                 )
 
             # El botón original está comentado, se mantiene así.

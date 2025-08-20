@@ -106,13 +106,14 @@ def config_command(
     """Manage MLV-Lab configuration."""
     from pathlib import Path
     import json
+    from mlvlab.i18n.core import i18n
 
     config_dir = Path.home() / '.mlvlab'
     config_file = config_dir / 'config.json'
 
     if action == "get":
         if not config_file.exists():
-            console.print("No configuration file found. Using defaults.")
+            console.print(i18n.t("cli.config.no_config_file"))
             return
 
         try:
@@ -123,23 +124,24 @@ def config_command(
                 if key in config:
                     console.print(f"{key}: {config[key]}")
                 else:
-                    console.print(f"Key '{key}' not found in configuration.")
+                    console.print(
+                        i18n.t("cli.config.key_not_found", config_key=key))
             else:
-                console.print("Current configuration:")
+                console.print(i18n.t("cli.config.current_configuration"))
                 for k, v in config.items():
                     console.print(f"  {k}: {v}")
         except Exception as e:
-            console.print(f"Error reading configuration: {e}")
+            console.print(
+                i18n.t("cli.config.error_reading_config", error=str(e)))
 
     elif action == "set":
         if not key or not value:
-            console.print("Both key and value are required for 'set' action.")
+            console.print(i18n.t("cli.config.key_value_required"))
             raise typer.Exit(1)
 
         # Validate locale setting
         if key == "locale" and value not in ["en", "es"]:
-            console.print(
-                "Invalid locale. Use 'en' for English or 'es' for Spanish.")
+            console.print(i18n.t("cli.config.invalid_locale"))
             raise typer.Exit(1)
 
         try:
@@ -157,27 +159,30 @@ def config_command(
             with open(config_file, 'w') as f:
                 json.dump(config, f, indent=2)
 
-            console.print(f"Configuration updated: {key} = {value}")
+            console.print(
+                i18n.t("cli.config.config_updated", config_key=key, value=value))
 
             # Reload i18n if locale was changed
             if key == "locale":
                 from mlvlab.i18n.core import i18n
                 i18n.set_locale(value)
-                console.print(f"Language changed to: {value}")
+                console.print(
+                    i18n.t("cli.config.language_changed", value=value))
 
         except Exception as e:
-            console.print(f"Error updating configuration: {e}")
+            console.print(
+                i18n.t("cli.config.error_updating_config", error=str(e)))
             raise typer.Exit(1)
 
     elif action == "reset":
         if config_file.exists():
             config_file.unlink()
-            console.print("Configuration reset to defaults.")
+            console.print(i18n.t("cli.config.config_reset"))
         else:
-            console.print("No configuration file to reset.")
+            console.print(i18n.t("cli.config.no_config_to_reset"))
 
     else:
-        console.print(f"Unknown action: {action}. Use: get, set, or reset")
+        console.print(i18n.t("cli.config.unknown_action", action=action))
         raise typer.Exit(1)
 
 
@@ -317,7 +322,7 @@ def view_command(
     # Normalizar el ID del entorno
     normalized_env_id = normalize_env_id(env_id)
     console.print(
-        f"🖥️  Abriendo view para [bold cyan]{normalized_env_id}[/bold cyan]...")
+        i18n.t("cli.view.opening_view", env_id=normalized_env_id))
     try:
         # Resolver el módulo de view a partir del entry_point de Gym para evitar errores de mayúsculas
         spec = gym.spec(normalized_env_id)
