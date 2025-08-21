@@ -7,6 +7,45 @@ import time
 import threading
 import os
 import platform
+import sys
+
+# Parche para arreglar el bug de HeadlessScreen en Pyglet
+
+
+def _patch_pyglet_headless():
+    """Parche para arreglar el bug de HeadlessScreen en Pyglet cuando se usa con Arcade."""
+    try:
+        import pyglet.display.headless
+
+        # Crear una implementación concreta de HeadlessScreen si no tiene los métodos requeridos
+        class PatchedHeadlessScreen(pyglet.display.headless.HeadlessScreen):
+            def get_display_id(self):
+                return 0
+
+            def get_monitor_name(self):
+                return "Headless"
+
+        # Sobrescribir la clase original
+        pyglet.display.headless.HeadlessScreen = PatchedHeadlessScreen
+
+        # También parchear HeadlessDisplay para evitar el error de _screens
+        original_headless_display = pyglet.display.headless.HeadlessDisplay
+
+        class PatchedHeadlessDisplay(original_headless_display):
+            def __init__(self):
+                super().__init__()
+                if not hasattr(self, '_screens'):
+                    self._screens = [PatchedHeadlessScreen(
+                        self, 0, 0, 1920, 1080)]
+
+        pyglet.display.headless.HeadlessDisplay = PatchedHeadlessDisplay
+
+    except Exception:
+        pass  # Si no podemos parchear, continuamos
+
+
+# Aplicar el parche al importar
+_patch_pyglet_headless()
 
 # Importamos las clases modularizadas
 try:
@@ -30,26 +69,40 @@ class ScoutAntEnv(gym.Env):
                  ):
         super().__init__()
 
+        # Detección del entorno
+        self._is_colab = 'google.colab' in sys.modules
+        self._is_notebook = 'ipykernel' in sys.modules or 'IPython' in sys.modules
+
         # Configuración para renderizado rgb_array
-        # Intentamos usar modo headless solo en sistemas compatibles
         self._headless_enabled = False
         self._supports_headless = False
+
         if render_mode == "rgb_array":
-            # Intentamos detectar si el sistema soporta headless
-            try:
-                # En Windows y algunos sistemas, EGL no está disponible
-                if platform.system() != "Windows":
-                    # Probamos si podemos importar las dependencias headless
+            # Configuración especial para Google Colab y notebooks
+            if self._is_colab or self._is_notebook:
+                # Forzar modo headless con el parche aplicado
+                os.environ["PYOPENGL_PLATFORM"] = "egl"
+                os.environ["ARCADE_HEADLESS"] = "True"
+                # En Colab, a veces necesitamos esto
+                if self._is_colab:
+                    os.environ["SDL_VIDEODRIVER"] = "dummy"
+                self._headless_enabled = True
+            elif platform.system() != "Windows":
+                # En Linux/Mac, intentar modo headless
+                try:
                     import pyglet.libs.egl.egl
-                    self._supports_headless = True
-                    if "ARCADE_HEADLESS" not in os.environ:
-                        os.environ["ARCADE_HEADLESS"] = "True"
+                    os.environ["ARCADE_HEADLESS"] = "True"
                     self._headless_enabled = True
-            except (ImportError, OSError):
-                # Si no podemos usar headless, usaremos un renderer alternativo
-                self._supports_headless = False
+                    self._supports_headless = True
+                except (ImportError, OSError):
+                    # Si EGL no está disponible, usar modo offscreen
+                    os.environ["SDL_VIDEODRIVER"] = "dummy"
+                    if "DISPLAY" not in os.environ:
+                        os.environ["DISPLAY"] = ":99"
+                    self._headless_enabled = False
+            else:
+                # Windows no soporta headless, pero podemos intentar crear ventana invisible
                 self._headless_enabled = False
-        # =================================================================
 
         # Parámetros del entorno
         self.GRID_SIZE = grid_size
@@ -166,21 +219,28 @@ class ScoutAntEnv(gym.Env):
     def _lazy_init_renderer(self):
         if self._renderer is None:
             try:
-                # Para rgb_array sin headless, configuramos un renderer especial
+                # Configuración adicional para rgb_array sin headless real
                 if self.render_mode == "rgb_array" and not self._headless_enabled:
-                    # Configuramos variables de entorno para usar un buffer offscreen
                     os.environ["SDL_VIDEODRIVER"] = "dummy"
                     if "DISPLAY" not in os.environ:
                         os.environ["DISPLAY"] = ":99"
 
                 import arcade
+
+                # Verificar versión de Arcade para compatibilidad
+                arcade_version = tuple(
+                    map(int, arcade.version.VERSION.split('.')))
+                if arcade_version >= (3, 0, 0):
+                    # Arcade 3.x tiene mejor soporte para headless
+                    pass
+
             except ImportError:
                 if self.render_mode in ["human", "rgb_array"]:
                     raise ImportError(
-                        "Se requiere 'arcade' para el renderizado.")
+                        "Se requiere 'arcade' para el renderizado. Instálalo con 'pip install arcade'")
                 return None
 
-            # Pasamos información sobre el modo headless al renderer
+            # Usar tu renderer original
             self._renderer = ArcadeRenderer()
             self._renderer._headless_mode = (
                 self.render_mode == "rgb_array" and not self._headless_enabled)
@@ -248,27 +308,42 @@ class ScoutAntEnv(gym.Env):
 
             # Intentamos diferentes métodos para capturar la imagen
             image = None
+
+            # Para Arcade 3.x, usar el método correcto
             try:
-                # Método preferido: especificar coordenadas
+                # Método para Arcade 3.x
                 image = arcade_module.get_image(0, 0, width, height)
             except (TypeError, AttributeError):
                 try:
-                    # Método alternativo: capturar toda la ventana
+                    # Método alternativo sin parámetros
                     image = arcade_module.get_image()
+                    # Redimensionar si es necesario
+                    if image and hasattr(image, 'size'):
+                        if image.size != (width, height):
+                            image = image.resize((width, height))
                 except (TypeError, AttributeError):
+                    # Último intento: capturar del framebuffer directamente
                     try:
-                        # Método de fallback usando PIL si está disponible
-                        import PIL.ImageGrab
-                        if self.window and hasattr(self.window, 'get_size'):
-                            # Capturar solo el área de la ventana
-                            image = PIL.ImageGrab.grab()
-                            if image:
-                                image = image.resize((width, height))
+                        from PIL import Image
+                        import array
+
+                        # Leer pixels del framebuffer
+                        buffer = (arcade_module.gl.GLubyte *
+                                  (width * height * 4))()
+                        arcade_module.gl.glReadPixels(0, 0, width, height,
+                                                      arcade_module.gl.GL_RGBA,
+                                                      arcade_module.gl.GL_UNSIGNED_BYTE,
+                                                      buffer)
+
+                        # Convertir a imagen PIL
+                        image = Image.frombytes(
+                            'RGBA', (width, height), buffer, 'raw', 'RGBA', 0, -1)
+                        image = image.convert('RGB')
                     except Exception:
                         pass
 
             if image is None:
-                print("No se pudo capturar imagen, devolviendo frame negro")
+                # Si todo falla, crear un frame negro
                 return np.zeros((height, width, 3), dtype=np.uint8)
 
         except Exception as e:
@@ -285,7 +360,6 @@ class ScoutAntEnv(gym.Env):
 
             # Asegurar que tiene las dimensiones correctas
             if len(frame.shape) == 3 and frame.shape[2] == 3:
-                # No voltear - el renderer ya maneja las coordenadas Y correctamente
                 return frame
             else:
                 print(f"Formato de imagen inesperado: {frame.shape}")
