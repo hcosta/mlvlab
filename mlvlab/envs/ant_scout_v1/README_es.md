@@ -114,7 +114,10 @@ Puedes experimentar con este entorno directamente desde Jupyter o Google Colab.
 Ejemplos rápidos para cuadernos:
 
 ```bash
-# (Opcional) Instalación si estás en Colab
+# Instalación si estás en Colab
+pip install --force-reinstall --no-cache-dir git+https://github.com/hcosta/mlvlab
+
+# Instalación para notebooks en local
 pip install -U git+https://github.com/hcosta/mlvlab
 ```
 

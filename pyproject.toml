@@ -4,31 +4,40 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlvlab"
-version = "0.2.13"
+version = "0.2.14"
 description = "Visual AI Learning Ecosystem - MLVisual®"
 readme = "README.md"
 requires-python = ">=3.10"
+
+# --- Dependencias Principales (Flexibles) ---
+# (~=) para permitir actualizaciones menores
+# ~=2.0 permite 2.0.2, 2.1, etc., pero no 3.0.
 dependencies = [
-    # Dependencias fijadas a las versiones exactas de tu entorno para máxima reproducibilidad.
-    "gymnasium==1.2.0",
-    "numpy==2.0.2",
-    "arcade==3.3.2",
-    "Pillow==11.0.0",
-    "pyglet==2.1.6",
-    "opencv-python==4.12.0.88",
+    # Core de simulación y ciencia de datos
+    "gymnasium~=1.2",
+    "numpy~=2.0",
+    "arcade~=3.3",
+    "Pillow~=11.0",
+    "pyglet~=2.1",
+    "opencv-python~=4.12",
     
     # Dependencias de la CLI
-    "typer[all]==0.16.0",
-    "rich==13.9.4",
-    "moviepy==2.2.1",
+    "typer[all]~=0.16",
+    "rich>=13.0,<14.0", # rich tuvo conflictos, así que limitamos la versión mayor
+    "moviepy~=2.2",
 
     # Dependencias de la UI (AnalyticsView)
-    "nicegui[highcharts]==2.22.1",
-    "PySide6==6.9.1",
-    "starlette==0.47.2",
+    # NiceGUI y Starlette son frameworks, es bueno ser un poco más específico
+    "nicegui[highcharts]~=2.22",
+    "starlette~=0.47",
+    
+    # PySide6 es el corazón de tu App. Es el único que fijamos con más rigor
+    # para asegurar que la UI no se rompa con una actualización inesperada.
+    "PySide6>=6.9,<6.10",
 ]
 
 [project.optional-dependencies]
+# Dependencias de desarrollo, aquí sí puedes ser más flexible con '>='
 dev = [
     "pytest>=6.0.0",
     "black>=24.0.0",
@@ -36,17 +45,15 @@ dev = [
     "pipreqs>=0.4.13",
 ]
 
-# Esta sección es CRUCIAL: Define el comando 'mlv' en la terminal.
+# --- Metadatos y Scripts ---
 [project.scripts]
 mlv = "mlvlab.cli.main:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
 
-# Asegura que los archivos de assets (sonidos) se incluyan en el paquete distribuido.
 [tool.setuptools.package-data]
 mlvlab = [
     "envs/*/assets/*", 
     "i18n/locales/*/*.json"
 ]
-

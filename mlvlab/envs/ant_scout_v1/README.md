@@ -114,7 +114,10 @@ You can experiment with this environment directly from Jupyter or Google Colab.
 Quick examples for notebooks:
 
 ```bash
-# (Optional) Installation if you're in Colab
+# Installation if you're in Colab
+pip install --force-reinstall --no-cache-dir git+https://github.com/hcosta/mlvlab
+
+# Installation for local notebooks
 pip install -U git+https://github.com/hcosta/mlvlab
 ```
 
