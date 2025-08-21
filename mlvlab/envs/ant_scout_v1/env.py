@@ -67,6 +67,8 @@ class _VirtualDisplayManager:
         """
         Detiene el display virtual si se había iniciado.
         """
+        # Esta función se mantiene por si se necesita en el futuro, pero no se usa
+        # activamente para evitar problemas de reinicio de sesión en Colab.
         if cls._is_active and cls._display:
             try:
                 cls._display.stop()
@@ -74,10 +76,6 @@ class _VirtualDisplayManager:
                 print(
                     f"ADVERTENCIA: No se pudo detener el display virtual limpiamente: {e}")
             finally:
-                # =================================================================
-                # CORRECCIÓN: Aseguramos que el estado se resetee siempre
-                # después de intentar detener el display.
-                # =================================================================
                 cls._is_active = False
                 cls._display = None
 
@@ -298,10 +296,12 @@ class ScoutAntEnv(gym.Env):
         self._renderer = None
 
         # =================================================================
-        # DETENEMOS EL DISPLAY VIRTUAL AL CERRAR EL ENTORNO
-        # La clase se encarga de que esto solo ocurra una vez.
+        # CORRECCIÓN: NO DETENEMOS EL DISPLAY VIRTUAL.
+        # Lo dejamos activo durante toda la sesión para evitar fugas de
+        # recursos y fallos al reiniciar la celda. El proceso se
+        # limpiará automáticamente cuando la sesión de Colab termine.
         # =================================================================
-        _VirtualDisplayManager.stop()
+        # _VirtualDisplayManager.stop()
 
     # API Extendida ---
     def set_simulation_speed(self, speed: float):
