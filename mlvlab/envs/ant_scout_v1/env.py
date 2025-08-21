@@ -70,12 +70,16 @@ class _VirtualDisplayManager:
         if cls._is_active and cls._display:
             try:
                 cls._display.stop()
-                cls._is_active = False
-                print("INFO: Display virtual detenido.")
             except Exception as e:
                 print(
                     f"ADVERTENCIA: No se pudo detener el display virtual limpiamente: {e}")
-        cls._display = None
+            finally:
+                # =================================================================
+                # CORRECCIÓN: Aseguramos que el estado se resetee siempre
+                # después de intentar detener el display.
+                # =================================================================
+                cls._is_active = False
+                cls._display = None
 
 # =============================================================================
 
