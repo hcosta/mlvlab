@@ -109,17 +109,14 @@ mlv docs AntScout-v1
 
 ## Compatibilidad con Notebooks
 
-Puedes experimentar con este entorno directamente desde Jupyter o Google Colab.
-
-Ejemplos rápidos para cuadernos:
+Puedes experimentar con este entorno directamente desde Jupyter o Google Colab:
 
 ```bash
-# Instalación si estás en Colab
-pip install --force-reinstall --no-cache-dir git+https://github.com/hcosta/mlvlab
-
-# Instalación para notebooks en local
-pip install -U git+https://github.com/hcosta/mlvlab
+# Instalación
+pip install -U mlvlab
 ```
+
+Ejemplos rápidos para cuadernos:
 
 ```python
 # 1) Crear el entorno y ejecutar un episodio aleatorio

@@ -25,8 +25,7 @@ MLV-Lab se controla a través del comando `mlv`. El flujo de trabajo está dise�
 
 ### 1. Instalación
 ```bash
-pip install -U git+https://github.com/hcosta/mlvlab
-mlv --install-completion  # Optativo para autocompletar comandos
+pip install -U mlvlab
 ```
 
 ### 2. Flujo de Trabajo Básico

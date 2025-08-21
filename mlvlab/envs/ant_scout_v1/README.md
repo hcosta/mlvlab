@@ -109,17 +109,14 @@ mlv docs AntScout-v1
 
 ## Notebook Compatibility
 
-You can experiment with this environment directly from Jupyter or Google Colab.
-
-Quick examples for notebooks:
+You can experiment with this environment directly from Jupyter or Google Colab:
 
 ```bash
-# Installation if you're in Colab
-pip install --force-reinstall --no-cache-dir git+https://github.com/hcosta/mlvlab
-
-# Installation for local notebooks
-pip install -U git+https://github.com/hcosta/mlvlab
+# Installation
+pip install -U mlvlab
 ```
+
+Quick examples for notebooks:
 
 ```python
 # 1) Create the environment and run a random episode
