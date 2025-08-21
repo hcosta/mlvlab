@@ -1,12 +1,11 @@
 # MLV-Lab: Ecosistema Educativo de IA Visual
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.2.14-darkred)](https://pypi.org/project/mlvlab/)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-[![en](https://img.shields.io/badge/lang-en-orange.svg)](../README.md)
-[![es](https://img.shields.io/badge/lang-es-blue.svg)](./docs/README_es.md)
-
+[![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![PyPI Version](https://img.shields.io/badge/PyPI-v0.2-blue)](https://pypi.org/project/mlvlab/)
+&nbsp;&nbsp;&nbsp;&nbsp;
+[![en](https://img.shields.io/badge/Lang-EN-lightgrey.svg)](../README.md)
+[![es](https://img.shields.io/badge/Lang-ES-red.svg)](./README_es.md)
 
 > **La Misión:** Democratizar y concienciar sobre el desarrollo de la Inteligencia Artificial a través de la experimentación visual e interactiva.
 

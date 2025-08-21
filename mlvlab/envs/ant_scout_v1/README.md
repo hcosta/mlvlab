@@ -1,7 +1,7 @@
-# AntScout-v1:  Environment Documentation
+# AntScout-v1: Usage Guide
 
-[![en](https://img.shields.io/badge/lang-en-orange.svg)](./README.md)
-[![es](https://img.shields.io/badge/lang-es-blue.svg)](./README_es.md)
+[![en](https://img.shields.io/badge/Lang-EN-red.svg)](./README.md)
+[![es](https://img.shields.io/badge/Lang-ES-lightgrey.svg)](./README_es.md)
 
 This file documents the `mlv/AntScout-v1` environment, also known as "The Lost Colony".
 
