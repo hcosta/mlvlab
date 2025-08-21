@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 dependencies = [
     # Dependencias fijadas a las versiones exactas de tu entorno para máxima reproducibilidad.
     "gymnasium==1.2.0",
-    "numpy==2.2.6",
+    "numpy==2.0.2",
     "arcade==3.3.2",
     "Pillow==11.0.0",
     "pyglet==2.1.6",
@@ -19,7 +19,7 @@ dependencies = [
     
     # Dependencias de la CLI
     "typer[all]==0.16.0",
-    "rich==14.1.0",
+    "rich==13.9.4",
     "moviepy==2.2.1",
 
     # Dependencias de la UI (AnalyticsView)
