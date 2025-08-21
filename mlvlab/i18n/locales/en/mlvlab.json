@@ -59,7 +59,7 @@
       "render": "Render training in real time (slow).",
       "speed": "Speed multiplier (e.g., 0.5 for half speed).",
       "record": "Record and generate evaluation video instead of just viewing.",
-      "unit_filter": "Filter by unit (e.g.: ql, sarsa, dqn, dqnp)"
+      "unit_filter": "Filter by unit (e.g.: ants)"
     },
     "tables": {
       "unit_id": "Unit ID",

@@ -59,7 +59,7 @@
       "render": "Renderizar el entrenamiento en tiempo real (lento).",
       "speed": "Multiplicador de velocidad (e.g., 0.5 para mitad de velocidad).",
       "record": "Graba y genera un vídeo de la evaluación en lugar de solo visualizar.",
-      "unit_filter": "Filtra por unidad (ej.: ql, sarsa, dqn, dqnp)"
+      "unit_filter": "Filtra por unidad (ej.: ants)"
     },
     "tables": {
       "unit_id": "ID de la Unidad",

@@ -26,7 +26,7 @@ MLV-Lab is controlled through the `mlv` command. The workflow is designed to be 
 ### 1. Installation
 ```bash
 pip install -U mlvlab
-mlv --install-completion # Optional for command autocompletion
+mlv --install-completion  # Optional for command autocompletion
 ```
 
 ### 2. Basic Workflow
