@@ -29,14 +29,14 @@ class LostAntEnv(gym.Env):
                  ):
         super().__init__()
 
-        # === FIX PARA HEADLESS RENDERING (Google Colab) ===
-        # Si el modo es rgb_array, activamos el modo headless de Pyglet (usado por Arcade).
-        # Esto permite el renderizado sin pantalla y debe hacerse
-        # antes de la primera importación de Arcade/Pyglet.
+        # Fix para headless rendering (Google Colab / Servidores)
+        # Si el modo es rgb_array, activamos el modo headless de Arcade.
+        # Esto debe hacerse ANTES de la primera importación de Arcade/Pyglet.
         if render_mode == "rgb_array":
-            if "PYGLET_HEADLESS" not in os.environ:
-                os.environ["PYGLET_HEADLESS"] = "1"
-        # ==================================================
+            # La forma recomendada es establecer la variable de entorno para Arcade
+            if "ARCADE_HEADLESS" not in os.environ:
+                os.environ["ARCADE_HEADLESS"] = "True"
+        # =================================================================
 
         # Parámetros del entorno
         self.GRID_SIZE = grid_size
