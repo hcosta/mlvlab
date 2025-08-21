@@ -7,45 +7,6 @@ import time
 import threading
 import os
 import platform
-import sys
-
-# Parche para arreglar el bug de HeadlessScreen en Pyglet
-
-
-def _patch_pyglet_headless():
-    """Parche para arreglar el bug de HeadlessScreen en Pyglet cuando se usa con Arcade."""
-    try:
-        import pyglet.display.headless
-
-        # Crear una implementación concreta de HeadlessScreen si no tiene los métodos requeridos
-        class PatchedHeadlessScreen(pyglet.display.headless.HeadlessScreen):
-            def get_display_id(self):
-                return 0
-
-            def get_monitor_name(self):
-                return "Headless"
-
-        # Sobrescribir la clase original
-        pyglet.display.headless.HeadlessScreen = PatchedHeadlessScreen
-
-        # También parchear HeadlessDisplay para evitar el error de _screens
-        original_headless_display = pyglet.display.headless.HeadlessDisplay
-
-        class PatchedHeadlessDisplay(original_headless_display):
-            def __init__(self):
-                super().__init__()
-                if not hasattr(self, '_screens'):
-                    self._screens = [PatchedHeadlessScreen(
-                        self, 0, 0, 1920, 1080)]
-
-        pyglet.display.headless.HeadlessDisplay = PatchedHeadlessDisplay
-
-    except Exception:
-        pass  # Si no podemos parchear, continuamos
-
-
-# Aplicar el parche al importar
-_patch_pyglet_headless()
 
 # Importamos las clases modularizadas
 try:
@@ -55,6 +16,68 @@ except ImportError:
     # Fallback para ejecución directa o si la estructura del paquete falla
     from game import AntGame
     from renderer import ArcadeRenderer
+
+# =============================================================================
+# GESTOR AUTOMÁTICO DE DISPLAY VIRTUAL PARA COMPATIBILIDAD MÁXIMA
+# =============================================================================
+
+
+class _VirtualDisplayManager:
+    """
+    Clase interna para gestionar un display virtual (Xvfb).
+    Detecta si es necesario y lo inicia/detiene automáticamente.
+    """
+    _display = None
+    _is_active = False
+
+    @classmethod
+    def start_if_needed(cls):
+        """
+        Inicia un display virtual si estamos en un entorno sin GUI (como Colab).
+        """
+        # Si ya está activo, no hacemos nada.
+        if cls._is_active:
+            return
+
+        # La heurística principal: si la variable de entorno DISPLAY no existe en Linux,
+        # es casi seguro que estamos en un entorno headless.
+        is_linux = platform.system() == "Linux"
+        is_headless = "DISPLAY" not in os.environ
+
+        if is_linux and is_headless:
+            print("INFO: Entorno headless detectado. Iniciando display virtual (Xvfb)...")
+            try:
+                from pyvirtualdisplay import Display
+                # Creamos una instancia de display virtual en memoria
+                cls._display = Display(visible=0, size=(1024, 768))
+                cls._display.start()
+                cls._is_active = True
+                print("INFO: Display virtual iniciado con éxito.")
+            except ImportError:
+                print(
+                    "ADVERTENCIA: 'pyvirtualdisplay' no está instalado. El renderizado puede fallar.")
+                print("             Instálalo con 'pip install pyvirtualdisplay'")
+            except Exception as e:
+                print(f"ERROR: No se pudo iniciar el display virtual: {e}")
+                print(
+                    "       Asegúrate de que 'xvfb' está instalado en tu sistema (sudo apt-get install xvfb)")
+
+    @classmethod
+    def stop(cls):
+        """
+        Detiene el display virtual si se había iniciado.
+        """
+        if cls._is_active and cls._display:
+            try:
+                cls._display.stop()
+                cls._is_active = False
+                print("INFO: Display virtual detenido.")
+            except Exception as e:
+                print(
+                    f"ADVERTENCIA: No se pudo detener el display virtual limpiamente: {e}")
+        cls._display = None
+
+# =============================================================================
 
 
 class ScoutAntEnv(gym.Env):
@@ -69,40 +92,12 @@ class ScoutAntEnv(gym.Env):
                  ):
         super().__init__()
 
-        # Detección del entorno
-        self._is_colab = 'google.colab' in sys.modules
-        self._is_notebook = 'ipykernel' in sys.modules or 'IPython' in sys.modules
-
-        # Configuración para renderizado rgb_array
-        self._headless_enabled = False
-        self._supports_headless = False
-
-        if render_mode == "rgb_array":
-            # Configuración especial para Google Colab y notebooks
-            if self._is_colab or self._is_notebook:
-                # Forzar modo headless con el parche aplicado
-                os.environ["PYOPENGL_PLATFORM"] = "egl"
-                os.environ["ARCADE_HEADLESS"] = "True"
-                # En Colab, a veces necesitamos esto
-                if self._is_colab:
-                    os.environ["SDL_VIDEODRIVER"] = "dummy"
-                self._headless_enabled = True
-            elif platform.system() != "Windows":
-                # En Linux/Mac, intentar modo headless
-                try:
-                    import pyglet.libs.egl.egl
-                    os.environ["ARCADE_HEADLESS"] = "True"
-                    self._headless_enabled = True
-                    self._supports_headless = True
-                except (ImportError, OSError):
-                    # Si EGL no está disponible, usar modo offscreen
-                    os.environ["SDL_VIDEODRIVER"] = "dummy"
-                    if "DISPLAY" not in os.environ:
-                        os.environ["DISPLAY"] = ":99"
-                    self._headless_enabled = False
-            else:
-                # Windows no soporta headless, pero podemos intentar crear ventana invisible
-                self._headless_enabled = False
+        # =================================================================
+        # INICIAMOS EL GESTOR DE DISPLAY VIRTUAL SI ES NECESARIO
+        # Esto se ejecuta solo una vez cuando se crea el primer entorno.
+        # =================================================================
+        if render_mode in ["human", "rgb_array"]:
+            _VirtualDisplayManager.start_if_needed()
 
         # Parámetros del entorno
         self.GRID_SIZE = grid_size
@@ -183,12 +178,8 @@ class ScoutAntEnv(gym.Env):
         rng = self._get_respawn_rng()
         self._game.place_ant(rng)
         self._sync_game_state()
-        # Render inmediato en modo human para abrir/actualizar la ventana
         if self.render_mode == "human":
-            try:
-                self.render()
-            except Exception:
-                pass
+            self.render()
         return self._get_obs(), self._get_info()
 
     def step(self, action):
@@ -208,53 +199,47 @@ class ScoutAntEnv(gym.Env):
             info['play_sound'] = {'filename': 'bump.wav', 'volume': 5}
 
         self._sync_game_state()
-        # Render inmediato en modo human para reflejar el frame actual
         if self.render_mode == "human":
-            try:
-                self.render()
-            except Exception:
-                pass
+            self.render()
         return obs, reward, terminated, truncated, info
 
     def _lazy_init_renderer(self):
         if self._renderer is None:
             try:
-                # Configuración adicional para rgb_array sin headless real
-                if self.render_mode == "rgb_array" and not self._headless_enabled:
-                    os.environ["SDL_VIDEODRIVER"] = "dummy"
-                    if "DISPLAY" not in os.environ:
-                        os.environ["DISPLAY"] = ":99"
-
                 import arcade
-
-                # Verificar versión de Arcade para compatibilidad
-                arcade_version = tuple(
-                    map(int, arcade.version.VERSION.split('.')))
-                if arcade_version >= (3, 0, 0):
-                    # Arcade 3.x tiene mejor soporte para headless
-                    pass
-
             except ImportError:
                 if self.render_mode in ["human", "rgb_array"]:
                     raise ImportError(
-                        "Se requiere 'arcade' para el renderizado. Instálalo con 'pip install arcade'")
-                return None
+                        "Se requiere 'arcade' para el renderizado.")
+                return
 
-            # Usar tu renderer original
             self._renderer = ArcadeRenderer()
-            self._renderer._headless_mode = (
-                self.render_mode == "rgb_array" and not self._headless_enabled)
 
     def render(self):
-        self._lazy_init_renderer()
+        # La inicialización del renderer ahora ocurre aquí, de forma perezosa
+        if self.render_mode is None:
+            gym.logger.warn(
+                "You are calling render method without specifying any render mode. "
+                "You can specify the render_mode at initialization, "
+                'e.g. gym.make("mlv/AntScout-v1", render_mode="rgb_array")'
+            )
+            return
+
+        if self._renderer is None:
+            self._lazy_init_renderer()
+
+        # Si después de la inicialización perezosa sigue siendo None, salimos
         if self._renderer is None:
             return None
+
         result = self._render_frame()
         if result is None:
             return None
+
         width, height = result
         if self.render_mode == "human":
             self._handle_human_render()
+            return None  # En modo human, no devolvemos nada
         elif self.render_mode == "rgb_array":
             return self._capture_rgb_array(width, height)
 
@@ -280,107 +265,39 @@ class ScoutAntEnv(gym.Env):
 
     def _handle_human_render(self):
         if self.window is not None:
-            try:
-                self.window.dispatch_events()
-                self.window.flip()
-            except Exception:
-                pass
-        target_sleep = 1.0 / float(self.metadata.get("render_fps", 60))
-        time.sleep(target_sleep)
+            self.window.dispatch_events()
+            self.window.flip()
+        time.sleep(1.0 / self.metadata["render_fps"])
 
     def _capture_rgb_array(self, width, height):
-        arcade_module = None
-        if self._renderer and self._renderer.arcade:
-            arcade_module = self._renderer.arcade
-        else:
-            try:
-                import arcade
-                arcade_module = arcade
-            except ImportError:
-                return None
-        if arcade_module is None:
-            return None
+        if not self._renderer or not self._renderer.arcade:
+            return np.zeros((height, width, 3), dtype=np.uint8)
 
+        arcade_module = self._renderer.arcade
         try:
-            # Aseguramos que el contexto esté activo
             if self.window:
                 self.window.switch_to()
-
-            # Intentamos diferentes métodos para capturar la imagen
-            image = None
-
-            # Para Arcade 3.x, usar el método correcto
-            try:
-                # Método para Arcade 3.x
-                image = arcade_module.get_image(0, 0, width, height)
-            except (TypeError, AttributeError):
-                try:
-                    # Método alternativo sin parámetros
-                    image = arcade_module.get_image()
-                    # Redimensionar si es necesario
-                    if image and hasattr(image, 'size'):
-                        if image.size != (width, height):
-                            image = image.resize((width, height))
-                except (TypeError, AttributeError):
-                    # Último intento: capturar del framebuffer directamente
-                    try:
-                        from PIL import Image
-                        import array
-
-                        # Leer pixels del framebuffer
-                        buffer = (arcade_module.gl.GLubyte *
-                                  (width * height * 4))()
-                        arcade_module.gl.glReadPixels(0, 0, width, height,
-                                                      arcade_module.gl.GL_RGBA,
-                                                      arcade_module.gl.GL_UNSIGNED_BYTE,
-                                                      buffer)
-
-                        # Convertir a imagen PIL
-                        image = Image.frombytes(
-                            'RGBA', (width, height), buffer, 'raw', 'RGBA', 0, -1)
-                        image = image.convert('RGB')
-                    except Exception:
-                        pass
-
-            if image is None:
-                # Si todo falla, crear un frame negro
-                return np.zeros((height, width, 3), dtype=np.uint8)
-
+            image = arcade_module.get_image(0, 0, width, height)
+            return np.asarray(image.convert("RGB"))
         except Exception as e:
             print(f"Error al capturar imagen rgb_array: {e}")
             return np.zeros((height, width, 3), dtype=np.uint8)
 
-        try:
-            # Convertir a RGB si no lo está
-            if hasattr(image, 'convert'):
-                image = image.convert("RGB")
-
-            # Convertir a numpy array
-            frame = np.asarray(image)
-
-            # Asegurar que tiene las dimensiones correctas
-            if len(frame.shape) == 3 and frame.shape[2] == 3:
-                return frame
-            else:
-                print(f"Formato de imagen inesperado: {frame.shape}")
-                return np.zeros((height, width, 3), dtype=np.uint8)
-
-        except Exception as e:
-            print(f"Error al convertir imagen a array numpy: {e}")
-            return np.zeros((height, width, 3), dtype=np.uint8)
-
     def close(self):
+        # Detenemos el renderer
         if self.window:
             try:
                 self.window.close()
             except Exception:
-                try:
-                    import arcade
-                    arcade.close_window()
-                except Exception:
-                    pass
-            self.window = None
-            self._renderer = None
+                pass
+        self.window = None
+        self._renderer = None
+
+        # =================================================================
+        # DETENEMOS EL DISPLAY VIRTUAL AL CERRAR EL ENTORNO
+        # La clase se encarga de que esto solo ocurra una vez.
+        # =================================================================
+        _VirtualDisplayManager.stop()
 
     # API Extendida ---
     def set_simulation_speed(self, speed: float):
