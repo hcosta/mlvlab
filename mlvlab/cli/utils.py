@@ -14,7 +14,7 @@ def get_env_config(env_id: str) -> dict:
     try:
         # Obtenemos la especificación del entorno registrado
         spec = gym.spec(env_id)
-        entry_point = spec.entry_point  # e.g., "mlvlab.envs.ant.env:LostAntEnv"
+        entry_point = spec.entry_point  # e.g., "mlvlab.envs.ant.env:ScoutAntEnv"
 
         # Extraemos el path del módulo (e.g., "mlvlab.envs.ant.env")
         module_path = entry_point.split(':')[0]
@@ -38,7 +38,7 @@ def get_env_config(env_id: str) -> dict:
             "UNIT": getattr(config_module, 'UNIT', None),
             "ALGORITHM": getattr(config_module, 'ALGORITHM', None),
         }
-        
+
         # Intentamos obtener la descripción traducida
         env_key = env_id.split('/')[-1].replace('-', '_').lower()
         # Removemos la versión (_v1) para obtener la clave base
@@ -52,7 +52,7 @@ def get_env_config(env_id: str) -> dict:
         except:
             # Si no hay traducción, mantenemos la descripción original
             pass
-            
+
         return config
 
     except (ImportError, AttributeError, gym.error.NameNotFound):
@@ -63,7 +63,7 @@ def get_env_config(env_id: str) -> dict:
             # Intentar envs.<pkg_us>.config
             config_module = importlib.import_module(
                 f"mlvlab.envs.{pkg_us}.config")
-            
+
             config = {
                 "KEY_MAP": getattr(config_module, 'KEY_MAP', None),
                 "DESCRIPTION": getattr(config_module, 'DESCRIPTION', None),
@@ -71,7 +71,7 @@ def get_env_config(env_id: str) -> dict:
                 "UNIT": getattr(config_module, 'UNIT', None),
                 "ALGORITHM": getattr(config_module, 'ALGORITHM', None),
             }
-            
+
             # Intentamos obtener la descripción traducida
             env_key = pkg_us.lower()
             # Removemos la versión (_v1) para obtener la clave base
@@ -80,12 +80,13 @@ def get_env_config(env_id: str) -> dict:
             if 'scout' in env_key:
                 env_key = 'ant_scout'
             try:
-                translated_desc = i18n.t(f"environments.descriptions.{env_key}")
+                translated_desc = i18n.t(
+                    f"environments.descriptions.{env_key}")
                 config["DESCRIPTION"] = translated_desc
             except:
                 # Si no hay traducción, mantenemos la descripción original
                 pass
-                
+
             return config
         except Exception:
             return {}

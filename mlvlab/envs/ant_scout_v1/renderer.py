@@ -164,6 +164,7 @@ class ArcadeRenderer:
                         except Exception:
                             pass
 
+            # El resto del código de inicialización...
             try:
                 self.arcade.set_background_color(self.COLOR_GRASS)
             except Exception:
@@ -593,7 +594,7 @@ class ArcadeRenderer:
                     left, bottom, SQUARE_SIZE, SQUARE_SIZE, heat_color)
 
     def _draw_anthill(self):
-        # RESTAURADO: Dibuja la entrada del hormiguero con volumen y altura (Estilo Terraced).
+        # Dibuja la entrada del hormiguero con volumen y altura (Estilo Terraced).
         gx, gy = self.game.goal_pos
         cx, cy = self._cell_to_pixel(gx, gy)
 
