@@ -90,7 +90,16 @@ class RenderingThread(threading.Thread):
                             except Exception:
                                 env_unwrapped.set_render_data(
                                     render_data.get('q_table'))
-                    frame_np = self.env.render()
+                    # Aseguramos que el entorno esté en modo rgb_array para analytics
+                    if hasattr(self.env, 'render_mode') and self.env.render_mode != "rgb_array":
+                        # Cambiar temporalmente a rgb_array
+                        original_mode = self.env.render_mode
+                        self.env.render_mode = "rgb_array"
+                        frame_np = self.env.render()
+                        self.env.render_mode = original_mode
+                    else:
+                        frame_np = self.env.render()
+
                     try:
                         last_step = int(self.state.get(
                             ["sim", "total_steps"]) or 0)
@@ -99,11 +108,14 @@ class RenderingThread(threading.Thread):
                         pass
 
                 # Comprobamos que el frame no sea None antes de procesarlo.
-                # Esto evita errores si el entorno se cierra mientras el hilo aún corre.
-                if frame_np is not None:
+                # También verificamos que tenga el formato correcto
+                if frame_np is not None and hasattr(frame_np, 'shape') and len(frame_np.shape) == 3:
                     frame_bytes = encode_frame_fast_jpeg(frame_np, quality=100)
                     if frame_bytes:
                         self.buffer.update_frame(frame_bytes)
+                elif frame_np is not None:
+                    print(
+                        f"⚠️ Frame con formato inesperado: {type(frame_np)}, shape: {getattr(frame_np, 'shape', 'N/A')}")
 
             except Exception as e:
                 # No imprimimos el error si es porque el entorno ya no existe

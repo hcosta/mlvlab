@@ -98,6 +98,7 @@ class ArcadeRenderer:
         # Importamos arcade aquí para retrasar la carga
         self.arcade = None
         self.draw_lbwh_rectangle_filled = None
+        self._headless_mode = False
 
     def _lazy_import_arcade(self):
         if self.arcade is None:
@@ -131,19 +132,43 @@ class ArcadeRenderer:
         if self.window is None:
             visible = render_mode == "human"
             title = "Scout Ant"
-            try:
-                self.window = self.arcade.Window(
-                    self.WIDTH, self.HEIGHT, title, visible=visible)
-            except TypeError:
-                # Fallback para versiones antiguas de Arcade
-                self.window = self.arcade.Window(
-                    self.WIDTH, self.HEIGHT, title)
-                if not visible:
+
+            # En modo headless o rgb_array sin entorno gráfico, creamos ventana invisible
+            if self._headless_mode or render_mode == "rgb_array":
+                try:
+                    # Intentamos crear una ventana offscreen
+                    self.window = self.arcade.Window(
+                        self.WIDTH, self.HEIGHT, title, visible=False)
+                except Exception:
                     try:
+                        # Fallback: crear ventana normal pero invisible
+                        self.window = self.arcade.Window(
+                            self.WIDTH, self.HEIGHT, title)
                         self.window.set_visible(False)
                     except Exception:
-                        pass
-            self.arcade.set_background_color(self.COLOR_GRASS)
+                        # Último fallback: crear ventana mínima
+                        self.window = self.arcade.Window(
+                            self.WIDTH, self.HEIGHT, title)
+            else:
+                # Modo human: ventana visible
+                try:
+                    self.window = self.arcade.Window(
+                        self.WIDTH, self.HEIGHT, title, visible=visible)
+                except TypeError:
+                    # Fallback para versiones antiguas de Arcade
+                    self.window = self.arcade.Window(
+                        self.WIDTH, self.HEIGHT, title)
+                    if not visible:
+                        try:
+                            self.window.set_visible(False)
+                        except Exception:
+                            pass
+
+            try:
+                self.arcade.set_background_color(self.COLOR_GRASS)
+            except Exception:
+                # En algunos modos headless esto puede fallar, lo ignoramos
+                pass
 
         # Inicializar posición y ángulo de la hormiga
         if self.ant_display_pos is None:

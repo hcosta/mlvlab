@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen)](https://www.python.org/)
-[![PyPI Version](https://img.shields.io/badge/pypi-v0.2.12-darkred)](https://pypi.org/project/mlvlab/)
+[![PyPI Version](https://img.shields.io/badge/pypi-v0.2.13-darkred)](https://pypi.org/project/mlvlab/)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 [![en](https://img.shields.io/badge/lang-en-orange.svg)](./README.md)
 [![es](https://img.shields.io/badge/lang-es-blue.svg)](./docs/README_es.md)

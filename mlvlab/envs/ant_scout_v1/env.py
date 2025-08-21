@@ -5,7 +5,8 @@ from gymnasium import spaces
 import numpy as np
 import time
 import threading
-import os  # Importamos os
+import os
+import platform
 
 # Importamos las clases modularizadas
 try:
@@ -29,13 +30,25 @@ class LostAntEnv(gym.Env):
                  ):
         super().__init__()
 
-        # Fix para headless rendering (Google Colab / Servidores)
-        # Si el modo es rgb_array, activamos el modo headless de Arcade.
-        # Esto debe hacerse ANTES de la primera importación de Arcade/Pyglet.
+        # Configuración para renderizado rgb_array
+        # Intentamos usar modo headless solo en sistemas compatibles
+        self._headless_enabled = False
+        self._supports_headless = False
         if render_mode == "rgb_array":
-            # La forma recomendada es establecer la variable de entorno para Arcade
-            if "ARCADE_HEADLESS" not in os.environ:
-                os.environ["ARCADE_HEADLESS"] = "True"
+            # Intentamos detectar si el sistema soporta headless
+            try:
+                # En Windows y algunos sistemas, EGL no está disponible
+                if platform.system() != "Windows":
+                    # Probamos si podemos importar las dependencias headless
+                    import pyglet.libs.egl.egl
+                    self._supports_headless = True
+                    if "ARCADE_HEADLESS" not in os.environ:
+                        os.environ["ARCADE_HEADLESS"] = "True"
+                    self._headless_enabled = True
+            except (ImportError, OSError):
+                # Si no podemos usar headless, usaremos un renderer alternativo
+                self._supports_headless = False
+                self._headless_enabled = False
         # =================================================================
 
         # Parámetros del entorno
@@ -153,13 +166,24 @@ class LostAntEnv(gym.Env):
     def _lazy_init_renderer(self):
         if self._renderer is None:
             try:
+                # Para rgb_array sin headless, configuramos un renderer especial
+                if self.render_mode == "rgb_array" and not self._headless_enabled:
+                    # Configuramos variables de entorno para usar un buffer offscreen
+                    os.environ["SDL_VIDEODRIVER"] = "dummy"
+                    if "DISPLAY" not in os.environ:
+                        os.environ["DISPLAY"] = ":99"
+
                 import arcade
             except ImportError:
                 if self.render_mode in ["human", "rgb_array"]:
                     raise ImportError(
                         "Se requiere 'arcade' para el renderizado.")
                 return None
+
+            # Pasamos información sobre el modo headless al renderer
             self._renderer = ArcadeRenderer()
+            self._renderer._headless_mode = (
+                self.render_mode == "rgb_array" and not self._headless_enabled)
 
     def render(self):
         self._lazy_init_renderer()
@@ -216,21 +240,60 @@ class LostAntEnv(gym.Env):
                 return None
         if arcade_module is None:
             return None
+
         try:
-            image = arcade_module.get_image(0, 0, width, height)
-        except TypeError:
+            # Aseguramos que el contexto esté activo
+            if self.window:
+                self.window.switch_to()
+
+            # Intentamos diferentes métodos para capturar la imagen
+            image = None
             try:
-                image = arcade_module.get_image()
-            except Exception as e:
-                print(f"Error al capturar imagen rgb_array: {e}")
+                # Método preferido: especificar coordenadas
+                image = arcade_module.get_image(0, 0, width, height)
+            except (TypeError, AttributeError):
+                try:
+                    # Método alternativo: capturar toda la ventana
+                    image = arcade_module.get_image()
+                except (TypeError, AttributeError):
+                    try:
+                        # Método de fallback usando PIL si está disponible
+                        import PIL.ImageGrab
+                        if self.window and hasattr(self.window, 'get_size'):
+                            # Capturar solo el área de la ventana
+                            image = PIL.ImageGrab.grab()
+                            if image:
+                                image = image.resize((width, height))
+                    except Exception:
+                        pass
+
+            if image is None:
+                print("No se pudo capturar imagen, devolviendo frame negro")
                 return np.zeros((height, width, 3), dtype=np.uint8)
+
+        except Exception as e:
+            print(f"Error al capturar imagen rgb_array: {e}")
+            return np.zeros((height, width, 3), dtype=np.uint8)
+
         try:
-            image = image.convert("RGB")
+            # Convertir a RGB si no lo está
+            if hasattr(image, 'convert'):
+                image = image.convert("RGB")
+
+            # Convertir a numpy array
             frame = np.asarray(image)
+
+            # Asegurar que tiene las dimensiones correctas
+            if len(frame.shape) == 3 and frame.shape[2] == 3:
+                # No voltear - el renderer ya maneja las coordenadas Y correctamente
+                return frame
+            else:
+                print(f"Formato de imagen inesperado: {frame.shape}")
+                return np.zeros((height, width, 3), dtype=np.uint8)
+
         except Exception as e:
             print(f"Error al convertir imagen a array numpy: {e}")
             return np.zeros((height, width, 3), dtype=np.uint8)
-        return frame
 
     def close(self):
         if self.window:
