@@ -37,7 +37,7 @@
       "no_seed_random": "🌱 No se especificó semilla. Usando una aleatoria: [bold yellow]{seed}[/bold yellow]",
       "searching_last_training": "ℹ️ No se especificó semilla. Buscando el último entrenamiento...",
       "evaluating_from": "🎬 Evaluando desde [bold yellow]{run_dir}[/bold yellow]...",
-      "use_list_unit": "Usa: [bold]mlv list <unidad>[/bold] para ver entornos de una unidad (ej. mlv list ql)",
+      "use_list_unit": "Usa: [bold]mlv list <unidad>[/bold] para ver entornos de una unidad (ej. mlv list ants)",
       "error_no_algorithm": "❌ Error: No hay algoritmo de referencia definido para {env_id}.",
       "error_training": "❌ Error al entrenar con algoritmo '{algorithm_key}': {error}",
       "error_evaluation": "❌ Error al evaluar con algoritmo '{algorithm_key}': {error}",
@@ -67,7 +67,7 @@
       "description": "Descripción",
       "name_mlv": "Nombre (MLV)",
       "id_gymnasium": "ID (Gymnasium)",
-      "baseline_agent": "Baseline Agent",
+      "baseline_agent": "Agente de Referencia",
       "unit_description": "Descripción de la Unidad"
     },
     "units": {
@@ -137,9 +137,8 @@
     }
   },
   "environments": {
-    "ant_scout_v1": {
-      "description": "Encuentra la colonia perdida",
-      "unit": "ants"
+    "descriptions": {
+      "ant_scout": "Encuentra la colonia perdida"
     }
   },
   "helpers": {

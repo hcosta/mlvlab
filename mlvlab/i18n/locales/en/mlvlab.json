@@ -37,7 +37,7 @@
       "no_seed_random": "🌱 No seed specified. Using random seed: [bold yellow]{seed}[/bold yellow]",
       "searching_last_training": "ℹ️ No seed specified. Looking for latest training...",
       "evaluating_from": "🎬 Evaluating from [bold yellow]{run_dir}[/bold yellow]...",
-      "use_list_unit": "Use: [bold]mlv list <unit>[/bold] to see environments from a unit (e.g. mlv list ql)",
+      "use_list_unit": "Use: [bold]mlv list <unit>[/bold] to see environments from a unit (e.g. mlv list ants)",
       "error_no_algorithm": "❌ Error: No reference algorithm defined for {env_id}.",
       "error_training": "❌ Error training with algorithm '{algorithm_key}': {error}",
       "error_evaluation": "❌ Error evaluating with algorithm '{algorithm_key}': {error}",
@@ -137,9 +137,8 @@
     }
   },
   "environments": {
-    "ant_scout_v1": {
-      "description": "Find the lost colony",
-      "unit": "ants"
+    "descriptions": {
+      "ant_scout": "Find the lost colony"
     }
   },
   "helpers": {
