@@ -165,15 +165,14 @@ class ScoutAntEnv(gym.Env):
 
     def _lazy_init_renderer(self):
         if self._renderer is None:
-            # --- INICIO DE LA SOLUCIÓN PARA ARCADE 3.3.2 ---
-            if self.render_mode == "rgb_array":
-                # Este truco de bajo nivel fuerza un driver de video "falso"
-                # ANTES de que arcade se importe, evitando el bug de Pyglet en Colab.
-                import os
-                os.environ["SDL_VIDEODRIVER"] = "dummy"
-            # --- FIN DE LA SOLUCIÓN ---
-
             try:
+                # Para rgb_array sin headless, configuramos un renderer especial
+                if self.render_mode == "rgb_array" and not self._headless_enabled:
+                    # Configuramos variables de entorno para usar un buffer offscreen
+                    os.environ["SDL_VIDEODRIVER"] = "dummy"
+                    if "DISPLAY" not in os.environ:
+                        os.environ["DISPLAY"] = ":99"
+
                 import arcade
             except ImportError:
                 if self.render_mode in ["human", "rgb_array"]:
@@ -183,8 +182,8 @@ class ScoutAntEnv(gym.Env):
 
             # Pasamos información sobre el modo headless al renderer
             self._renderer = ArcadeRenderer()
-            # Esta línea ya no es crítica, pero la dejamos por compatibilidad
-            self._renderer._headless_mode = (self.render_mode == "rgb_array")
+            self._renderer._headless_mode = (
+                self.render_mode == "rgb_array" and not self._headless_enabled)
 
     def render(self):
         self._lazy_init_renderer()

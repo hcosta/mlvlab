@@ -164,7 +164,6 @@ class ArcadeRenderer:
                         except Exception:
                             pass
 
-            # El resto del código de inicialización...
             try:
                 self.arcade.set_background_color(self.COLOR_GRASS)
             except Exception:
