@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlvlab"
-version = "0.2.1"
+version = "0.2.11"
 description = "Visual AI Learning Ecosystem - MLVisual®"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -45,5 +45,8 @@ where = ["."]
 
 # Asegura que los archivos de assets (sonidos) se incluyan en el paquete distribuido.
 [tool.setuptools.package-data]
-mlvlab = ["envs/*/assets/*"]
+mlvlab = [
+    "envs/*/assets/*", 
+    "i18n/locales/*/*.json"
+]
 
