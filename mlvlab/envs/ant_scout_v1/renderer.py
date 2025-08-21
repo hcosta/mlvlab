@@ -130,7 +130,7 @@ class ArcadeRenderer:
         # Crear ventana si hace falta
         if self.window is None:
             visible = render_mode == "human"
-            title = "Lost Ant Colony - JUICY"
+            title = "Scout Ant"
             try:
                 self.window = self.arcade.Window(
                     self.WIDTH, self.HEIGHT, title, visible=visible)
