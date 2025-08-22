@@ -8,6 +8,7 @@
       "eval": "Evaluate an agent interactively by default; use --rec to record.",
       "view": "Launch the interactive view associated with an environment.",
       "shell": "Starts an interactive session (REPL) to run mlvlab commands.",
+      "in_shell": "You are already in an interactive shell. Use 'exit' or 'quit' to exit.",
       "help": "Show technical specifications and documentation link for an environment.",
       "docs": "Show technical specifications and open documentation in browser.",
       "config": "Manage MLV-Lab configuration (locale, etc.)",

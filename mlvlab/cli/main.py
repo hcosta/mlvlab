@@ -48,7 +48,7 @@ def clear_screen(command=None):
         from prompt_toolkit import print_formatted_text
 
         prompt_html = HTML(
-            "<skyblue><b>MLVLab</b></skyblue><b>></b> [comando ejecutado]")
+            "<skyblue><b>MLVLab</b></skyblue><b>></b> [command]")
         print_formatted_text(prompt_html)
 
 
@@ -525,8 +525,19 @@ def eval_command(
         raise typer.Exit(code=1)
 
 
-@app.command(name="shell", help=i18n.t("cli.help.shell"))
+@app.command(name="shell", help=i18n.t("cli.help.shell"), hidden=True)
 def shell_command():
+    # Inicializar el estado si no existe
+    if not hasattr(shell_command, '_in_shell'):
+        shell_command._in_shell = False
+
+    # Verificar si ya estamos en una shell para evitar recursión
+    if shell_command._in_shell:
+        console.print(
+            f"[yellow]{i18n.t('cli.help.in_shell')}[/yellow]")
+        return
+
+    shell_command._in_shell = True
     clear_screen("shell")
     console.print(f"[bold green]{i18n.t('cli.repl.welcome')}[/bold green]")
     console.print(i18n.t('cli.repl.exit_tip'))
@@ -596,6 +607,10 @@ def shell_command():
                 continue
 
             if command == 'help':
+                # Limpiar pantalla y mostrar el comando
+                help_command = " ".join(args)
+                clear_screen(help_command)
+
                 help_args = args[1:] + \
                     ['--help'] if len(args) > 1 else ['--help']
                 try:
@@ -619,6 +634,8 @@ def shell_command():
         except EOFError:
             break
 
+    # Limpiar el estado de la shell
+    shell_command._in_shell = False
     console.print(f"[yellow]{i18n.t('cli.repl.goodbye')}[/yellow]")
 
 
@@ -663,9 +680,20 @@ def docs_command(
         else:
             docs_url = f"{base_url}/mlvlab/envs/{dir_name}/README.md"
 
-        # Intentar abrir en el navegador
+        # Intentar abrir en el navegador usando subprocess para evitar bloqueo
         try:
-            webbrowser.open(docs_url)
+            # Usar subprocess para abrir el navegador de forma no bloqueante
+            if os.name == 'nt':  # Windows
+                subprocess.Popen(['start', docs_url], shell=True)
+            elif os.name == 'posix':  # macOS y Linux
+                subprocess.Popen(['xdg-open', docs_url])  # Linux
+                # Para macOS también intentamos con 'open'
+                if sys.platform == 'darwin':
+                    subprocess.Popen(['open', docs_url])
+            else:
+                # Fallback a webbrowser si no se puede usar subprocess
+                webbrowser.open(docs_url)
+
             console.print(i18n.t("cli.messages.docs_browser_opened"))
         except Exception as e:
             console.print(

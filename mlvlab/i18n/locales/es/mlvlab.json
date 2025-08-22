@@ -8,6 +8,7 @@
       "eval": "Evalúa un agente en modo interactivo por defecto; usa --rec para grabar.",
       "view": "Lanza la vista interactiva asociada a un entorno.",
       "shell": "Inicia una sesión interactiva (REPL) para ejecutar comandos de mlvlab.",
+      "in_shell": "Ya estás en una shell interactiva. Usa 'exit' o 'quit' para salir.",
       "help": "Muestra la ficha técnica y un enlace a la documentación del entorno.",
       "docs": "Muestra las especificaciones técnicas y abre la documentación en el navegador.",
       "config": "Gestiona la configuración de MLV-Lab (idioma, etc.)",
