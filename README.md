@@ -270,28 +270,30 @@ This installs `mlvlab` (editable mode) and also the tools from the `[dev]` group
 
 ## 🌍 Internationalization
 
-MLV-Lab supports multiple languages. The default language is English, and Spanish is fully supported as an alternative language.
+MLV-Lab supports multiple languages. The default language is English `en`, and Spanish `es` is fully supported as an alternative language.
 
 ### Language Configuration
 
-You can set the language in several ways:
+The language can be configured in two ways:
 
-1. **Environment Variable:**
-   ```bash
-   export MLVLAB_LOCALE=es  # Spanish
-   export MLVLAB_LOCALE=en  # English (default)
-   ```
-
-2. **User Configuration File:**
-   ```bash
-   # Create ~/.mlvlab/config.json
-   echo '{"locale": "es"}' > ~/.mlvlab/config.json
-   ```
-
-3. **Automatic Detection:**
+1. **Automatic Detection:**
    The system automatically detects your system language and uses Spanish if available, otherwise defaults to English.
+
+2. **Manual Language Change:**
+   The desired language can be forced if it does not match the user's prefences:
+
+   ```bash
+   # Launch the interactive shell
+   uv run mlv shell
+
+   # Set language to English
+   config set locale en
+
+   # Set language to Spanish
+   config set locale es
+   ```
 
 ### Available Languages
 
-- **English (en)**: Default language
-- **Spanish (es)**: Fully translated alternative
+- **English (`en`)**: Default language.
+- **Spanish (`es`)**: Fully translated alternative.
