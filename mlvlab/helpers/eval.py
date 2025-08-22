@@ -144,7 +144,7 @@ def evaluate_with_optional_recording(
         if frames:
             playback_fps = target_fps * max(speed, 0.01)
             print(
-                f"Guardando vídeo a {playback_fps:.2f} FPS (velocidad x{speed})...")
+                f"{i18n.t('helpers.eval.saving_video_details', fps=playback_fps, speed=speed)}")
             try:
                 with suppress_stderr():
                     imageio.mimsave(str(final_video_path),

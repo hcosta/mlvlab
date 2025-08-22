@@ -34,10 +34,10 @@
       "launching": "🚀 Lanzando [bold cyan]{env_id}[/bold cyan]...",
       "error_env_not_found": "❌ [bold red]Error:[/bold red] Entorno '{env_id}' no encontrado.",
       "error_no_keymap": "❌ [bold red]Error:[/bold red] No se encontró un mapeo de teclas para {env_id}.",
-      "working_dir": "📂 Trabajando en el directorio: [bold yellow]{run_dir}[/bold yellow]",
-      "no_seed_random": "🌱 No se especificó semilla. Usando una aleatoria: [bold yellow]{seed}[/bold yellow]",
-      "searching_last_training": "ℹ️ No se especificó semilla. Buscando el último entrenamiento...",
-      "evaluating_from": "🎬 Evaluando desde [bold yellow]{run_dir}[/bold yellow]...",
+      "working_dir": "📂 Trabajando en el directorio: {run_dir}",
+      "no_seed_random": "🌱 No se especificó semilla. Usando una aleatoria: {seed}",
+      "searching_last_training": "ℹ️  No se especificó semilla. Buscando el último entrenamiento...",
+      "evaluating_from": "🎬 Evaluando desde {run_dir}...",
       "use_list_unit": "Usa: [bold]list <unidad>[/bold] para ver entornos de una unidad (ej. list ants)",
       "error_no_algorithm": "❌ Error: No hay algoritmo de referencia definido para {env_id}.",
       "error_training": "❌ Error al entrenar con algoritmo '{algorithm_key}': {error}",
@@ -172,7 +172,7 @@
   },
   "helpers": {
     "video": {
-      "no_videos_found": "ℹ️ No se encontraron vídeos para unir.",
+      "no_videos_found": "ℹ️  No se encontraron vídeos para unir.",
       "processing_videos": "📹 Procesando {total_episodes} vídeos para añadir texto...",
       "error_processing_clip": "- {filename:25} | ❌ Error al procesar clip: {error}",
       "error_processing_videos": "🛑 No se pudieron procesar los vídeos.",
@@ -182,18 +182,19 @@
       "error_final_video": "❌ Error: El vídeo final no se pudo crear."
     },
     "train": {
-      "random_respawn": "ℹ️ Configurado respawn aleatorio (unseeded) para entrenamiento.",
-      "training": "Entrenando...",
+      "random_respawn": "ℹ️  Configurado respawn aleatorio (unseeded) para entrenamiento.",
+      "training": "🏃",
       "training_completed": "✅ Entrenamiento completado. Q-Table guardada en: {q_path}",
       "training_no_qtable": "⚠️ Entrenamiento completado, pero el agente no expone q_table. No se guardó archivo."
     },
     "eval": {
-      "deterministic_respawn": "ℹ️ Configurado respawn determinista (seeded) para evaluación.",
+      "deterministic_respawn": "ℹ️  Configurado respawn determinista (seeded) para evaluación.",
       "agent_state_loaded": "🧠 Cargado estado del agente desde {agent_file}.",
       "error_loading_agent": "⚠️ No se pudo cargar el estado del agente: {error}",
-      "evaluating": "Evaluando...",
-      "recording_final_scene": "Grabando escena final cinemática...",
+      "evaluating": "🛠️ ",
+      "recording_final_scene": "🎥 Grabando escena final cinemática...",
       "video_saved": "✅ Vídeo guardado exitosamente: {video_path}",
+      "saving_video_details": "💾 Guardando vídeo a {fps:.2f} FPS (velocidad x{speed})...",
       "error_saving_video": "❌ Error al guardar el vídeo con imageio: {error}",
       "no_frames_generated": "⚠️ No se generaron frames para el vídeo.",
       "evaluation_completed": "✅ Evaluación completada en modo interactivo."

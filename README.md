@@ -46,21 +46,21 @@ uv run mlv shell
 
 Once you're in the `MLVLab>` shell:
 
-```sh
+```python
 list                    # Discover available units
-list ants               # List environments from a specific unit
-play <env>              # Play to understand the objective
-train <env>             # Train an agent with a specific seed
-eval <env>              # Evaluate training visually
-view <env>              # Create an interactive view of the simulation
-docs <env>              # Check technical specifications and documentation
+list <unit>             # List environments from a specific unit
+play <env-id>           # Play to understand the objective
+train <env-id>          # Train an agent with a specific seed
+eval <env-id>           # Evaluate training visually
+view <env-id>           # Create an interactive view of the simulation
+docs <env-id>           # Check technical specifications and documentation
 config <args>           # Manage configuration settings
 clear                   # Reset the terminal logs
 exit                    # Exit the shell (or use 'quit')
 ```
 
 **Example session:**
-```sh
+```python
 play AntScout-v1
 train AntScout-v1 --seed 123
 eval AntScout-v1 --seed 123
@@ -146,7 +146,7 @@ play AntScout-v1 --seed 42
 
 ### Training command: `train <env-id> [options]`
 
-Trains the environment's baseline agent and saves weights/artifacts in `data/<env>/<seed-XYZ>/`.
+Trains the environment's baseline agent and saves weights/artifacts in `data/<env-id>/<seed-XYZ>/`.
 
 - **Basic usage**: `train <env-id>`
 - **Parameters**:

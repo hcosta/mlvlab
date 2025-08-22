@@ -34,10 +34,10 @@
       "launching": "🚀 Launching [bold cyan]{env_id}[/bold cyan]...",
       "error_env_not_found": "❌ [bold red]Error:[/bold red] Environment '{env_id}' not found.",
       "error_no_keymap": "❌ [bold red]Error:[/bold red] No key mapping found for {env_id}.",
-      "working_dir": "📂 Working in directory: [bold yellow]{run_dir}[/bold yellow]",
-      "no_seed_random": "🌱 No seed specified. Using random seed: [bold yellow]{seed}[/bold yellow]",
+      "working_dir": "📂 Working in directory: {run_dir}",
+      "no_seed_random": "🌱 No seed specified. Using random seed: {seed}",
       "searching_last_training": "ℹ️  No seed specified. Looking for latest training...",
-      "evaluating_from": "🎬 Evaluating from [bold yellow]{run_dir}[/bold yellow]...",
+      "evaluating_from": "🎬 Evaluating from {run_dir}...",
       "use_list_unit": "Use: [bold]list <unit>[/bold] to see environments from a unit (e.g. list ants)",
       "error_no_algorithm": "❌ Error: No reference algorithm defined for {env_id}.",
       "error_training": "❌ Error training with algorithm '{algorithm_key}': {error}",
@@ -172,7 +172,7 @@
   },
   "helpers": {
     "video": {
-      "no_videos_found": "ℹ️ No videos found to merge.",
+      "no_videos_found": "ℹ️  No videos found to merge.",
       "processing_videos": "📹 Processing {total_episodes} videos to add text...",
       "error_processing_clip": "- {filename:25} | ❌ Error processing clip: {error}",
       "error_processing_videos": "🛑 Could not process videos.",
@@ -183,7 +183,7 @@
     },
     "train": {
       "random_respawn": "ℹ️  Configured random respawn (unseeded) for training.",
-      "training": "Training...",
+      "training": "🏃",
       "training_completed": "✅ Training completed. Q-Table saved in: {q_path}",
       "training_no_qtable": "⚠️ Training completed, but agent does not expose q_table. No file saved."
     },
@@ -191,9 +191,10 @@
       "deterministic_respawn": "ℹ️  Configured deterministic respawn (seeded) for evaluation.",
       "agent_state_loaded": "🧠 Agent state loaded from {agent_file}.",
       "error_loading_agent": "⚠️ Could not load agent state: {error}",
-      "evaluating": "Evaluating...",
+      "evaluating": "🛠️ ",
       "recording_final_scene": "Recording final cinematic scene...",
       "video_saved": "✅ Video saved successfully: {video_path}",
+      "saving_video_details": "💾 Saving video at {fps:.2f} FPS (speed x{speed})...",
       "error_saving_video": "❌ Error saving video with imageio: {error}",
       "no_frames_generated": "⚠️ No frames generated for video.",
       "evaluation_completed": "✅ Evaluation completed in interactive mode."

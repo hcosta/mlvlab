@@ -28,6 +28,30 @@ from mlvlab.core.player import play_interactive
 # Importamos el sistema de internacionalización
 from mlvlab.i18n.core import i18n
 
+
+def clear_screen(command=None):
+    """Limpia la pantalla del terminal conservando solo la última línea del comando."""
+    # Limpiar toda la pantalla
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+    # Mostrar el comando que se está ejecutando con colores usando HTML como en el shell
+    if command:
+        # Usar el mismo formato HTML que funciona en el shell interactivo
+        from prompt_toolkit.formatted_text import HTML
+        from prompt_toolkit import print_formatted_text
+
+        prompt_html = HTML(
+            f"<skyblue><b>MLVLab</b></skyblue><b>></b> {command}")
+        print_formatted_text(prompt_html)
+    else:
+        from prompt_toolkit.formatted_text import HTML
+        from prompt_toolkit import print_formatted_text
+
+        prompt_html = HTML(
+            "<skyblue><b>MLVLab</b></skyblue><b>></b> [comando ejecutado]")
+        print_formatted_text(prompt_html)
+
+
 app = typer.Typer(
     rich_markup_mode="rich",
     help=i18n.t("cli.help.main"),
@@ -113,6 +137,15 @@ def config_command(
         None, help="Configuration key (e.g., locale)"),
     value: Optional[str] = typer.Argument(None, help="Value to set"),
 ):
+    # Construir el comando completo para mostrarlo
+    command_parts = ["config", action]
+    if key:
+        command_parts.append(key)
+    if value:
+        command_parts.append(value)
+    command_str = " ".join(command_parts)
+
+    clear_screen(command_str)
     from pathlib import Path
     import json
     from mlvlab.i18n.core import i18n
@@ -203,6 +236,13 @@ def list_environments(
         autocompletion=complete_unit_id
     )
 ):
+    # Construir el comando completo para mostrarlo
+    command_parts = ["list"]
+    if unidad:
+        command_parts.append(unidad)
+    command_str = " ".join(command_parts)
+
+    clear_screen(command_str)
     from rich.table import Table
 
     # Recargar configuración del i18n para detectar cambios
@@ -297,6 +337,13 @@ def play_command(
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
 ):
+    # Construir el comando completo para mostrarlo
+    command_parts = ["play", env_id]
+    if seed is not None:
+        command_parts.extend(["--seed", str(seed)])
+    command_str = " ".join(command_parts)
+
+    clear_screen(command_str)
     # Normalizar el ID del entorno
     normalized_env_id = normalize_env_id(env_id)
     console.print(i18n.t("cli.messages.launching", env_id=normalized_env_id))
@@ -332,6 +379,10 @@ def view_command(
     env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_view"),
                                  autocompletion=complete_env_id),
 ):
+    # Construir el comando completo para mostrarlo
+    command_str = f"view {env_id}"
+
+    clear_screen(command_str)
     # Normalizar el ID del entorno
     normalized_env_id = normalize_env_id(env_id)
     console.print(
@@ -379,6 +430,17 @@ def train_command(
     render: bool = typer.Option(
         False, "--render", "-r", help=i18n.t("cli.options.render")),
 ):
+    # Construir el comando completo para mostrarlo
+    command_parts = ["train", env_id]
+    if seed is not None:
+        command_parts.extend(["--seed", str(seed)])
+    if eps is not None:
+        command_parts.extend(["--eps", str(eps)])
+    if render:
+        command_parts.append("--render")
+    command_str = " ".join(command_parts)
+
+    clear_screen(command_str)
     try:
         # 1. Encontrar la ruta del script auxiliar de entrenamiento
         train_entry_script = Path(__file__).parent / "train_entry.py"
@@ -420,6 +482,19 @@ def eval_command(
     record: bool = typer.Option(
         False, "--rec", "-r", help=i18n.t("cli.options.record")),
 ):
+    # Construir el comando completo para mostrarlo
+    command_parts = ["eval", env_id]
+    if seed is not None:
+        command_parts.extend(["--seed", str(seed)])
+    if episodes != 5:  # Solo mostrar si no es el valor por defecto
+        command_parts.extend(["--eps", str(episodes)])
+    if speed != 1.0:  # Solo mostrar si no es el valor por defecto
+        command_parts.extend(["--speed", str(speed)])
+    if record:
+        command_parts.append("--rec")
+    command_str = " ".join(command_parts)
+
+    clear_screen(command_str)
     try:
         # 1. Encontrar la ruta del script auxiliar de evaluación
         eval_entry_script = Path(__file__).parent / "eval_entry.py"
@@ -452,6 +527,7 @@ def eval_command(
 
 @app.command(name="shell", help=i18n.t("cli.help.shell"))
 def shell_command():
+    clear_screen("shell")
     console.print(f"[bold green]{i18n.t('cli.repl.welcome')}[/bold green]")
     console.print(i18n.t('cli.repl.exit_tip'))
 
@@ -551,6 +627,10 @@ def docs_command(
     env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_docs"),
                                  autocompletion=complete_env_id),
 ):
+    # Construir el comando completo para mostrarlo
+    command_str = f"docs {env_id}"
+
+    clear_screen(command_str)
     import webbrowser
     from pathlib import Path
 
