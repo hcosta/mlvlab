@@ -75,7 +75,7 @@ You can use MLV-Lab environments in your own Python projects like any other Gymn
 
 ```bash
 # Create your virtual environment and then install dependencies
-pip install -U git+https://github.com/hcosta/mlvlab
+pip install -U mlvlab
 ```
 
 ### 2. Usage in your Code

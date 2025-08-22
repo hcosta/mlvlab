@@ -7,6 +7,7 @@
       "train": "Train an agent. If no seed is specified, a random one is generated.",
       "eval": "Evaluate an agent interactively by default; use --rec to record.",
       "view": "Launch the interactive view associated with an environment.",
+      "shell": "Starts an interactive session (REPL) to run mlvlab commands.",
       "help": "Show technical specifications and documentation link for an environment.",
       "docs": "Show technical specifications and open documentation in browser.",
       "config": "Manage MLV-Lab configuration (locale, etc.)",
@@ -35,7 +36,7 @@
       "error_no_keymap": "❌ [bold red]Error:[/bold red] No key mapping found for {env_id}.",
       "working_dir": "📂 Working in directory: [bold yellow]{run_dir}[/bold yellow]",
       "no_seed_random": "🌱 No seed specified. Using random seed: [bold yellow]{seed}[/bold yellow]",
-      "searching_last_training": "ℹ️ No seed specified. Looking for latest training...",
+      "searching_last_training": "ℹ️  No seed specified. Looking for latest training...",
       "evaluating_from": "🎬 Evaluating from [bold yellow]{run_dir}[/bold yellow]...",
       "use_list_unit": "Use: [bold]mlv list <unit>[/bold] to see environments from a unit (e.g. mlv list ants)",
       "error_no_algorithm": "❌ Error: No reference algorithm defined for {env_id}.",
@@ -60,6 +61,17 @@
       "speed": "Speed multiplier (e.g., 0.5 for half speed).",
       "record": "Record and generate evaluation video instead of just viewing.",
       "unit_filter": "Filter by unit (e.g.: ants)"
+    },
+    "repl": {
+      "welcome": "Welcome to the MLV-Lab interactive session.",
+      "exit_tip": "Type 'exit' or 'quit' (or press Ctrl+D) to exit.",
+      "goodbye": "Stay up to date with the latest news on our website. See you later!"
+    },
+    "shell": {
+      "venv_not_found": "Error: Virtual environment not found in '.venv'.",
+      "starting": "Starting a sub-shell inside the virtual environment...",
+      "exit_tip": "Type 'exit' to return to the original shell.",
+      "error": "Failed to start sub-shell: {error}"
     },
     "tables": {
       "unit_id": "Unit ID",
@@ -90,6 +102,23 @@
       "sarsa": "SARSA Simulations",
       "dqn": "DQN Simulations",
       "dqnp": "Advanced DQN Simulations"
+    },
+    "errors": {
+      "player_entry_not_found": "Error: Could not find player entry script on '{path}'",
+      "play_launch_failed": "Error: Failed to launch game mode: {error}",
+      "view_script_not_found": "Error: Could not find view file for module '{module_name}'",
+      "train_entry_not_found": "Error: Could not find training entry script on '{path}'",
+      "train_launch_failed": "Error: Failed to launch training mode: {error}",
+      "eval_entry_not_found": "Error: Could not find evaluation entry script on '{path}'",
+      "eval_launch_failed": "Error: Failed to launch evaluation mode: {error}"
+    },
+    "entry": {
+      "no_keymap": "Error: No keymap found for environment '{env_id}'.",
+      "play_error": "An error occurred during interactive play: {error}",
+      "no_algorithm": "Error: No algorithm defined for environment '{env_id}'.",
+      "train_error": "An error occurred during training: {error}",
+      "no_valid_training": "Error: No valid training found for '{env_id}'.",
+      "eval_error": "An error occurred during evaluation: {error}"
     }
   },
   "ui": {
@@ -153,13 +182,13 @@
       "error_final_video": "❌ Error: Final video could not be created."
     },
     "train": {
-      "random_respawn": "ℹ️ Configured random respawn (unseeded) for training.",
+      "random_respawn": "ℹ️  Configured random respawn (unseeded) for training.",
       "training": "Training...",
       "training_completed": "✅ Training completed. Q-Table saved in: {q_path}",
       "training_no_qtable": "⚠️ Training completed, but agent does not expose q_table. No file saved."
     },
     "eval": {
-      "deterministic_respawn": "ℹ️ Configured deterministic respawn (seeded) for evaluation.",
+      "deterministic_respawn": "ℹ️  Configured deterministic respawn (seeded) for evaluation.",
       "agent_state_loaded": "🧠 Agent state loaded from {agent_file}.",
       "error_loading_agent": "⚠️ Could not load agent state: {error}",
       "evaluating": "Evaluating...",

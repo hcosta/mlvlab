@@ -7,6 +7,7 @@
       "train": "Entrena un agente. Si no se especifica una semilla, se genera una aleatoria.",
       "eval": "Evalúa un agente en modo interactivo por defecto; usa --rec para grabar.",
       "view": "Lanza la vista interactiva asociada a un entorno.",
+      "shell": "Inicia una sesión interactiva (REPL) para ejecutar comandos de mlvlab.",
       "help": "Muestra la ficha técnica y un enlace a la documentación del entorno.",
       "docs": "Muestra las especificaciones técnicas y abre la documentación en el navegador.",
       "config": "Gestiona la configuración de MLV-Lab (idioma, etc.)",
@@ -61,6 +62,17 @@
       "record": "Graba y genera un vídeo de la evaluación en lugar de solo visualizar.",
       "unit_filter": "Filtra por unidad (ej.: ants)"
     },
+    "repl": {
+      "welcome": "Bienvenido a la sesión interactiva de MLV-Lab.",
+      "exit_tip": "Escribe 'exit' o 'quit' (o pulsa Ctrl+D) para salir.",
+      "goodbye": "Mantente al día de las novedades en nuestra web. ¡Hasta luego!"
+    },
+    "shell": {
+      "venv_not_found": "Error: No se encontró el entorno virtual en '.venv'.",
+      "starting": "Iniciando un sub-shell dentro del entorno virtual...",
+      "exit_tip": "Escribe 'exit' para volver al shell original.",
+      "error": "Error al iniciar el sub-shell: {error}"
+    },
     "tables": {
       "unit_id": "ID de la Unidad",
       "collection": "Colección",
@@ -90,6 +102,23 @@
       "sarsa": "Simulaciones de SARSA",
       "dqn": "Simulaciones de DQN",
       "dqnp": "Simulaciones DQN Plus (avanzado)"
+    },
+    "errors": {
+      "player_entry_not_found": "Error: No se pudo encontrar el script de entrada del jugador en '{path}'",
+      "play_launch_failed": "Error al lanzar el modo de juego: {error}",
+      "view_script_not_found": "Error: No se pudo encontrar el archivo de la vista para el módulo '{module_name}'",
+      "train_entry_not_found": "Error: No se pudo encontrar el script de entrada de entrenamiento en '{path}'",
+      "train_launch_failed": "Error al lanzar el modo de entrenamiento: {error}",
+      "eval_entry_not_found": "Error: No se pudo encontrar el script de entrada de evaluación en '{path}'",
+      "eval_launch_failed": "Error al lanzar el modo de evaluación: {error}"
+    },
+    "entry": {
+      "no_keymap": "Error: No se encontró mapa de teclas para el entorno '{env_id}'.",
+      "play_error": "Ocurrió un error durante el juego interactivo: {error}",
+      "no_algorithm": "Error: No se ha definido un algoritmo para el entorno '{env_id}'.",
+      "train_error": "Ocurrió un error durante el entrenamiento: {error}",
+      "no_valid_training": "Error: No se encontró un entrenamiento válido para '{env_id}'.",
+      "eval_error": "Ocurrió un error durante la evaluación: {error}"
     }
   },
   "ui": {

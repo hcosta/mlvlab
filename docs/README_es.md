@@ -74,7 +74,7 @@ Puedes usar los entornos de MLV-Lab en tus propios proyectos de Python como cual
 
 ```bash
 # Crea tu entorno virtual y luego instala las dependencias
-pip install -U git+https://github.com/hcosta/mlvlab
+pip install -U mlvlab
 ```
 
 ### 2. Uso en tu Código

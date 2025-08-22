@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import random
 from typing import Optional
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import gymnasium as gym
 import typer
 from gymnasium.error import NameNotFound
 from rich.console import Console
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import NestedCompleter
+from prompt_toolkit.history import FileHistory
 
 # Importamos las nuevas utilidades de gestión de 'runs'
 from mlvlab.cli.run_manager import get_run_dir, find_latest_run_dir
@@ -22,7 +30,8 @@ from mlvlab.i18n.core import i18n
 app = typer.Typer(
     rich_markup_mode="rich",
     help=i18n.t("cli.help.main"),
-    no_args_is_help=True
+    no_args_is_help=True,
+    add_completion=False  # Oculta las opciones de autocompletado --install-completion
 )
 
 # =============================================================================
@@ -95,7 +104,7 @@ def complete_unit_id(incomplete: str):
 # =============================================================================
 
 
-@app.command(name="config")
+@app.command(name="config", help=i18n.t("cli.help.config"))
 def config_command(
     action: str = typer.Argument(...,
                                  help="Action to perform: get, set, reset"),
@@ -103,7 +112,6 @@ def config_command(
         None, help="Configuration key (e.g., locale)"),
     value: Optional[str] = typer.Argument(None, help="Value to set"),
 ):
-    """Manage MLV-Lab configuration."""
     from pathlib import Path
     import json
     from mlvlab.i18n.core import i18n
@@ -186,7 +194,7 @@ def config_command(
         raise typer.Exit(1)
 
 
-@app.command(name="list")
+@app.command(name="list", help=i18n.t("cli.help.list"))
 def list_environments(
     unidad: Optional[str] = typer.Argument(
         None,
@@ -194,7 +202,6 @@ def list_environments(
         autocompletion=complete_unit_id
     )
 ):
-    """List available units or environments from a specific unit."""
     from rich.table import Table
 
     # Recargar configuración del i18n para detectar cambios
@@ -282,62 +289,74 @@ def list_environments(
         console.print(table)
 
 
-@app.command(name="play")
+@app.command(name="play", help=i18n.t("cli.help.play"))
 def play_command(
-    env_id: str = typer.Argument(..., help="Environment ID to play (e.g., AntScout-v1 or mlv/AntScout-v1).",
+    env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_play"),
                                  autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
 ):
-    """Play interactively in an environment (render_mode=human)."""
     # Normalizar el ID del entorno
     normalized_env_id = normalize_env_id(env_id)
     console.print(i18n.t("cli.messages.launching", env_id=normalized_env_id))
 
     try:
-        # Obtenemos la configuración específica (mapeo de teclas)
-        config = get_env_config(normalized_env_id)
-        key_map = config.get("KEY_MAP", None)
-
-        if key_map is None:
-            console.print(i18n.t("cli.messages.error_no_keymap",
-                          env_id=normalized_env_id))
+        # 1. Encontrar la ruta del script auxiliar del player
+        player_entry_script = Path(__file__).parent / "player_entry.py"
+        if not player_entry_script.exists():
+            console.print(
+                f"[red]{i18n.t('cli.errors.player_entry_not_found', path=player_entry_script)}[/red]")
             raise typer.Exit(code=1)
 
-        # Usamos el player genérico
-        play_interactive(normalized_env_id, key_map=key_map, seed=seed)
+        # 2. Construir y ejecutar el comando en un subproceso
+        python_executable = sys.executable
+        command = [python_executable, str(player_entry_script), env_id]
+        if seed is not None:
+            command.extend(["--seed", str(seed)])
+
+        subprocess.run(command)
 
     except NameNotFound:
         console.print(i18n.t("cli.messages.error_env_not_found",
                       env_id=normalized_env_id))
         raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(
+            f"[red]{i18n.t('cli.errors.play_launch_failed', error=e)}[/red]")
+        raise typer.Exit(code=1)
 
 
-@app.command(name="view")
+@app.command(name="view", help=i18n.t("cli.help.view"))
 def view_command(
-    env_id: str = typer.Argument(..., help="Environment ID to open view (e.g., AntScout-v1 or mlv/AntScout-v1).",
+    env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_view"),
                                  autocompletion=complete_env_id),
 ):
-    """Launch the interactive view associated with an environment."""
     # Normalizar el ID del entorno
     normalized_env_id = normalize_env_id(env_id)
     console.print(
         i18n.t("cli.view.opening_view", env_id=normalized_env_id))
     try:
-        # Resolver el módulo de view a partir del entry_point de Gym para evitar errores de mayúsculas
+        # 1. Encontrar la ruta del script de la vista
         spec = gym.spec(normalized_env_id)
-        # p.ej., mlvlab.envs.ant_scout_v1.env
         entry_point = spec.entry_point.split(':')[0]
-        # mlvlab.envs.ant_scout_v1
         base_pkg = '.'.join(entry_point.split('.')[:-1])
-        module_path = f"{base_pkg}.view"
-        mod = importlib.import_module(module_path)
-        if hasattr(mod, "main"):
-            mod.main()
-        else:
+        module_name = f"{base_pkg}.view"
+
+        view_spec = importlib.util.find_spec(module_name)
+        if view_spec is None or view_spec.origin is None:
             console.print(
-                i18n.t("cli.messages.error_no_main_function", module_path=module_path))
+                f"[red]{i18n.t('cli.errors.view_script_not_found', module_name=module_name)}[/red]")
             raise typer.Exit(code=1)
+
+        view_script_path = view_spec.origin
+
+        # 2. Construir y ejecutar el comando en un subproceso
+        python_executable = sys.executable
+        command = [python_executable, view_script_path]
+
+        # subprocess.run bloqueará hasta que la vista se cierre, que es el comportamiento deseado.
+        subprocess.run(command)
+
     except NameNotFound:
         console.print(i18n.t("cli.messages.error_env_not_found",
                       env_id=normalized_env_id))
@@ -348,9 +367,9 @@ def view_command(
         raise typer.Exit(code=1)
 
 
-@app.command(name="train")
+@app.command(name="train", help=i18n.t("cli.help.train"))
 def train_command(
-    env_id: str = typer.Argument(..., help="Environment ID to train (e.g., AntScout-v1 or mlv/AntScout-v1).",
+    env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_train"),
                                  autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
@@ -359,46 +378,37 @@ def train_command(
     render: bool = typer.Option(
         False, "--render", "-r", help=i18n.t("cli.options.render")),
 ):
-    """Train an agent. If no seed is specified, a random one is generated."""
-    # Normalizar el ID del entorno
-    normalized_env_id = normalize_env_id(env_id)
-    config = get_env_config(normalized_env_id)
-    baseline = config.get("BASELINE", {})
-    # Nuevo flujo: seleccionar algoritmo desde ALGORITHM/UNIT
-    algorithm_key = config.get("ALGORITHM") or config.get("UNIT", None)
-    train_config = baseline.get("config", {}).copy()
-
-    if not algorithm_key:
-        console.print(i18n.t("cli.messages.error_no_algorithm",
-                      env_id=normalized_env_id))
-        raise typer.Exit(code=1)
-
-    # LÓGICA DE SEMILLA ALEATORIA ---
-    run_seed = seed
-    if run_seed is None:
-        run_seed = random.randint(0, 10000)
-        console.print(i18n.t("cli.messages.no_seed_random", seed=run_seed))
-
-    # Obtener/crear el directorio para este 'run'
-    run_dir = get_run_dir(normalized_env_id, run_seed)
-    console.print(i18n.t("cli.messages.working_dir", run_dir=str(run_dir)))
-
-    # Nuevo: usar registro de algoritmos (asegurar carga de plugins integrados)
-    from mlvlab.algorithms.registry import get_algorithm
-
     try:
-        algo = get_algorithm(algorithm_key)
-        algo.train(normalized_env_id, train_config, run_dir=run_dir,
-                   seed=run_seed, render=render)
+        # 1. Encontrar la ruta del script auxiliar de entrenamiento
+        train_entry_script = Path(__file__).parent / "train_entry.py"
+        if not train_entry_script.exists():
+            console.print(
+                f"[red]{i18n.t('cli.errors.train_entry_not_found', path=train_entry_script)}[/red]")
+            raise typer.Exit(code=1)
+
+        # 2. Construir y ejecutar el comando en un subproceso
+        python_executable = sys.executable
+        command = [python_executable, str(train_entry_script), env_id]
+
+        # Añadir argumentos opcionales si se proporcionan
+        if seed is not None:
+            command.extend(["--seed", str(seed)])
+        if eps is not None:
+            command.extend(["--eps", str(eps)])
+        if render:
+            command.append("--render")
+
+        subprocess.run(command)
+
     except Exception as e:
-        console.print(i18n.t("cli.messages.error_training",
-                      algorithm_key=algorithm_key, error=str(e)))
+        console.print(
+            f"[red]{i18n.t('cli.errors.train_launch_failed', error=e)}[/red]")
         raise typer.Exit(code=1)
 
 
-@app.command(name="eval")
+@app.command(name="eval", help=i18n.t("cli.help.eval"))
 def eval_command(
-    env_id: str = typer.Argument(..., help="Environment ID to evaluate (e.g., AntScout-v1 or mlv/AntScout-v1).",
+    env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_eval"),
                                  autocompletion=complete_env_id),
     seed: Optional[int] = typer.Option(
         None, "--seed", "-s", help=i18n.t("cli.options.seed")),
@@ -409,63 +419,136 @@ def eval_command(
     record: bool = typer.Option(
         False, "--rec", "-r", help=i18n.t("cli.options.record")),
 ):
-    """Evaluate an agent interactively by default; use --rec to record."""
-    # Normalizar el ID del entorno
-    normalized_env_id = normalize_env_id(env_id)
-    run_dir = None
-    if seed is not None:
-        run_dir = get_run_dir(normalized_env_id, seed)
-    else:
-        console.print(i18n.t("cli.messages.searching_last_training"))
-        run_dir = find_latest_run_dir(normalized_env_id)
-
-    if not run_dir or not (run_dir / "q_table.npy").exists():
-        console.print(i18n.t("cli.messages.error_no_training"))
-        raise typer.Exit(code=1)
-
-    console.print(i18n.t("cli.messages.evaluating_from", run_dir=str(run_dir)))
-
-    # Extraer la semilla del nombre de la carpeta para la reproducibilidad del mapa
     try:
-        eval_seed = int(run_dir.name.split('-')[1])
-    except (IndexError, ValueError):
-        console.print(
-            i18n.t("cli.messages.error_cannot_extract_seed", folder_name=run_dir.name))
-        eval_seed = None
+        # 1. Encontrar la ruta del script auxiliar de evaluación
+        eval_entry_script = Path(__file__).parent / "eval_entry.py"
+        if not eval_entry_script.exists():
+            console.print(
+                f"[red]{i18n.t('cli.errors.eval_entry_not_found', path=eval_entry_script)}[/red]")
+            raise typer.Exit(code=1)
 
-    # Obtener algoritmo desde la configuración del entorno
-    config = get_env_config(normalized_env_id)
-    algorithm_key = config.get("ALGORITHM") or config.get("UNIT", None)
+        # 2. Construir y ejecutar el comando en un subproceso
+        python_executable = sys.executable
+        command = [python_executable, str(eval_entry_script), env_id]
 
-    if not algorithm_key:
-        console.print(i18n.t("cli.messages.error_no_algorithm",
-                      env_id=normalized_env_id))
-        raise typer.Exit(code=1)
+        # Añadir argumentos opcionales si se proporcionan
+        if seed is not None:
+            command.extend(["--seed", str(seed)])
+        if episodes != 5:  # Solo añadir si no es el valor por defecto
+            command.extend(["--episodes", str(episodes)])
+        if speed != 1.0:  # Solo añadir si no es el valor por defecto
+            command.extend(["--speed", str(speed)])
+        if record:
+            command.append("--record")
 
-    from mlvlab.algorithms.registry import get_algorithm
+        subprocess.run(command)
 
-    try:
-        algo = get_algorithm(algorithm_key)
-        algo.eval(
-            normalized_env_id,
-            run_dir=run_dir,
-            episodes=episodes,
-            seed=eval_seed,
-            video=record,
-            speed=speed
-        )
     except Exception as e:
-        console.print(i18n.t("cli.messages.error_evaluation",
-                      algorithm_key=algorithm_key, error=str(e)))
+        console.print(
+            f"[red]{i18n.t('cli.errors.eval_launch_failed', error=e)}[/red]")
         raise typer.Exit(code=1)
 
 
-@app.command(name="docs")
+@app.command(name="shell", help=i18n.t("cli.help.shell"))
+def shell_command():
+    console.print(f"[bold green]{i18n.t('cli.repl.welcome')}[/bold green]")
+    console.print(i18n.t('cli.repl.exit_tip'))
+
+    # --- 1. Configuración del Autocompletado ---
+
+    # Obtenemos todos los nombres de los comandos de la app
+    command_names = [cmd.name for cmd in app.registered_commands if cmd.name]
+
+    # Obtenemos todos los IDs de entorno para autocompletar en play, train, etc.
+    try:
+        import mlvlab.envs
+    except ImportError:
+        pass
+    all_env_ids = [env_id.replace(
+        "mlv/", "") for env_id in gym.envs.registry.keys() if env_id.startswith("mlv/")]
+
+    # Obtenemos todas las unidades
+    all_unit_ids = list(complete_unit_id(""))
+
+    # Creamos un diccionario para el autocompletado anidado
+    completer_map = {
+        command: None for command in command_names
+    }
+    for command in ["play", "view", "train", "eval", "docs"]:
+        completer_map[command] = {env_id: None for env_id in all_env_ids}
+    completer_map["list"] = {unit_id: None for unit_id in all_unit_ids}
+
+    # Palabras clave para salir, ayuda y limpiar pantalla
+    completer_map["exit"] = None
+    completer_map["quit"] = None
+    completer_map["cls"] = None
+    completer_map["clear"] = None
+    completer_map["help"] = {cmd: None for cmd in command_names}
+
+    completer = NestedCompleter.from_nested_dict(completer_map)
+
+    # --- 2. Configuración de la Sesión de Prompt ---
+
+    history_file = Path.home() / '.mlvlab' / 'history.txt'
+    history_file.parent.mkdir(exist_ok=True)
+
+    session = PromptSession(
+        history=FileHistory(str(history_file)),
+        completer=completer,
+        complete_while_typing=True,
+    )
+
+    # --- 3. Bucle Principal (REPL) ---
+    while True:
+        try:
+            text = session.prompt("MLVisual> ")
+            args = text.split()
+
+            if not args:
+                continue
+
+            # Manejar comandos especiales de la shell
+            command = args[0].lower()
+
+            if command in ["quit", "exit"]:
+                break
+
+            if command in ["cls", "clear"]:
+                os.system('cls' if os.name == 'nt' else 'clear')
+                continue
+
+            if command == 'help':
+                help_args = args[1:] + \
+                    ['--help'] if len(args) > 1 else ['--help']
+                try:
+                    app(args=help_args, prog_name="mlv")
+                except SystemExit:
+                    pass
+                continue
+
+            # Ejecutar comando normal
+            try:
+                app(args=args, prog_name="mlv")
+            except SystemExit:
+                pass
+            except typer.Exit:
+                pass
+            except Exception as e:
+                console.print(f"[bold red]Error inesperado:[/bold red] {e}")
+
+        except KeyboardInterrupt:
+            break
+        except EOFError:
+            break
+
+    console.print(f"[yellow]{i18n.t('cli.repl.goodbye')}[/yellow]")
+
+
+@app.command(name="docs", help=i18n.t("cli.help.docs"))
 def docs_command(
-    env_id: str = typer.Argument(..., help="Environment ID to show documentation (e.g., AntScout-v1 or mlv/AntScout-v1).",
+    env_id: str = typer.Argument(..., help=i18n.t("cli.args.env_id_docs"),
                                  autocompletion=complete_env_id),
 ):
-    """Show technical specifications and open documentation in browser."""
     import webbrowser
     from pathlib import Path
 
@@ -547,5 +630,6 @@ def _load_plugins():
 
 
 if __name__ == "__main__":
+    # Flujo normal de la CLI
     _load_plugins()
     app()
