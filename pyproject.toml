@@ -4,24 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlvlab"
-version = "0.2.16"
+version = "0.2.17"
 description = "Visual AI Learning Ecosystem - MLVisual®"
 readme = "docs/README_PyPI.md"
 requires-python = ">=3.10"
 
 # --- Dependencias Principales (Flexibles) ---
-# (~=) para permitir actualizaciones menores
 # ~=2.0 permite 2.0.2, 2.1, etc., pero no 3.0.
 dependencies = [
     # Core de simulación y ciencia de datos
-    "gymnasium~=1.2",
-    "numpy>=1.26.0",
     "arcade~=3.3",
-    "Pillow~=11.0",
-    "pyglet~=2.1",
+    "gymnasium~=1.2",
     "opencv-python~=4.12",
     "pyvirtualdisplay~=3.0",
-    
+
     # Dependencias de la CLI
     "typer[all]~=0.16",
     "rich>=13.0,<14.0",
@@ -29,7 +25,6 @@ dependencies = [
 
     # Dependencias de la UI (AnalyticsView)
     "nicegui[highcharts]~=2.22",
-    "starlette~=0.47",
     "PySide6>=6.9,<6.10",
 ]
 
