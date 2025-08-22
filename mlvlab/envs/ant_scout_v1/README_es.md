@@ -81,28 +81,28 @@ Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena e
 
 ```bash
 # Jugar interactivamente en el entorno
-MLVisual> play AntScout-v1
+MLVLab> play AntScout-v1
 
 # Entrenar un agente para una semilla específica (p. ej. 42)
-MLVisual> train AntScout-v1 --seed 42
+MLVLab> train AntScout-v1 --seed 42
 
 # Entrenar con una semilla aleatoria
-MLVisual> train AntScout-v1
+MLVLab> train AntScout-v1
 
 # Evaluar el último entrenamiento en modo ventana
-MLVisual> eval AntScout-v1
+MLVLab> eval AntScout-v1
 
 # Evaluar un entrenamiento de una semilla específica
-MLVisual> eval AntScout-v1 --seed 42
+MLVLab> eval AntScout-v1 --seed 42
 
 # Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-MLVisual> eval AntScout-v1 --rec --eps 100
+MLVLab> eval AntScout-v1 --rec --eps 100
 
 # Lanza una vista interactiva para manipular el entorno usando controles
-MLVisual> view AntScout-v1
+MLVLab> view AntScout-v1
 
 # Ver esta ficha técnica desde la terminal
-MLVisual> docs AntScout-v1
+MLVLab> docs AntScout-v1
 ```
 
 ---

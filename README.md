@@ -44,29 +44,29 @@ uv run mlv shell
 
 ### 2. Interactive Shell Workflow
 
-Once you're in the `MLVisual>` shell:
+Once you're in the `(MLVisual)>` shell:
 
-```bash
-MLVisual> list                    # Discover available units
-MLVisual> list ants               # List environments from a specific unit
-MLVisual> play <env>              # Play to understand the objective (use Arrow keys/WASD)
-MLVisual> train <env>             # Train an agent with a specific seed
-MLVisual> eval <env>              # Evaluate training visually (interactive mode by default)
-MLVisual> view <env>              # Create an interactive view of the simulation
-MLVisual> docs <env>              # Check technical specifications and documentation
-MLVisual> config <args>           # Manage configuration settings
-MLVisual> clear                   # Reset the terminal logs
-MLVisual> exit                    # Exit the shell (or use 'quit')
+```sh
+MLVLab> list                    # Discover available units
+MLVLab> list ants               # List environments from a specific unit
+MLVLab> play <env>              # Play to understand the objective (use Arrow keys/WASD)
+MLVLab> train <env>             # Train an agent with a specific seed
+MLVLab> eval <env>              # Evaluate training visually (interactive mode by default)
+MLVLab> view <env>              # Create an interactive view of the simulation
+MLVLab> docs <env>              # Check technical specifications and documentation
+MLVLab> config <args>           # Manage configuration settings
+MLVLab> clear                   # Reset the terminal logs
+MLVLab> exit                    # Exit the shell (or use 'quit')
 ```
 
 **Example session:**
-```bash
-MLVisual> play AntScout-v1
-MLVisual> train AntScout-v1 --seed 123
-MLVisual> eval AntScout-v1 --seed 123
-MLVisual> view AntScout-v1
-MLVisual> docs AntScout-v1
-MLVisual> exit
+```sh
+MLVLab> play AntScout-v1
+MLVLab> train AntScout-v1 --seed 123
+MLVLab> eval AntScout-v1 --seed 123
+MLVLab> view AntScout-v1
+MLVLab> docs AntScout-v1
+MLVLab> exit
 ```
 
 ---
@@ -125,8 +125,8 @@ Returns a listing of available environment categories or environments from a spe
 Examples:
 
 ```bash
-MLVisual> list
-MLVisual> list ants
+MLVLab> list
+MLVLab> list ants
 ```
 
 ### Play command: `play <env-id> [options]`
@@ -141,7 +141,7 @@ Runs the environment in interactive mode (human) to test manual control.
 Example:
 
 ```bash
-MLVisual> play AntScout-v1 --seed 42
+MLVLab> play AntScout-v1 --seed 42
 ```
 
 ### Training command: `train <env-id> [options]`
@@ -158,7 +158,7 @@ Trains the environment's baseline agent and saves weights/artifacts in `data/<en
 Example:
 
 ```bash
-MLVisual> train AntScout-v1 --seed 123 --eps 500 --render
+MLVLab> train AntScout-v1 --seed 123 --eps 500 --render
 ```
 
 ### Evaluation command: `eval <env-id> [options]`
@@ -177,13 +177,13 @@ Examples:
 
 ```bash
 # Visualize agent using weights from latest training
-MLVisual> eval AntScout-v1
+MLVLab> eval AntScout-v1
 
 # Visualize specific training and record video
-MLVisual> eval AntScout-v1 --seed 123 --rec
+MLVLab> eval AntScout-v1 --seed 123 --rec
 
 # Evaluate 10 episodes
-MLVisual> eval AntScout-v1 --seed 123 --eps 10 --rec
+MLVLab> eval AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
 ### Interactive view command: `view <env-id>`
@@ -195,7 +195,7 @@ Launches the interactive view (Analytics View) of the environment with simulatio
 Example:
 
 ```bash
-MLVisual> view AntScout-v1
+MLVLab> view AntScout-v1
 ```
 
 ### Documentation command: `docs <env-id>`
@@ -208,7 +208,7 @@ It also displays a summary in the terminal in the configured language:
 Example:
 
 ```bash
-MLVisual> docs AntScout-v1
+MLVLab> docs AntScout-v1
 ```
 
 ### Configuration command: `config <action> [key] [value]`
@@ -227,16 +227,16 @@ Examples:
 
 ```bash
 # Show current configuration
-MLVisual> config get
+MLVLab> config get
 
 # Show specific setting
-MLVisual> config get locale
+MLVLab> config get locale
 
 # Set language to Spanish
-MLVisual> config set locale es
+MLVLab> config set locale es
 
 # Reset to defaults
-MLVisual> config reset
+MLVLab> config reset
 ```
 
 ---
