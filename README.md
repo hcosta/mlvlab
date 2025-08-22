@@ -44,29 +44,29 @@ uv run mlv shell
 
 ### 2. Interactive Shell Workflow
 
-Once you're in the `(MLVisual)>` shell:
+Once you're in the `MLVLab>` shell:
 
 ```sh
-MLVLab> list                    # Discover available units
-MLVLab> list ants               # List environments from a specific unit
-MLVLab> play <env>              # Play to understand the objective (use Arrow keys/WASD)
-MLVLab> train <env>             # Train an agent with a specific seed
-MLVLab> eval <env>              # Evaluate training visually (interactive mode by default)
-MLVLab> view <env>              # Create an interactive view of the simulation
-MLVLab> docs <env>              # Check technical specifications and documentation
-MLVLab> config <args>           # Manage configuration settings
-MLVLab> clear                   # Reset the terminal logs
-MLVLab> exit                    # Exit the shell (or use 'quit')
+list                    # Discover available units
+list ants               # List environments from a specific unit
+play <env>              # Play to understand the objective
+train <env>             # Train an agent with a specific seed
+eval <env>              # Evaluate training visually
+view <env>              # Create an interactive view of the simulation
+docs <env>              # Check technical specifications and documentation
+config <args>           # Manage configuration settings
+clear                   # Reset the terminal logs
+exit                    # Exit the shell (or use 'quit')
 ```
 
 **Example session:**
 ```sh
-MLVLab> play AntScout-v1
-MLVLab> train AntScout-v1 --seed 123
-MLVLab> eval AntScout-v1 --seed 123
-MLVLab> view AntScout-v1
-MLVLab> docs AntScout-v1
-MLVLab> exit
+play AntScout-v1
+train AntScout-v1 --seed 123
+eval AntScout-v1 --seed 123
+view AntScout-v1
+docs AntScout-v1
+exit
 ```
 
 ---
@@ -75,7 +75,7 @@ MLVLab> exit
 
 | Saga | Environment | ID (Gym) | Baseline | Details |  |
 |------|-----------|-----------------------------|------------|----------------|--------------|
-| 🐜 Ants | Scout Ant | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
+| 🐜 Ants | Scout Lookout | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
 
 ---
 
@@ -125,8 +125,8 @@ Returns a listing of available environment categories or environments from a spe
 Examples:
 
 ```bash
-MLVLab> list
-MLVLab> list ants
+list
+list ants
 ```
 
 ### Play command: `play <env-id> [options]`
@@ -141,7 +141,7 @@ Runs the environment in interactive mode (human) to test manual control.
 Example:
 
 ```bash
-MLVLab> play AntScout-v1 --seed 42
+play AntScout-v1 --seed 42
 ```
 
 ### Training command: `train <env-id> [options]`
@@ -158,7 +158,7 @@ Trains the environment's baseline agent and saves weights/artifacts in `data/<en
 Example:
 
 ```bash
-MLVLab> train AntScout-v1 --seed 123 --eps 500 --render
+train AntScout-v1 --seed 123 --eps 500 --render
 ```
 
 ### Evaluation command: `eval <env-id> [options]`
@@ -177,13 +177,13 @@ Examples:
 
 ```bash
 # Visualize agent using weights from latest training
-MLVLab> eval AntScout-v1
+eval AntScout-v1
 
 # Visualize specific training and record video
-MLVLab> eval AntScout-v1 --seed 123 --rec
+eval AntScout-v1 --seed 123 --rec
 
 # Evaluate 10 episodes
-MLVLab> eval AntScout-v1 --seed 123 --eps 10 --rec
+eval AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
 ### Interactive view command: `view <env-id>`
@@ -195,7 +195,7 @@ Launches the interactive view (Analytics View) of the environment with simulatio
 Example:
 
 ```bash
-MLVLab> view AntScout-v1
+view AntScout-v1
 ```
 
 ### Documentation command: `docs <env-id>`
@@ -208,7 +208,7 @@ It also displays a summary in the terminal in the configured language:
 Example:
 
 ```bash
-MLVLab> docs AntScout-v1
+docs AntScout-v1
 ```
 
 ### Configuration command: `config <action> [key] [value]`
@@ -227,16 +227,16 @@ Examples:
 
 ```bash
 # Show current configuration
-MLVLab> config get
+config get
 
 # Show specific setting
-MLVLab> config get locale
+config get locale
 
 # Set language to Spanish
-MLVLab> config set locale es
+config set locale es
 
 # Reset to defaults
-MLVLab> config reset
+config reset
 ```
 
 ---

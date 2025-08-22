@@ -18,6 +18,7 @@ from rich.console import Console
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.formatted_text import HTML
 
 # Importamos las nuevas utilidades de gestión de 'runs'
 from mlvlab.cli.run_manager import get_run_dir, find_latest_run_dir
@@ -501,7 +502,8 @@ def shell_command():
     # --- 3. Bucle Principal (REPL) ---
     while True:
         try:
-            text = session.prompt("MLVLab> ")
+            text = session.prompt(
+                HTML("<skyblue><b>MLVLab</b></skyblue><b>></b> "))
             args = text.split()
 
             if not args:

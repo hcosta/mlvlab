@@ -81,28 +81,28 @@ This method learns by creating a "lookup table" (the Q-Table) that stores the ex
 
 ```bash
 # Play interactively in the environment
-MLVLab> play AntScout-v1
+(MLVLab)> play AntScout-v1
 
 # Train an agent for a specific seed (e.g., 42)
-MLVLab> train AntScout-v1 --seed 42
+(MLVLab)> train AntScout-v1 --seed 42
 
 # Train with a random seed
-MLVLab> train AntScout-v1
+(MLVLab)> train AntScout-v1
 
 # Evaluate the latest training in window mode
-MLVLab> eval AntScout-v1
+(MLVLab)> eval AntScout-v1
 
 # Evaluate a training with a specific seed
-MLVLab> eval AntScout-v1 --seed 42
+(MLVLab)> eval AntScout-v1 --seed 42
 
 # Evaluate a training in headless mode recording a video of 100 episodes
-MLVLab> eval AntScout-v1 --rec --eps 100
+(MLVLab)> eval AntScout-v1 --rec --eps 100
 
 # Launch an interactive view to manipulate the environment using controls
-MLVLab> view AntScout-v1
+(MLVLab)> view AntScout-v1
 
 # View this technical specification from the terminal
-MLVLab> docs AntScout-v1
+(MLVLab)> docs AntScout-v1
 ```
 
 ---
