@@ -17,47 +17,59 @@ Este proyecto tiene dos audiencias principales:
 
 ---
 
-## 🚀 Uso Rápido (CLI)
+## 🚀 Uso Rápido (Shell Interactivo)
 
-MLV-Lab se controla a través del comando `mlv`. El flujo de trabajo está diseñado para ser intuitivo.
+MLV-Lab se controla a través de un shell interactivo llamado `MLVisual`. El flujo de trabajo está diseñado para ser intuitivo y fácil de usar.
 
 **Requisito:** Python 3.10+
 
-### 1. Instalación
-```bash
-pip install -U mlvlab
-mlv --install-completion  # Opcional para autocompletar comandos
-```
-
-### 2. Flujo de Trabajo Básico
+### 1. Instalación con uv
 
 ```bash
-# 1. Descubre las unidades disponibles o lista por unidad
-mlv list
-mlv list ants
+# Instalar el gestor de paquetes uv
+pip install uv
 
-# 2. Juega para entender el objetivo (usa Flechas/WASD)
-mlv play AntScout-v1
+# Crear un entorno virtual dedicado
+uv venv
 
-# 3. Entrena un agente con una semilla específica (ej. 123)
-#    (Se ejecuta rápido y guarda los "pesos" en data/mlv_AntScout-v1/seed-123/)
-mlv train AntScout-v1 --seed 123
+# Instalar mlvlab en el entorno virtual
+uv pip install mlvlab
 
-# 4. Evalúa el entrenamiento visualmente (modo interactivo por defecto)
-#    (Carga los pesos de la semilla 123 y abre la ventana con el agente usando esos pesos)
-mlv eval AntScout-v1 --seed 123
+# Para desarrollo (instalación local)
+uv pip install -e ".[dev]"
 
-# 4b. Si quieres grabar un vídeo (en lugar de solo visualizar), añade --rec
-mlv eval AntScout-v1 --seed 123 --rec
-
-# 5. Crea una vista interactiva de la simulación
-mlv view AntScout-v1
-
-# 6. Consulta la ficha técnica y la documentación de un entorno
-mlv docs AntScout-v1
+# Lanzar el shell interactivo
+uv run mlv shell
 ```
+
+### 2. Flujo de Trabajo del Shell Interactivo
+
+Una vez que estés en el shell `MLVisual>`:
+
+```bash
+MLVisual> list                    # Descubre las unidades disponibles
+MLVisual> list ants               # Lista entornos de una unidad específica
+MLVisual> play <env>              # Juega para entender el objetivo (usa Flechas/WASD)
+MLVisual> train <env>             # Entrena un agente con una semilla específica
+MLVisual> eval <env>              # Evalúa el entrenamiento visualmente (modo interactivo por defecto)
+MLVisual> view <env>              # Crea una vista interactiva de la simulación
+MLVisual> docs <env>              # Consulta la ficha técnica y documentación
+MLVisual> config <args>           # Gestiona la configuración
+MLVisual> clear                   # Reinicia los mensajes de la terminal
+MLVisual> exit                    # Sale del shell (o usa 'quit')
+```
+
+**Ejemplo de sesión:**
+```bash
+MLVisual> play AntScout-v1
+MLVisual> train AntScout-v1 --seed 123
+MLVisual> eval AntScout-v1 --seed 123
+MLVisual> view AntScout-v1
+MLVisual> docs AntScout-v1
+MLVisual> exit
+```
+
 ---
-
 ## 📦 Entornos disponibles
 
 | Saga | Entorno    | ID (Gym)                | Baseline    | Detalles |  |
@@ -100,42 +112,42 @@ env.close()
 
 ---
 
-## ⚙️ Opciones de la CLI: list, play, train, eval, view, docs, config
+## ⚙️ Comandos del Shell: list, play, train, eval, view, docs, config
 
-### Modo lista: `mlv list`
+### Comando lista: `list [unidad]`
 
-Devuelve un listado de las categorías de entornos disponibles o
+Devuelve un listado de las categorías de entornos disponibles o entornos de una unidad específica.
 
-- **Uso básico**: `mlv list`
-- **Opciones**: ID de la categoría a filtrar (ej. `mlv list ants`).
+- **Uso básico**: `list`
+- **Opciones**: ID de la categoría a filtrar (ej. `list ants`).
 
 Ejemplos:
 
 ```bash
-mlv list
-mlv list ants
+MLVisual> list
+MLVisual> list ants
 ```
 
-### Modo juego: `mlv play <env-id>`
+### Comando juego: `play <env-id> [opciones]`
 
 Ejecuta el entorno en modo interactivo (humano) para probar el control manual.
 
-- **Uso básico**: `mlv play <env-id>`
+- **Uso básico**: `play <env-id>`
 - **Parámetros**:
-  - **env_id**: ID del entorno (ej. `mlv/AntScout-v1`).
+  - **env_id**: ID del entorno (ej. `AntScout-v1`).
   - **--seed, -s**: Semilla para reproducibilidad del mapa. Si no se especifica, se usa la predeterminada del entorno.
 
 Ejemplo:
 
 ```bash
-mlv play AntScout-v1 --seed 42
+MLVisual> play AntScout-v1 --seed 42
 ```
 
-### Modo entrenamiento: `mlv train <env-id>`
+### Comando entrenamiento: `train <env-id> [opciones]`
 
 Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<env>/<seed-XYZ>/`.
 
-- **Uso básico**: `mlv train <env-id>`
+- **Uso básico**: `train <env-id>`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del entrenamiento. Si no se indica, se genera una aleatoria y se muestra por pantalla.
@@ -145,14 +157,14 @@ Entrena el agente baseline del entorno y guarda los pesos/artefactos en `data/<e
 Ejemplo:
 
 ```bash
-mlv train AntScout-v1 --seed 123 --eps 500 --render
+MLVisual> train AntScout-v1 --seed 123 --eps 500 --render
 ```
 
-### Modo evaluación: `mlv eval <env-id>`
+### Comando evaluación: `eval <env-id> [opciones]`
 
 Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--rec`.
 
-- **Uso básico**: `mlv eval <env-id> [opciones]`
+- **Uso básico**: `eval <env-id> [opciones]`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
@@ -164,45 +176,45 @@ Ejemplos:
 
 ```bash
 # Visualizar el agente usando los pesos del último entrenamiento
-mlv eval AntScout-v1
+MLVisual> eval AntScout-v1
 
 # Visualizar un entrenamiento concreto y grabar vídeo
-mlv eval AntScout-v1 --seed 123 --record
+MLVisual> eval AntScout-v1 --seed 123 --rec
 
 # Evaluar 10 episodios
-mlv eval AntScout-v1 --seed 123 --eps 10 --rec
+MLVisual> eval AntScout-v1 --seed 123 --eps 10 --rec
 ```
 
-### Modo vista interactiva: `mlv view <env-id>`
+### Comando vista interactiva: `view <env-id>`
 
 Lanza la vista interactiva (Analytics View) del entorno con controles de simulación, métricas y gestión de modelos.
 
-- Uso básico: `mlv view <env-id>`
+- Uso básico: `view <env-id>`
 
 Ejemplo:
 
 ```bash
-mlv view AntScout-v1
+MLVisual> view AntScout-v1
 ```
 
-### Modo documentación: `mlv docs`
+### Comando documentación: `docs <env-id>`
 
 Abre un navegador con el archivo `README.md` asociado al entorno, mostrando todos los detalles.
 Además, muestra un resumen en la terminal en el idioma configurado:
 
-- **Uso básico**: `mlv docs <env-id>`
+- **Uso básico**: `docs <env-id>`
 
 Example:
 
 ```bash
-mlv docs AntScout-v1
+MLVisual> docs AntScout-v1
 ```
 
-### Modo configuración: `mlv config`
+### Comando configuración: `config <acción> [clave] [valor]`
 
 Gestiona la configuración de MLV-Lab incluyendo la configuración del idioma (el paquete detecta el idioma del sistema automáticamente):
 
-- **Uso básico**: `mlv config <acción> [clave] [valor]`
+- **Uso básico**: `config <acción> [clave] [valor]`
 - **Acciones**:
   - **get**: Mostrar configuración actual o clave específica
   - **set**: Establecer un valor de configuración
@@ -214,16 +226,16 @@ Ejemplos:
 
 ```bash
 # Mostrar configuración actual
-mlv config get
+MLVisual> config get
 
 # Mostrar configuración específica
-mlv config get locale
+MLVisual> config get locale
 
 # Establecer idioma a español
-mlv config set locale es
+MLVisual> config set locale es
 
 # Restablecer a valores predeterminados
-mlv config reset
+MLVisual> config reset
 ```
 
 ---
@@ -233,21 +245,22 @@ mlv config reset
 Si quieres añadir nuevos entornos o funcionalidades al núcleo de MLV-Lab:
 
 1.  Clona el repositorio.
-2.  Crea un entorno virtual.
+2.  Crea un entorno virtual con uv.
    
     ```bash
-    python -m venv .venv
+    uv venv
     ``` 
 
-3.  Activa tu entorno virtual.
-
-    * macOS/Linux: `source .venv/bin/activate`
-    * Windows (PowerShell): `.\.venv\Scripts\Activate.ps1`
-
-4.  Instala el proyecto en modo editable con las dependencias de desarrollo:
+3.  Instala el proyecto en modo editable con las dependencias de desarrollo:
 
     ```bash
-    pip install -e ".[dev]"
+    uv pip install -e ".[dev]"
+    ```
+
+4.  Lanza el shell de desarrollo:
+
+    ```bash
+    uv run mlv shell
     ```
 
 Esto instala `mlvlab` (modo editable) y también las herramientas del grupo `[dev]`.

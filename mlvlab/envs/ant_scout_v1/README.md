@@ -77,32 +77,32 @@ This method learns by creating a "lookup table" (the Q-Table) that stores the ex
 
 ---
 
-## CLI Usage Examples
+## Shell Usage Examples
 
 ```bash
 # Play interactively in the environment
-mlv play AntScout-v1
+MLVisual> play AntScout-v1
 
 # Train an agent for a specific seed (e.g., 42)
-mlv train AntScout-v1 --seed 42
+MLVisual> train AntScout-v1 --seed 42
 
 # Train with a random seed
-mlv train AntScout-v1
+MLVisual> train AntScout-v1
 
 # Evaluate the latest training in window mode
-mlv eval AntScout-v1
+MLVisual> eval AntScout-v1
 
 # Evaluate a training with a specific seed
-mlv eval AntScout-v1 --seed 42
+MLVisual> eval AntScout-v1 --seed 42
 
 # Evaluate a training in headless mode recording a video of 100 episodes
-mlv eval AntScout-v1 --rec --eps 100
+MLVisual> eval AntScout-v1 --rec --eps 100
 
 # Launch an interactive view to manipulate the environment using controls
-mlv view AntScout-v1
+MLVisual> view AntScout-v1
 
 # View this technical specification from the terminal
-mlv docs AntScout-v1
+MLVisual> docs AntScout-v1
 ```
 
 ---
@@ -163,4 +163,4 @@ for ep in range(100):
 env.close()
 ```
 
-Suggestion: save and load the Q-Table/weights to reuse them between sessions. You can also train from the CLI and evaluate in notebook, or vice versa.
+Suggestion: save and load the Q-Table/weights to reuse them between sessions. You can also train from the shell and evaluate in notebook, or vice versa.

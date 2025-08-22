@@ -501,7 +501,7 @@ def shell_command():
     # --- 3. Bucle Principal (REPL) ---
     while True:
         try:
-            text = session.prompt("MLVisual> ")
+            text = session.prompt("MLVLab> ")
             args = text.split()
 
             if not args:

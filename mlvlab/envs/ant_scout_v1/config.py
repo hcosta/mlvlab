@@ -16,7 +16,7 @@ KEY_MAP = {
     arcade.key.D: 3,
 }
 
-# Configuración del agente de referencia para 'mlv train'
+# Configuración del agente de referencia para 'train'
 BASELINE = {
     "agent": "q_learning",  # Debe coincidir con el nombre del módulo en mlvlab/agents/
     "config": {
@@ -29,6 +29,6 @@ BASELINE = {
     }
 }
 
-# Unidad pedagógica a la que pertenece este entorno (para mlv list)
+# Unidad pedagógica a la que pertenece este entorno (para list)
 UNIT = "ants"
 ALGORITHM = "ql"
