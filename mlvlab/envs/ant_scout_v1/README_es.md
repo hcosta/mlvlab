@@ -3,13 +3,13 @@
 [![en](https://img.shields.io/badge/Lang-EN-lightgrey.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-red.svg)](./README_es.md)
 
-Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "El Hormiguero Perdido".
+Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "Vigía Exploradora".
 
 <img src="../../../docs/ant_scout_v1/mode_view_es.jpg" alt="modo view" width="100%">
 
 ## Descripción
 
-En este entorno, un agente (la hormiga) se encuentra en una rejilla de 15x15. El objetivo de la hormiga es encontrar su hormiguero (la meta) en el menor número de pasos posible, mientras evita los obstáculos repartidos por el mapa.
+En este entorno, un agente (la hormiga) se encuentra en una rejilla de 10x10. El objetivo de la hormiga es encontrar su hormiguero (la meta) en el menor número de pasos posible, mientras evita los obstáculos repartidos por el mapa.
 
 Este es un problema clásico de **navegación en un Grid World**, diseñado para enseñar los fundamentos del aprendizaje por refuerzo tabular.
 
@@ -21,11 +21,11 @@ Este es un problema clásico de **navegación en un Grid World**, diseñado para
 
 El espacio de observación define lo que el agente "ve" en cada paso.
 ```
-Box(0, 14, (2,), int32)
+Box(0, 9, (2,), int32)
 ```
 * **Significado:** La observación es un vector con 2 números enteros, que representan la posición `[x, y]` de la hormiga en la rejilla.
-* **Límites:** Cada coordenada va de 0 a 14, correspondiendo a una rejilla de 15x15.
-* **Total de Estados:** $15 \times 15 = 225$ estados únicos posibles.
+* **Límites:** Cada coordenada va de 0 a 9, correspondiendo a una rejilla de 10x10.
+* **Total de Estados:** $10 \times 10 = 100$ estados únicos posibles.
 
 ### Action Space
 
@@ -71,38 +71,41 @@ Las funciones `reset()` y `step()` devuelven un diccionario `info` que contiene 
 
 ### Algoritmo: Q-Learning (tabular)
 
-La combinación de un **espacio de estados discreto y pequeño (225 estados)** y un **espacio de acciones discreto (4 acciones)** hace que este entorno sea un candidato perfecto para algoritmos tabulares como **Q-Learning**.
+La combinación de un **espacio de estados discreto y pequeño (100 estados)** y un **espacio de acciones discreto (4 acciones)** hace que este entorno sea un candidato perfecto para algoritmos tabulares como **Q-Learning**.
 
-Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena el valor esperado para cada acción en cada una de las 225 casillas, permitiendo al agente determinar la política óptima.
+Este método aprende creando una "tabla de consulta" (la Q-Table) que almacena el valor esperado para cada acción en cada una de las 100 casillas, permitiendo al agente determinar la política óptima.
 
 ---
 
 ## Ejemplos de Uso con el Shell
 
 ```bash
+# Inicia la terminal de MLVisual
+uv run mlv shell
+
 # Jugar interactivamente en el entorno
-(MLVLab)> play AntScout-v1
+play AntScout-v1
 
 # Entrenar un agente para una semilla específica (p. ej. 42)
-(MLVLab)> train AntScout-v1 --seed 42
+train AntScout-v1 --seed 42
 
 # Entrenar con una semilla aleatoria
-(MLVLab)> train AntScout-v1
+train AntScout-v1
 
 # Evaluar el último entrenamiento en modo ventana
-(MLVLab)> eval AntScout-v1
+eval AntScout-v1
 
 # Evaluar un entrenamiento de una semilla específica
-(MLVLab)> eval AntScout-v1 --seed 42
+eval AntScout-v1 --seed 42
 
 # Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-(MLVLab)> eval AntScout-v1 --rec --eps 100
+eval AntScout-v1 --rec --eps 100
 
 # Lanza una vista interactiva para manipular el entorno usando controles
-(MLVLab)> view AntScout-v1
+view AntScout-v1
 
 # Ver esta ficha técnica desde la terminal
-(MLVLab)> docs AntScout-v1
+docs AntScout-v1
 ```
 
 ---
@@ -113,7 +116,7 @@ Puedes experimentar con este entorno directamente desde Jupyter o Google Colab:
 
 ```bash
 # Instalación
-pip install -U mlvlab
+pip install mlvlab
 ```
 
 Ejemplos rápidos para cuadernos:

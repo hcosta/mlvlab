@@ -3,13 +3,13 @@
 [![en](https://img.shields.io/badge/Lang-EN-red.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-lightgrey.svg)](./README_es.md)
 
-This file documents the `mlv/AntScout-v1` environment, also known as "The Lost Colony".
+This file documents the `mlv/AntScout-v1` environment, also known as "Scout Lookout".
 
 <img src="../../../docs/ant_scout_v1/mode_view_en.jpg" alt="view mode" width="100%">
 
 ## Description
 
-In this environment, an agent (the ant) is placed on a 15x15 grid. The ant's objective is to find its colony (the goal) in the minimum number of steps possible, while avoiding obstacles scattered throughout the map.
+In this environment, an agent (the ant) is placed on a 10x10 grid. The ant's objective is to find its colony (the goal) in the minimum number of steps possible, while avoiding obstacles scattered throughout the map.
 
 This is a classic **Grid World navigation problem**, designed to teach the fundamentals of tabular reinforcement learning.
 
@@ -21,11 +21,11 @@ This is a classic **Grid World navigation problem**, designed to teach the funda
 
 The observation space defines what the agent "sees" at each step.
 ```
-Box(0, 14, (2,), int32)
+Box(0, 9, (2,), int32)
 ```
 * **Meaning:** The observation is a vector with 2 integers representing the ant's position `[x, y]` on the grid.
-* **Bounds:** Each coordinate ranges from 0 to 14, corresponding to a 15x15 grid.
-* **Total States:** $15 \times 15 = 225$ unique possible states.
+* **Bounds:** Each coordinate ranges from 0 to 9, corresponding to a 10x10 grid.
+* **Total States:** $10 \times 10 = 100$ unique possible states.
 
 ### Action Space
 
@@ -71,38 +71,41 @@ The `reset()` and `step()` functions return an `info` dictionary containing usef
 
 ### Algorithm: Q-Learning (tabular)
 
-The combination of a **discrete and small state space (225 states)** and a **discrete action space (4 actions)** makes this environment a perfect candidate for tabular algorithms like **Q-Learning**.
+The combination of a **discrete and small state space (100 states)** and a **discrete action space (4 actions)** makes this environment a perfect candidate for tabular algorithms like **Q-Learning**.
 
-This method learns by creating a "lookup table" (the Q-Table) that stores the expected value for each action in each of the 225 cells, allowing the agent to determine the optimal policy.
+This method learns by creating a "lookup table" (the Q-Table) that stores the expected value for each action in each of the 100 cells, allowing the agent to determine the optimal policy.
 
 ---
 
 ## Shell Usage Examples
 
 ```bash
+# Start the MLVisual shell
+uv run mlv shell
+
 # Play interactively in the environment
-(MLVLab)> play AntScout-v1
+play AntScout-v1
 
 # Train an agent for a specific seed (e.g., 42)
-(MLVLab)> train AntScout-v1 --seed 42
+train AntScout-v1 --seed 42
 
 # Train with a random seed
-(MLVLab)> train AntScout-v1
+train AntScout-v1
 
 # Evaluate the latest training in window mode
-(MLVLab)> eval AntScout-v1
+eval AntScout-v1
 
 # Evaluate a training with a specific seed
-(MLVLab)> eval AntScout-v1 --seed 42
+eval AntScout-v1 --seed 42
 
 # Evaluate a training in headless mode recording a video of 100 episodes
-(MLVLab)> eval AntScout-v1 --rec --eps 100
+eval AntScout-v1 --rec --eps 100
 
 # Launch an interactive view to manipulate the environment using controls
-(MLVLab)> view AntScout-v1
+view AntScout-v1
 
 # View this technical specification from the terminal
-(MLVLab)> docs AntScout-v1
+docs AntScout-v1
 ```
 
 ---
@@ -113,7 +116,7 @@ You can experiment with this environment directly from Jupyter or Google Colab:
 
 ```bash
 # Installation
-pip install -U mlvlab
+pip install mlvlab
 ```
 
 Quick examples for notebooks:
