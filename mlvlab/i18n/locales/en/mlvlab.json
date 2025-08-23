@@ -82,7 +82,7 @@
       "objective": "Objective",
       "description": "Description",
       "name_mlv": "Name (MLV)",
-      "id_command": "ID (Command)",
+      "id_command": "Shell ID",
       "id_gymnasium": "ID (Gymnasium)",
       "baseline_agent": "Baseline Agent",
       "unit_description": "Unit Description"
@@ -173,7 +173,8 @@
   "environments": {
     "antscout_v1": {
       "name": "🐜 Lookout Scout",
-      "description": "Find the lost colony"
+      "description": "Find the lost colony",
+      "baseline_agent": "Q-Learning"
     }
   },
   "helpers": {

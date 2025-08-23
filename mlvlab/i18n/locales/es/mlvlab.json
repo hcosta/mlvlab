@@ -82,7 +82,7 @@
       "objective": "Objetivo",
       "description": "Descripción",
       "name_mlv": "Nombre (MLV)",
-      "id_command": "ID (Command)",
+      "id_command": "Shell ID",
       "id_gymnasium": "ID (Gymnasium)",
       "baseline_agent": "Agente de Referencia",
       "unit_description": "Descripción de la Unidad"
@@ -173,7 +173,8 @@
   "environments": {
     "antscout_v1": {
       "name": "🐜 Exploradora Vigía",
-      "description": "Encuentra la colonia perdida"
+      "description": "Encuentra la colonia perdida",
+      "baseline_agent": "Q-Learning"
     }
   },
   "helpers": {

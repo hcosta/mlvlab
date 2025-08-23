@@ -305,17 +305,15 @@ def list_environments(
         env_name = i18n.t(f"environments.{i18n_key}.name", default=short_name)
         objective = i18n.t(f"environments.{i18n_key}.description", default=i18n.t(
             "common.no_description"))
-
-        baseline_config = config.get("BASELINE", {})
-        baseline = baseline_config.get(
-            "agent", f"[red]{i18n.t('common.not_available')}[/red]")
+        baseline_agent = i18n.t(f"environments.{i18n_key}.baseline_agent", default=i18n.t(
+            "common.not_available"))
 
         # Añade la fila con el orden preferido
         table.add_row(
             env_name,
             f"[cyan]{short_name}[/cyan]",
             objective,
-            baseline.capitalize()
+            baseline_agent
         )
 
     console.print(table)
