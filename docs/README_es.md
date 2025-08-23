@@ -71,14 +71,17 @@ MLV-Lab> play AntScout-v1
 # 3. Entrenamos un agente con una semilla específica (para poder repetirlo)
 MLV-Lab> train AntScout-v1 --seed 123
 
-# 4. Evaluamos el resultado de ese entrenamiento concreto y grabamos un vídeo
-MLV-Lab> eval AntScout-v1 --seed 123 --rec
+# 4. Evaluamos el resultado de ese específico en una simulación en vivo
+MLV-Lab> eval AntScout-v1 --seed 123
 
-# 5. Consultamos la documentación para saber más
+# 5. (Opcional) Guardamos el entrenamiento en un video a velocidad reducida
+MLV-Lab> eval AntScout-v1 --seed 123 --rec --speed 0.15
+
+# 6. Consultamos la documentación para saber más
 MLV-Lab> docs AntScout-v1
 
 # Salimos de la sesión
-MLV-Lab> exit
+MLV-Lab> docs AntScout-v1
 ```
 
 ---

@@ -71,10 +71,13 @@ MLV-Lab> play AntScout-v1
 # 3. Train an agent with a specific seed (so it can be repeated)
 MLV-Lab> train AntScout-v1 --seed 123
 
-# 4. Evaluate the result of that specific training and record a video
-MLV-Lab> eval AntScout-v1 --seed 123 --rec
+# 4. Evaluate the result of that specific in a live simulation
+MLV-Lab> eval AntScout-v1 --seed 123
 
-# 5. Check the documentation to learn more
+# 5. (Optional) Save the training in a video at reduced speed
+MLV-Lab> eval AntScout-v1 --seed 123 --rec --speed 0.15
+
+# 6. Check the documentation to learn more
 MLV-Lab> docs AntScout-v1
 
 # Exit the session
