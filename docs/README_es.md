@@ -90,7 +90,7 @@ MLV-Lab> docs AntScout-v1
 
 | ID                                       | Entorno           | Saga        | Baseline   | Detalles                                                   | Vista Previa                                                                                                             |
 | ---------------------------------------- | ----------------- | ----------- | ---------- | ---------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------: |
-| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Exploradora Vigía | 🐜 Hormigas | Q-Learning | [README.md](../mlvlab/envs/ant_scout_v1/README_es.md) | <a href="../mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
+| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Exploradora Vigía | 🐜 Hormigas | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README_es.md) | <a href="/mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
 
 ---
 
