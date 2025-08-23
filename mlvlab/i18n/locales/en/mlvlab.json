@@ -53,7 +53,8 @@
       "docs_browser_error": "⚠️  [yellow]Can't open browser: {error}[/yellow]",
       "docs_full_documentation": "Full Documentation:",
       "docs_observation_space": "Observation Space:",
-      "docs_action_space": "Action Space:"
+      "docs_action_space": "Action Space:",
+      "dev_note": "Developer Note: To use in scripts, add the prefix 'mlv/' to the ID (e.g. 'mlv/AntScout-v1')."
     },
     "options": {
       "seed": "Seed for reproducibility (if not given, one is generated).",
@@ -76,9 +77,12 @@
     },
     "tables": {
       "unit_id": "Unit ID",
+      "environment": "Environment",
       "collection": "Collection",
+      "objective": "Objective",
       "description": "Description",
       "name_mlv": "Name (MLV)",
+      "id_command": "ID (Command)",
       "id_gymnasium": "ID (Gymnasium)",
       "baseline_agent": "Baseline Agent",
       "unit_description": "Unit Description"
@@ -167,8 +171,9 @@
     }
   },
   "environments": {
-    "descriptions": {
-      "ant_scout": "Find the lost colony"
+    "antscout_v1": {
+      "name": "🐜 Lookout Scout",
+      "description": "Find the lost colony"
     }
   },
   "helpers": {

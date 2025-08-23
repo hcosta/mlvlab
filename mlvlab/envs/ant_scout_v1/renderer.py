@@ -131,7 +131,7 @@ class ArcadeRenderer:
         # Crear ventana si hace falta
         if self.window is None:
             visible = render_mode == "human"
-            title = "Scout Ant - MLVisual®"
+            title = "Ants Saga - Lookout Scout - MLVisual®"
 
             # En modo headless o rgb_array sin entorno gráfico, creamos ventana invisible
             if self._headless_mode or render_mode == "rgb_array":

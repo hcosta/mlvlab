@@ -3,7 +3,7 @@
 [![en](https://img.shields.io/badge/Lang-EN-lightgrey.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-red.svg)](./README_es.md)
 
-Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como "Vigía Exploradora".
+Este fichero documenta el entorno `mlv/AntScout-v1`, también conocido como **Exploradora Vigía**.
 
 <img src="../../../docs/ant_scout_v1/mode_view_es.jpg" alt="modo view" width="100%">
 

@@ -26,7 +26,7 @@ MLV-Lab is controlled through an interactive shell called `MLVisual`. The workfl
 ### 1. Installation with uv
 
 ```bash
-# Install uv package manager
+# Install uv package manager inside the virtual environment
 pip install uv
 
 # Create a dedicated virtual environment
@@ -44,38 +44,50 @@ uv run mlv shell
 
 ### 2. Interactive Shell Workflow
 
-Once you're in the `MLVLab>` shell:
+Once inside the `MLV-Lab>` shell, we recommend following this logical flow to get acquainted with an environment. The philosophy is to explore, play, train, and finally, watch the artificial intelligence in action.
 
-```python
-list                    # Discover available units
-list <unit>             # List environments from a specific unit
-play <env-id>           # Play to understand the objective
-train <env-id>          # Train an agent with a specific seed
-eval <env-id>           # Evaluate training visually
-view <env-id>           # Create an interactive view of the simulation
-docs <env-id>           # Check technical specifications and documentation
-config <args>           # Manage configuration settings
-clear                   # Reset the terminal logs
-exit                    # Exit the shell (or use 'quit')
-```
+1.  🗺️ **Discover (`list`)**: Start by seeing what worlds you can explore. The `list` command will show you the available environment sagas.
+2.  🕹️ **Play (`play`)**: Once you choose an environment, play it in manual mode to understand its mechanics, controls, and objective.
+3.  🤖 **Train (`train`)**: Now, let the AI learn how to solve it. The `train` command will start the training process for the baseline agent.
+4.  🎬 **Evaluate (`eval`)**: Watch the agent you just trained apply what it has learned. The `eval` command loads the training result and displays it visually.
+5.  📚 **Learn (`docs`)**: If you want to dive deeper into the technical details of the environment, the `docs` command will open the full documentation for you.
 
-**Example session:**
-```python
-play AntScout-v1
-train AntScout-v1 --seed 123
-eval AntScout-v1 --seed 123
-view AntScout-v1
-docs AntScout-v1
-exit
+This cycle of **play -> train -> evaluate** is the heart of the **MLV-Lab** experience.
+
+### 3. Complete Example Session
+
+Here is a concrete example that follows the recommended flow, with comments explaining each step.
+
+```bash
+# Launch the interactive shell
+uv run mlv shell
+
+# 1. Discover what environments are in the "Ants" category
+MLV-Lab> list ants
+
+# 2. Play to understand the objective of AntScout-v1
+MLV-Lab> play AntScout-v1
+
+# 3. Train an agent with a specific seed (so it can be repeated)
+MLV-Lab> train AntScout-v1 --seed 123
+
+# 4. Evaluate the result of that specific training and record a video
+MLV-Lab> eval AntScout-v1 --seed 123 --rec
+
+# 5. Check the documentation to learn more
+MLV-Lab> docs AntScout-v1
+
+# Exit the session
+MLV-Lab> exit
 ```
 
 ---
 
 ## 📦 Available Environments
 
-| Saga | Environment | ID (Gym) | Baseline | Details |  |
-|------|-----------|-----------------------------|------------|----------------|--------------|
-| 🐜 Ants | Scout Lookout | `mlv/AntScout-v1` | Q-Learning | [README.md](./mlvlab/envs/ant_scout_v1/README.md) | <a href="./mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
+| ID                                       | Environment   | Saga   | Baseline   | Details                                              | Preview                                                                                                      |
+| ---------------------------------------- | ------------- | ------ | ---------- | ---------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------: |
+| `AntScout-v1`<br><small>`mlv/AntScout-v1`</small> | Lookout Scout  | 🐜 Ants | Q-Learning | [README.md](../mlvlab/envs/ant_scout_v1/README.md) | <a href="../mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
 
 ---
 

@@ -3,7 +3,7 @@
 [![en](https://img.shields.io/badge/Lang-EN-red.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-lightgrey.svg)](./README_es.md)
 
-This file documents the `mlv/AntScout-v1` environment, also known as "Scout Lookout".
+This file documents the `mlv/AntScout-v1` environment, also known as **Lookout Scout**.
 
 <img src="../../../docs/ant_scout_v1/mode_view_en.jpg" alt="view mode" width="100%">
 

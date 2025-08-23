@@ -2,28 +2,23 @@
 
 from __future__ import annotations
 
-import importlib
-import importlib.util
-import random
-from typing import Optional
 import os
-import subprocess
 import sys
-from pathlib import Path
-
-import gymnasium as gym
 import typer
+import importlib
+import subprocess
+import importlib.util
+import gymnasium as gym
+from pathlib import Path
+from typing import Optional
 from gymnasium.error import NameNotFound
-from rich.console import Console
 from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.completion import NestedCompleter
 
 # Importamos las nuevas utilidades de gestión de 'runs'
-from mlvlab.cli.run_manager import get_run_dir, find_latest_run_dir
 from mlvlab.cli.utils import console, get_env_config
-from mlvlab.core.player import play_interactive
 
 # Importamos el sistema de internacionalización
 from mlvlab.i18n.core import i18n
@@ -41,14 +36,14 @@ def clear_screen(command=None):
         from prompt_toolkit import print_formatted_text
 
         prompt_html = HTML(
-            f"<skyblue><b>MLVLab</b></skyblue><b>></b> {command}")
+            f"<skyblue><b>MLV-Lab</b></skyblue><b>></b> {command}")
         print_formatted_text(prompt_html)
     else:
         from prompt_toolkit.formatted_text import HTML
         from prompt_toolkit import print_formatted_text
 
         prompt_html = HTML(
-            "<skyblue><b>MLVLab</b></skyblue><b>></b> [command]")
+            "<skyblue><b>MLV-Lab</b></skyblue><b>></b> [command]")
         print_formatted_text(prompt_html)
 
 
@@ -236,26 +231,21 @@ def list_environments(
         autocompletion=complete_unit_id
     )
 ):
-    # Construir el comando completo para mostrarlo
+    # --- Parte 1: Preparación y Lógica General ---
     command_parts = ["list"]
     if unidad:
         command_parts.append(unidad)
     command_str = " ".join(command_parts)
-
     clear_screen(command_str)
+
     from rich.table import Table
 
-    # Recargar configuración del i18n para detectar cambios
-    i18n._detect_locale()
-    # Recargar traducciones si el locale cambió
-    if i18n.current_locale != i18n._last_detected_locale:
-        i18n.translations = i18n._load_translations()
-        i18n._last_detected_locale = i18n.current_locale
-
-    # Verificar configuración del usuario directamente
+    # Recarga la configuración de i18n para cualquier cambio en vivo
+    # (Esta lógica de recarga se puede mantener como está)
     try:
         from pathlib import Path
         import json
+        i18n._detect_locale()
         config_file = Path.home() / '.mlvlab' / 'config.json'
         if config_file.exists():
             with open(config_file, 'r') as f:
@@ -264,14 +254,12 @@ def list_environments(
                 if user_locale and user_locale in ['en', 'es'] and user_locale != i18n.current_locale:
                     i18n.current_locale = user_locale
                     i18n.translations = i18n._load_translations()
-    except:
+    except Exception:
         pass
 
-    # Detectar entornos por el namespace "mlv" (IDs sin unidad)
     all_env_ids = [env_id for env_id in gym.envs.registry.keys()
                    if env_id.startswith("mlv/")]
 
-    # Mapa env_id -> unidad desde su config
     env_id_to_unit: dict[str, str] = {}
     configs: dict[str, dict] = {}
     for env_id in all_env_ids:
@@ -280,54 +268,58 @@ def list_environments(
         unit = cfg.get("UNIT") or cfg.get("unit") or i18n.t("common.other")
         env_id_to_unit[env_id] = str(unit)
 
-    # Si no pasan unidad, listamos las unidades disponibles
+    # --- Parte 2: Si no se especifica unidad, mostrar las unidades disponibles ---
     if unidad is None:
         unidades = sorted(set(env_id_to_unit.values()))
-        # Primera columna sin título para mostrar un emoji por unidad (🐜 para 'ants')
         table = Table("", i18n.t("cli.tables.unit_id"), i18n.t(
             "cli.tables.collection"), i18n.t("cli.tables.description"))
         for u in unidades:
-            emoji = i18n.t(f"cli.units.{u}") if u in [
-                'ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else ''
-            coleccion = i18n.t(f"cli.unit_names.{u}") if u in [
-                'ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.dash")
-            desc = i18n.t(f"cli.unit_descriptions.{u}") if u in [
-                'ants', 'ql', 'sarsa', 'dqn', 'dqnp'] else i18n.t("common.custom_unit")
+            # Esta lógica se puede mejorar en el futuro, pero la dejamos como está por ahora
+            emoji = i18n.t(f"cli.units.{u}", default='')
+            coleccion = i18n.t(f"cli.unit_names.{u}", default=u.capitalize())
+            desc = i18n.t(f"cli.unit_descriptions.{u}", default=i18n.t(
+                "common.custom_unit"))
             table.add_row(emoji, f"[cyan]{u}[/cyan]", coleccion, desc)
         console.print(table)
         console.print(i18n.t("cli.messages.use_list_unit"))
         return
 
-    # Con unidad proporcionada: filtrar por config
+    # --- Parte 3: Lógica Unificada y Refactorizada para mostrar entornos de una unidad ---
     unit_envs = [env_id for env_id, u in env_id_to_unit.items() if u == unidad]
 
-    if unidad == 'ants':
-        # Vista extendida sin columna de emoji
-        table = Table(i18n.t("cli.tables.name_mlv"), i18n.t("cli.tables.id_gymnasium"),
-                      i18n.t("cli.tables.description"), i18n.t("cli.tables.baseline_agent"))
-        for env_id in sorted(unit_envs):
-            config = configs.get(env_id) or get_env_config(env_id)
-            desc = config.get("DESCRIPTION", i18n.t("common.no_description"))
-            baseline = config.get("BASELINE", {}).get(
-                "agent", f"[red]{i18n.t('common.not_available')}[/red]")
-            short_name = env_id.split('/')[-1]
-            table.add_row(f"[cyan]{short_name}[/cyan]",
-                          f"[cyan]{env_id}[/cyan]", desc, baseline)
-        console.print(table)
-    else:
-        table = Table(i18n.t("cli.tables.name_mlv"), i18n.t("cli.tables.id_gymnasium"), i18n.t("cli.tables.collection"),
-                      i18n.t("cli.tables.description"), i18n.t("cli.tables.baseline_agent"))
-        for env_id in sorted(unit_envs):
-            config = configs.get(env_id) or get_env_config(env_id)
-            desc = config.get("DESCRIPTION", i18n.t("common.no_description"))
-            baseline = config.get("BASELINE", {}).get(
-                "agent", f"[red]{i18n.t('common.not_available')}[/red]")
-            short_name = env_id.split('/')[-1]
-            coleccion = i18n.t("cli.unit_names.ants") if (
-                config.get("UNIT") == 'ants') else i18n.t("common.dash")
-            table.add_row(f"[cyan]{short_name}[/cyan]",
-                          f"[cyan]{env_id}[/cyan]", coleccion, desc, baseline)
-        console.print(table)
+    # Define los encabezados de la tabla (con el nombre primero)
+    table = Table(
+        i18n.t("cli.tables.environment"),
+        i18n.t("cli.tables.id_command"),
+        i18n.t("cli.tables.objective"),
+        i18n.t("cli.tables.baseline_agent")
+    )
+
+    # Un único bucle para todos los entornos de la unidad
+    for env_id in sorted(unit_envs):
+        config = configs.get(env_id) or get_env_config(env_id)
+        short_name = env_id.split('/')[-1]
+        i18n_key = short_name.replace('-', '_').lower()
+
+        # Carga los nombres descriptivos desde los archivos i18n
+        env_name = i18n.t(f"environments.{i18n_key}.name", default=short_name)
+        objective = i18n.t(f"environments.{i18n_key}.description", default=i18n.t(
+            "common.no_description"))
+
+        baseline_config = config.get("BASELINE", {})
+        baseline = baseline_config.get(
+            "agent", f"[red]{i18n.t('common.not_available')}[/red]")
+
+        # Añade la fila con el orden preferido
+        table.add_row(
+            env_name,
+            f"[cyan]{short_name}[/cyan]",
+            objective,
+            baseline.capitalize()
+        )
+
+    console.print(table)
+    console.print(f"[dim]{i18n.t('cli.messages.dev_note')}[/dim]\n")
 
 
 @app.command(name="play", help=i18n.t("cli.help.play"))
@@ -590,7 +582,7 @@ def shell_command():
     while True:
         try:
             text = session.prompt(
-                HTML("<skyblue><b>MLVLab</b></skyblue><b>></b> "))
+                HTML("<skyblue><b>MLV-Lab</b></skyblue><b>></b> "))
             args = text.split()
 
             if not args:
@@ -694,21 +686,17 @@ def docs_command(
                 # Fallback a webbrowser si no se puede usar subprocess
                 webbrowser.open(docs_url)
 
-            console.print(i18n.t("cli.messages.docs_browser_opened"))
+            console.print("\n" + i18n.t("cli.messages.docs_browser_opened"))
         except Exception as e:
             console.print(
                 i18n.t("cli.messages.docs_browser_error", error=str(e)))
 
         # Mostrar información en terminal
+        console.print(f"{docs_url}")
         console.print(
-            f"\n[bold cyan]{i18n.t('cli.messages.docs_full_documentation')}[/bold cyan]")
-        console.print(f"{docs_url}\n")
+            f"\n[bold yellow]{i18n.t('cli.messages.docs_observation_space')}[/bold yellow]\t{env.observation_space}")
         console.print(
-            f"[bold cyan]{i18n.t('cli.messages.docs_observation_space')}[/bold cyan]")
-        console.print(f"{env.observation_space}\n")
-        console.print(
-            f"[bold cyan]{i18n.t('cli.messages.docs_action_space')}[/bold cyan]")
-        console.print(f"{env.action_space}\n")
+            f"[bold yellow]{i18n.t('cli.messages.docs_action_space')}[/bold yellow]\t\t{env.action_space}\n")
 
         env.close()
     except NameNotFound:
@@ -717,29 +705,6 @@ def docs_command(
         raise typer.Exit(code=1)
 
 
-# =============================================================================
-# PLUGINS
-# =============================================================================
-
-
-def _load_plugins():
-    """Carga plugins registrados en entry_points."""
-    import pkg_resources
-    plugin_names = set()
-
-    for entry_point in pkg_resources.iter_entry_points("mlvlab.plugins"):
-        try:
-            plugin = entry_point.load()
-            if hasattr(plugin, "app"):
-                app.add_typer(plugin.app, name=entry_point.name)
-                plugin_names.add(entry_point.name)
-        except Exception as e:
-            console.print(i18n.t("cli.messages.error_plugin_load",
-                          plugin_name=entry_point.name, error=str(e)))
-    return plugin_names
-
-
 if __name__ == "__main__":
     # Flujo normal de la CLI
-    _load_plugins()
     app()

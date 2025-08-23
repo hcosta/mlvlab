@@ -42,39 +42,52 @@ uv pip install -e ".[dev]"
 uv run mlv shell
 ```
 
-### 2. Flujo de Trabajo del Shell Interactivo
+### 2. Flujo de Trabajo: Tu Primera Sesión
 
-Una vez que estés en el shell <b>`MLVLab>`</b>:
+Una vez dentro de la shell `MLV-Lab>`, te recomendamos seguir este flujo lógico para familiarizarte con un entorno. La filosofía es explorar, jugar, entrenar y finalmente, observar a la inteligencia artificial en acción.
 
-```python
-list                    # Descubre las unidades disponibles
-list <unit>             # Lista entornos de una unidad específica
-play <env-id>              # Juega para entender el objetivo
-train <env-id>             # Entrena un agente con una semilla específica
-eval <env-id>              # Evalúa el entrenamiento visualmente
-view <env-id>              # Crea una vista interactiva de la simulación
-docs <env-id>              # Consulta la ficha técnica y documentación
-config <args>           # Gestiona la configuración
-clear                   # Reinicia los mensajes de la terminal
-exit                    # Sale del shell (o usa 'quit')
-```
+1.  🗺️ **Descubre (`list`)**: Empieza por ver qué mundos puedes explorar. El comando `list` te mostrará las sagas de entornos disponibles.
+2.  🕹️ **Juega (`play`)**: Una vez elijas un entorno, juégalo en modo manual para entender sus mecánicas, controles y objetivo.
+3.  🤖 **Entrena (`train`)**: Ahora, deja que la IA aprenda a resolverlo. El comando `train` iniciará el proceso de entrenamiento del agente base.
+4.  🎬 **Evalúa (`eval`)**: Observa al agente que acabas de entrenar aplicando lo que ha aprendido. El comando `eval` carga el resultado del entrenamiento y lo muestra visualmente.
+5.  📚 **Aprende (`docs`)**: Si quieres profundizar en los detalles técnicos del entorno, el comando `docs` te abrirá la documentación completa.
 
-**Ejemplo de sesión:**
-```python
-play AntScout-v1
-train AntScout-v1 --seed 123
-eval AntScout-v1 --seed 123
-view AntScout-v1
-docs AntScout-v1
-exit
+Este ciclo de **jugar -> entrenar -> evaluar** es el corazón de la experiencia en MLV-Lab.
+
+### Sesión de Ejemplo Completa
+
+Aquí tienes un ejemplo concreto que sigue el flujo recomendado, con comentarios que explican cada paso.
+
+```bash
+# Iniciamos la shell interactiva en el entorno virtual
+uv run mlv shell
+
+# 1. Descubrimos qué entornos hay en la categoría "Ants"
+MLV-Lab> list ants
+
+# 2. Jugamos para entender el objetivo de AntScout-v1
+MLV-Lab> play AntScout-v1
+
+# 3. Entrenamos un agente con una semilla específica (para poder repetirlo)
+MLV-Lab> train AntScout-v1 --seed 123
+
+# 4. Evaluamos el resultado de ese entrenamiento concreto y grabamos un vídeo
+MLV-Lab> eval AntScout-v1 --seed 123 --rec
+
+# 5. Consultamos la documentación para saber más
+MLV-Lab> docs AntScout-v1
+
+# Salimos de la sesión
+MLV-Lab> exit
 ```
 
 ---
+
 ## 📦 Entornos disponibles
 
-| Saga | Entorno    | ID (Gym)                | Baseline    | Detalles |  |
-|------|-----------|-----------------------------|------------|----------------|--------------|
-| 🐜 Hormigas | Vigía Rastreadora | `mlv/AntScout-v1` | Q-Learning | [README_es.md](../mlvlab/envs/ant_scout_v1/README_es.md) | <a href="../mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
+| ID                                       | Entorno           | Saga        | Baseline   | Detalles                                                   | Vista Previa                                                                                                             |
+| ---------------------------------------- | ----------------- | ----------- | ---------- | ---------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------: |
+| `AntScout-v1`<br><small>`mlv/AntScout-v1`</small> | Exploradora Vigía | 🐜 Hormigas | Q-Learning | [README.md](../mlvlab/envs/ant_scout_v1/README_es.md) | <a href="../mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
 
 ---
 

@@ -53,7 +53,8 @@
       "docs_browser_error": "⚠️  [yellow]No se pudo abrir el navegador: {error}[/yellow]",
       "docs_full_documentation": "Documentación Online:",
       "docs_observation_space": "Observation Space:",
-      "docs_action_space": "Action Space:"
+      "docs_action_space": "Action Space:",
+      "dev_note": "Nota del Desarrollador: Para usar en scripts, añade el prefijo 'mlv/' al ID (ej. 'mlv/AntScout-v1')."
     },
     "options": {
       "seed": "Semilla para reproducibilidad (si no se da, se genera una).",
@@ -76,9 +77,12 @@
     },
     "tables": {
       "unit_id": "ID de la Unidad",
+      "environment": "Entorno",
       "collection": "Colección",
+      "objective": "Objetivo",
       "description": "Descripción",
       "name_mlv": "Nombre (MLV)",
+      "id_command": "ID (Command)",
       "id_gymnasium": "ID (Gymnasium)",
       "baseline_agent": "Agente de Referencia",
       "unit_description": "Descripción de la Unidad"
@@ -167,8 +171,9 @@
     }
   },
   "environments": {
-    "descriptions": {
-      "ant_scout": "Encuentra la colonia perdida"
+    "antscout_v1": {
+      "name": "🐜 Exploradora Vigía",
+      "description": "Encuentra la colonia perdida"
     }
   },
   "helpers": {
