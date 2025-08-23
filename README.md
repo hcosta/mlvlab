@@ -90,7 +90,7 @@ MLV-Lab> exit
 
 | ID                                       | Environment   | Saga   | Baseline   | Details                                              | Preview                                                                                                      |
 | ---------------------------------------- | ------------- | ------ | ---------- | ---------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------: |
-| `AntScout-v1`<br><small>`mlv/AntScout-v1`</small> | Lookout Scout  | 🐜 Ants | Q-Learning | [README.md](../mlvlab/envs/ant_scout_v1/README.md) | <a href="../mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
+| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Lookout Scout  | 🐜 Ants | Q-Learning | [README.md](../mlvlab/envs/ant_scout_v1/README.md) | <a href="../mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
 
 ---
 
