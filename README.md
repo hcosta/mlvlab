@@ -94,30 +94,37 @@ MLV-Lab> exit
 
 ---
 
-## 💻 Agent Development (API)
+## 💻 Agent Development (as a Library)
 
-You can use MLV-Lab environments in your own Python projects like any other Gymnasium library.
+You can use MLV-Lab environments in your own Python projects, just like any other Gymnasium-compatible library.
 
-### 1. Installation in your Project
+### 1. Installation in Your Project
+
+This workflow assumes you want to write your own Python scripts that `import` the `mlvlab` package.
 
 ```bash
-# Create your virtual environment and then install dependencies
-pip install -U mlvlab
+# Create a dedicated virtual environment for your project (if you don't already have one)
+uv venv
+
+# Install mlvlab inside that virtual environment
+uv pip install mlvlab
 ```
 
 ### 2. Usage in your Code
 
+First, create a file (for example, `my_agent.py`) with your code:
+
 ```python
 import gymnasium as gym
-import mlvlab  # Important! This registers "mlv/..." environments and maintains compatibility with old ones
+import mlvlab  # Important! This "magic" line registers the "mlv/..." environments in Gymnasium
 
-# Create environment as you would normally with Gymnasium
+# Create the environment as you normally would
 env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset()
 
 for _ in range(100):
-    # This is where your logic goes to choose an action
-    action = env.action_space.sample() 
+    # Here is where your logic for selecting an action goes
+    action = env.action_space.sample()
     obs, reward, terminated, truncated, info = env.step(action)
     
     if terminated or truncated:
@@ -125,6 +132,14 @@ for _ in range(100):
 
 env.close()
 ```
+
+Next, run the script using `uv run`, which will ensure it uses the Python from your virtual environment:
+
+```bash
+uv run python my_agent.py
+```
+
+**Note**: In editors like Visual Studio Code, you can automate this last step. Simply select the Python interpreter located inside your virtual environment (the path will be something like `.venv/Scripts/python.exe`) as the interpreter for your project. That way, when you press the "Run" button, the editor will automatically use the correct environment.
 
 ---
 

@@ -94,24 +94,31 @@ MLV-Lab> docs AntScout-v1
 
 ---
 
-## 💻 Desarrollo de Agentes (API)
+## 💻 Desarrollo de Agentes (como Librería)
 
-Puedes usar los entornos de MLV-Lab en tus propios proyectos de Python como cualquier otra librería de Gymnasium.
+Puedes usar los entornos de MLV-Lab en tus propios proyectos de Python, de la misma forma que usarías cualquier otra librería compatible con Gymnasium.
 
 ### 1. Instalación en tu Proyecto
 
+Este flujo asume que quieres escribir tus propios scripts de Python que `importan` el paquete `mlvlab`.
+
 ```bash
-# Crea tu entorno virtual y luego instala las dependencias
-pip install -U mlvlab
+# Crea un entorno virtual dedicado para tu proyecto (si no lo tienes ya)
+uv venv
+
+# Instala mlvlab dentro de ese entorno virtual
+uv pip install mlvlab
 ```
 
 ### 2. Uso en tu Código
 
+Primero, crea un fichero (por ejemplo, `mi_agente.py`) con tu código:
+
 ```python
 import gymnasium as gym
-import mlvlab  # ¡Importante! Esto registra los entornos "mlv/..." y mantiene compatibilidad con los antiguos
+import mlvlab  # ¡Importante! Esta línea "mágica" registra los entornos "mlv/..." en Gymnasium
 
-# Crea el entorno como lo harías normalmente con Gymnasium
+# Crea el entorno como lo harías normalmente
 env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset()
 
@@ -125,6 +132,14 @@ for _ in range(100):
 
 env.close()
 ```
+
+A continuación, ejecuta el script usando `uv run`, que se encargará de usar el Python de tu entorno virtual:
+
+```bash
+uv run python mi_agente.py
+```
+
+**Nota**: En editores como Visual Studio Code, puedes automatizar este último paso. Simplemente selecciona el intérprete de Python que se encuentra dentro de tu entorno virtual (la ruta sería algo como `.venv/Scripts/python.exe`) como el intérprete para tu proyecto. Así, al pulsar el botón de "Run", el editor usará el entorno correcto automáticamente.
 
 ---
 
