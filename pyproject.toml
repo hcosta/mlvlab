@@ -37,6 +37,7 @@ dev = [
     "black>=24.0.0",
     "isort>=5.10.0",
     "pipreqs>=0.4.13",
+    "matplotlib>=3.10",
 ]
 
 # --- Metadatos y Scripts ---

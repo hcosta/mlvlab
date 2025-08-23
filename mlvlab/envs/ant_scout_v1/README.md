@@ -60,10 +60,26 @@ An "episode" (an attempt to find the colony) ends under the following conditions
 
 ---
 
-## Additional Information (Info Dictionary)
+## Additional Information (`info`)
 
-The `reset()` and `step()` functions return an `info` dictionary containing useful data for debugging, but should not be used directly for training.
-* `info['food_pos']`: Returns an array with the colony coordinates `[x, y]`.
+Both `reset()` and `step()` return an **`info`** dictionary, useful for debugging but **not intended to be used directly for training**.
+
+---
+
+### In `reset()`
+| Key        | Description                                  |
+|------------|----------------------------------------------|
+| `goal_pos` | Array with the `[x, y]` coordinates of the goal (target). |
+
+---
+
+### In `step()`
+| Key          | Description |
+|--------------|-------------|
+| `goal_pos`   | Array with the `[x, y]` coordinates of the goal (target). |
+| `collided`   | `True` if the ant collided with an obstacle or moved out of the grid boundaries. |
+| `terminated` | `True` if the episode ended because the ant reached the goal. |
+| `play_sound` | Dictionary with sound information:<br>• `{'filename': 'success.wav', 'volume': 10}` → when the goal is reached.<br>• `{'filename': 'bump.wav', 'volume': 5}` → when an obstacle is hit. |
 
 ---
 
@@ -110,25 +126,54 @@ docs AntScout-v1
 
 ---
 
-## Notebook Compatibility
+## Scripts and Notebook Compatibility
 
-You can experiment with this environment directly from Jupyter or Google Colab:
+You can use **mlvlab** both in standalone scripts and interactive environments (Jupyter, Google Colab, etc.).  
+
+---
+
+### 1. Using Python Scripts
+
+Create a dedicated virtual environment and install `mlvlab`:
 
 ```bash
-# Installation
-pip install mlvlab
+# (Optional) Create a dedicated virtual environment
+uv venv
+
+# Install mlvlab inside that virtual environment
+uv pip install mlvlab
+
+# Run your script within the virtual environment
+uv run python my_script.py
 ```
 
-Quick examples for notebooks:
+### 2. Using Jupyter Notebooks
+
+Simply select your virtual environment as the kernel, or launch Jupyter with:
+
+```bash
+uv run jupyter notebook
+```
+
+### 3. Using Google Colab
+
+Install `mlvlab` directly in the Colab session:
+
+```bash
+!pip install mlvlab
+```
+
+### Quick examples for notebooks
 
 ```python
-# 1) Create the environment and run a random episode
+# Run a random episode
 import gymnasium as gym
 import mlvlab  # registers the "mlv/..." environments
 
 env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset(seed=42)
 terminated = truncated = False
+
 while not (terminated or truncated):
     action = env.action_space.sample()
     obs, reward, terminated, truncated, info = env.step(action)
@@ -136,10 +181,40 @@ env.close()
 ```
 
 ```python
-# 2) Simplified tabular training (Q-Table)
+# Tabular training with Q-Learning agent from the package
+from mlvlab.agents.q_learning import QLearningAgent
+import gymnasium as gym
+import mlvlab  # registers the "mlv/..." environments
+
+env = gym.make("mlv/AntScout-v1")
+obs, info = env.reset(seed=42)
+
+agent = QLearningAgent(
+    observation_space=env.observation_space,
+    action_space=env.action_space,
+    learning_rate=0.1,
+    discount_factor=0.99,
+    epsilon=1.0,
+    epsilon_decay=0.995,
+    min_epsilon=0.01
+)
+
+n_steps = 100
+for _ in range(n_steps):
+    action = agent.act(obs)
+    next_obs, reward, terminated, truncated, info = env.step(action)
+    agent.learn(obs, action, reward, next_obs, terminated)
+    obs = next_obs
+    if terminated or truncated:
+        obs, info = env.reset()
+env.close()
+``` 
+
+```python
+# Tabular training (Q-Table) with simplified algorithm
 import numpy as np
 import gymnasium as gym
-import mlvlab
+import mlvlab  # registers the "mlv/..." environments
 
 env = gym.make("mlv/AntScout-v1")
 GRID = int(env.unwrapped.GRID_SIZE)
@@ -152,7 +227,7 @@ def obs_to_state(obs):
 
 alpha, gamma, eps = 0.1, 0.9, 1.0
 for ep in range(100):
-    obs, info = env.reset(seed=123)
+    obs, info = env.reset(seed=42)
     s = obs_to_state(obs)
     done = False
     while not done:
@@ -166,4 +241,4 @@ for ep in range(100):
 env.close()
 ```
 
-Suggestion: save and load the Q-Table/weights to reuse them between sessions. You can also train from the shell and evaluate in notebook, or vice versa.
+**Suggestion**: Save and load the Q-Table/weights to reuse them between sessions. You can also train from the shell and evaluate in notebook, or vice versa.

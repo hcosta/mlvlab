@@ -60,10 +60,26 @@ Un "episodio" (un intento de encontrar el hormiguero) termina bajo las siguiente
 
 ---
 
-## Información Adicional (Diccionario `info`)
+## Información Adicional (`info`)
 
-Las funciones `reset()` y `step()` devuelven un diccionario `info` que contiene datos útiles para depuración, pero que no deben ser usados directamente para el entrenamiento.
-* `info['food_pos']`: Devuelve un array con las coordenadas `[x, y]` del hormiguero.
+Tanto `reset()` como `step()` devuelven un diccionario **`info`**, útil para depuración pero **no recomendado para usar directamente en el entrenamiento**.
+
+---
+
+### En `reset()`
+| Clave              | Descripción                                        |
+|---------------------|----------------------------------------------------|
+| `goal_pos`         | Coordenadas `[x, y]` de la meta (objetivo).        |
+
+---
+
+### En `step()`
+| Clave              | Descripción |
+|---------------------|-------------|
+| `goal_pos`         | Coordenadas `[x, y]` de la meta (objetivo). |
+| `collided`         | `True` si la hormiga colisiona o sale de los límites del grid. |
+| `terminated`       | `True` si el episodio termina porque la hormiga alcanzó la meta. |
+| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'success.wav', 'volume': 10}` → al alcanzar la meta.<br>• `{'filename': 'bump.wav', 'volume': 5}` → al colisionar. |
 
 ---
 
@@ -110,25 +126,54 @@ docs AntScout-v1
 
 ---
 
-## Compatibilidad con Notebooks
+## Compatibilidad con Scripts y Notebooks
 
-Puedes experimentar con este entorno directamente desde Jupyter o Google Colab:
+Puedes usar **mlvlab** tanto en scripts independientes como en entornos interactivos (Jupyter, Google Colab, etc.).  
+
+---
+
+### 1. Uso con Scripts de Python
+
+Crea un entorno virtual dedicado e instala `mlvlab`:
 
 ```bash
-# Instalación
-pip install mlvlab
+# (Opcional) Crea un entorno virtual dedicado
+uv venv
+
+# Instala mlvlab dentro de ese entorno virtual
+uv pip install mlvlab
+
+# Ejecuta tu script dentro del entorno virtual
+uv run python mi_script.py
 ```
 
-Ejemplos rápidos para cuadernos:
+### 2. Uso con Jupyter Notebooks
+
+Simplemente selecciona tu entorno virtual como kernel, o lanza Jupyter con:
+
+```bash
+uv run jupyter notebook
+```
+
+### 3. Uso con Google Colab
+
+Instala `mlvlab` directamente en la sesión de Colab:
+
+```bash
+!pip install mlvlab
+```
+
+###  Ejemplos rápidos para cuadernos
 
 ```python
-# 1) Crear el entorno y ejecutar un episodio aleatorio
+# Crear el entorno y ejecutar un episodio aleatorio
 import gymnasium as gym
 import mlvlab  # registra los entornos "mlv/..."
 
 env = gym.make("mlv/AntScout-v1", render_mode="human")
 obs, info = env.reset(seed=42)
 terminated = truncated = False
+
 while not (terminated or truncated):
     action = env.action_space.sample()
     obs, reward, terminated, truncated, info = env.step(action)
@@ -136,10 +181,40 @@ env.close()
 ```
 
 ```python
-# 2) Mini-entrenamiento tabular (Q-Table) simplificado
+# Entrenamiento tabular con agente Q-Learning del paquete
+from mlvlab.agents.q_learning import QLearningAgent
+import gymnasium as gym
+import mlvlab  # registra los entornos "mlv/..."
+
+env = gym.make("mlv/AntScout-v1")
+obs, info = env.reset(seed=42)
+
+agent = QLearningAgent(
+    observation_space=env.observation_space,
+    action_space=env.action_space,
+    learning_rate=0.1,
+    discount_factor=0.99,
+    epsilon=1.0,
+    epsilon_decay=0.995,
+    min_epsilon=0.01
+)
+
+n_steps = 100
+for _ in range(n_steps):
+    action = agent.act(obs)
+    next_obs, reward, terminated, truncated, info = env.step(action)
+    agent.learn(obs, action, reward, next_obs, terminated)
+    obs = next_obs
+    if terminated or truncated:
+        obs, info = env.reset()
+env.close()
+``` 
+
+```python
+# Entrenamiento tabular (Q-Table) con algoritmo simplificado
 import numpy as np
 import gymnasium as gym
-import mlvlab
+import mlvlab  # registra los entornos "mlv/..."
 
 env = gym.make("mlv/AntScout-v1")
 GRID = int(env.unwrapped.GRID_SIZE)
@@ -152,7 +227,7 @@ def obs_to_state(obs):
 
 alpha, gamma, eps = 0.1, 0.9, 1.0
 for ep in range(100):
-    obs, info = env.reset(seed=123)
+    obs, info = env.reset(seed=42)
     s = obs_to_state(obs)
     done = False
     while not done:
@@ -166,4 +241,4 @@ for ep in range(100):
 env.close()
 ```
 
-Sugerencia: guarda y carga la Q-Table/pesos para reutilizarlos entre sesiones. También puedes entrenar desde el shell y evaluar en notebook, o al revés.
+**Sugerencia**: Guarda y carga la Q-Table/pesos para reutilizarlos entre sesiones. También puedes entrenar desde el shell y evaluar en notebook, o al revés.
