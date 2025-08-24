@@ -154,7 +154,7 @@ class AnalyticsView:
         env: Any | None = None, agent: Any | None = None, trainer: Trainer | None = None,
         left_panel: Optional[List[UIComponent]] = None,
         right_panel: Optional[List[UIComponent]] = None,
-        title: str = "", history_size: int = 100, dark: bool = False,
+        title: str = "", history_size: int = 100, dark: bool = True,
         subtitle: Optional[str] = None, state_from_obs: Optional[Callable[..., Any]] = None,
         agent_hparams_defaults: Optional[dict] = None,
     ) -> None:

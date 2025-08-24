@@ -13,16 +13,16 @@ class AntLogic(InteractiveLogic):
 
     def _obs_to_state(self, obs):
         grid_size = self.env.unwrapped.GRID_SIZE
-        return int(obs[1]) * int(grid_size) + int(obs[0])
+        return obs[1] * grid_size + obs[0]
 
     def step(self, state):
         action = self.agent.act(state)
-        next_obs, reward, terminated, truncated, info = self.env.step(action)
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        next_state = self._obs_to_state(obs)
         done = bool(terminated or truncated)
-        next_state = self._obs_to_state(next_obs)
-        self.agent.learn(state, action, float(reward), next_state, done)
-        self.total_reward += float(reward)
-        return next_state, float(reward), done, info
+        self.agent.learn(state, action, reward, next_state, done)
+        self.total_reward += reward
+        return next_state, reward, done, info
 
 
 def main():
@@ -37,9 +37,8 @@ def main():
     )
     setattr(agent, "GRID_SIZE", grid_size)
 
-    trainer = Trainer(env, agent, AntLogic, True)
+    trainer = Trainer(env, agent, AntLogic, 1)
     view = AnalyticsView(
-        dark=True,
         trainer=trainer,
         left_panel=[
             ui.SimulationControls(
