@@ -1,5 +1,4 @@
 import gymnasium as gym
-from mlvlab.agents.q_learning import QLearningAgent
 from mlvlab.core.logic import InteractiveLogic
 from mlvlab.core.trainer import Trainer
 from mlvlab.ui import AnalyticsView
@@ -18,6 +17,10 @@ class AntLogic(InteractiveLogic):
         action = self.env.action_space.sample()
         next_obs, reward, terminated, truncated, info = self.env.step(action)
         done = bool(terminated or truncated)
+
+        # Guardamos los flags para que la clase base los use.
+        self.last_terminated = terminated
+        self.last_truncated = truncated
         return next_obs, reward, done, info
 
 

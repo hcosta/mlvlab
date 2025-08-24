@@ -11,6 +11,8 @@ class InteractiveLogic:
         self.agent = agent
         self.total_reward = 0.0
         self.state = None
+        self.last_terminated = False
+        self.last_truncated = False
 
     def on_episode_start(self):
         """
@@ -33,10 +35,16 @@ class InteractiveLogic:
 
     def on_episode_end(self):
         """
-        Llamado al final de cada episodio, después de que step() devuelva done=True.
+        Llamado al final de cada episodio. Ahora pasa los valores recordados
+        a la función de la escena final del entorno.
         """
         if hasattr(self.env.unwrapped, 'trigger_end_scene'):
-            self.env.unwrapped.trigger_end_scene()
+            # --- LÓGICA MODIFICADA ---
+            # Leemos los valores guardados y los pasamos como argumentos.
+            self.env.unwrapped.trigger_end_scene(
+                terminated=self.last_terminated,
+                truncated=self.last_truncated
+            )
 
     def _obs_to_state(self, obs):
         """

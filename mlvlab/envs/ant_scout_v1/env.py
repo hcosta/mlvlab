@@ -316,7 +316,7 @@ class ScoutAntEnv(gym.Env):
     def set_state_store(self, state_store):
         self._state_store = state_store
 
-    def trigger_end_scene(self):
+    def trigger_end_scene(self, terminated: bool, truncated: bool):
         if self.render_mode in ["human", "rgb_array"]:
             self._end_scene_state = "REQUESTED"
 
