@@ -96,7 +96,7 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
         elif terminated or truncated:
             # 3. Si el episodio acaba de terminar, activamos la animación y el modo espera.
             if hasattr(env.unwrapped, "trigger_end_scene"):
-                env.unwrapped.trigger_end_scene()
+                env.unwrapped.trigger_end_scene(terminated, truncated)
                 waiting_for_end_scene = True
             else:
                 # 4. Fallback: si el entorno no tiene la animación, reseteamos como antes.

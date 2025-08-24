@@ -87,6 +87,5 @@ class AntGame:
 
         self.ant_pos[0], self.ant_pos[1] = ax, ay
         info["collided"] = self.collided
-        info["terminated"] = terminated  # Siempre será False
 
-        return np.array((ax, ay), dtype=np.int32), int(reward), terminated, info
+        return np.array((ax, ay), dtype=np.int32), int(reward), bool(terminated), info

@@ -18,9 +18,11 @@ class AntLogic(InteractiveLogic):
         next_obs, reward, terminated, truncated, info = self.env.step(action)
         done = bool(terminated or truncated)
 
-        # Guardamos los flags para que la clase base los use.
+        # Guardamos los flags para que la clase base los use, esto deberia hacerlo automáticamente InteractiveLogic mediante un wrapper o algo
         self.last_terminated = terminated
         self.last_truncated = truncated
+        # Fin del código que debería hacer InteractiveLogic
+
         return next_obs, reward, done, info
 
 

@@ -4,12 +4,7 @@ import math
 import numpy as np
 
 # Importación relativa para mantener la estructura del paquete
-try:
-    # Se asume que el renderer está en una subcarpeta y game en la carpeta 'ant'
-    from ..ant.game import AntGame
-except (ImportError, ValueError):
-    # Fallback si se ejecuta como script independiente o con otra estructura
-    from game import AntGame
+from .game import AntGame
 
 
 class ParticleFX:
@@ -412,13 +407,12 @@ class ArcadeRenderer:
         self._draw_ant()
         self._update_and_draw_particles(delta_time)
 
-        if render_mode == "human":
-            self.window.flip()
-            return None
-
-        elif render_mode == "rgb_array":
+        # --- LÓGICA CORREGIDA ---
+        if render_mode == "rgb_array":
             image_data = self.arcade.get_image(0, 0, self.WIDTH, self.HEIGHT)
-            # --- CORRECCIÓN ---
-            # Convertimos la imagen a RGB para eliminar el canal Alfa.
             rgb_image = image_data.convert("RGB")
             return np.asarray(rgb_image)
+
+        # Ya no hacemos flip aquí. Simplemente devolvemos las dimensiones
+        # para ser compatible con el método render() de la clase padre.
+        return self.WIDTH, self.HEIGHT

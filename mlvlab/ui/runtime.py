@@ -159,6 +159,7 @@ class SimulationRunner:
             with self.env_lock:
                 next_state, reward, done, info = self.logic.step(
                     self._current_state)
+                print(info, "done", done)
                 if info and spm <= 200 and not turbo and 'play_sound' in info and info['play_sound']:
                     self.state.set(['sim', 'last_sound'], info['play_sound'])
 

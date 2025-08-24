@@ -218,32 +218,28 @@ class ScoutAntEnv(gym.Env):
             self._renderer = ArcadeRenderer()
 
     def render(self):
-        # La inicialización del renderer ahora ocurre aquí, de forma perezosa
+        """
+        Versión renovada del método render, compatible con el renderer unificado
+        y la lógica del AnalyticsView.
+        """
         if self.render_mode is None:
-            gym.logger.warn(
-                "You are calling render method without specifying any render mode. "
-                "You can specify the render_mode at initialization, "
-                'e.g. gym.make("mlv/AntScout-v1", render_mode="rgb_array")'
-            )
             return
 
-        if self._renderer is None:
-            self._lazy_init_renderer()
-
-        # Si después de la inicialización perezosa sigue siendo None, salimos
+        self._lazy_init_renderer()
         if self._renderer is None:
             return None
 
-        result = self._render_frame()
-        if result is None:
-            return None
+        # _render_frame llama a draw y devuelve el resultado final (array o dimensiones)
+        render_result = self._render_frame()
 
-        width, height = result
         if self.render_mode == "human":
-            self._handle_human_render()
-            return None  # En modo human, no devolvemos nada
+            if self.window:
+                self.window.flip()
+            return None
+
         elif self.render_mode == "rgb_array":
-            return self._capture_rgb_array(width, height)
+            # Devolvemos directamente el resultado, que ya es el array de la imagen.
+            return render_result
 
     def _render_frame(self):
         if self._renderer is not None:

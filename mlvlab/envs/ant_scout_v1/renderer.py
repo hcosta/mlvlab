@@ -849,7 +849,14 @@ class ArcadeRenderer:
                 self.arcade.draw_circle_filled(p.x, p.y, size, color)
 
     def draw(self, game: AntGame, q_table_to_render, render_mode: str | None, simulation_speed: float = 1.0):
-        """ Función principal de dibujo del frame. """
+        """
+        Función de dibujo principal. AHORA devuelve el array de la imagen
+        directamente en modo rgb_array.
+        """
+        if render_mode is None:
+            return None
+        if not self.initialized:
+            self._initialize(game, render_mode)
 
         # Si el juego está en un estado terminal (victoria o colisión),
         # forzamos a que la posición visual sea idéntica a la posición real.
@@ -857,48 +864,32 @@ class ArcadeRenderer:
         if game.collided or (game.ant_pos[0] == game.goal_pos[0] and game.ant_pos[1] == game.goal_pos[1]):
             self.ant_display_pos = list(game.ant_pos.astype(float))
 
-        if render_mode is None:
-            return None
-
         # Inicialización perezosa
         if not self.initialized:
             self._initialize(game, render_mode)
 
-        # Cálculo del tiempo delta
         current_time = time.time()
-        delta_time = current_time - self.last_time
+        delta_time = min(current_time - self.last_time, 0.1) * simulation_speed
         self.last_time = current_time
-        delta_time = min(delta_time, 0.1)
-
-        # Escalamos el delta_time ---
-        scaled_delta_time = delta_time * simulation_speed
-
-        # Proceso de Dibujo y Actualización Coordinada ---
 
         if self.window:
             self.window.switch_to()
             self.window.clear()
 
-        # 3. Heatmap
         self._draw_heatmap(q_table_to_render)
-
-        # 11. Hormiguero debajo de todo
         self._draw_anthill()
-
-        # 2. Elementos estáticos
         self._draw_static_elements()
-
-        # Actualizamos las animaciones (movimiento, rotación, partículas) usando scaled_delta_time
-        self._update_animations(scaled_delta_time)
-        self._update_particles(scaled_delta_time)
-
-        # Dibujamos la hormiga (usando la posición y ángulo actualizados)
+        self._update_animations(delta_time)
+        self._update_particles(delta_time)
         self._draw_ant()
-
-        # Debug mode
         self._draw_ant_q_values(q_table_to_render)
-
-        # 4. Post-procesado: Partículas
         self._draw_particles()
 
+        # --- LÓGICA DE RETORNO UNIFICADA ---
+        if render_mode == "rgb_array":
+            image_data = self.arcade.get_image(0, 0, self.WIDTH, self.HEIGHT)
+            rgb_image = image_data.convert("RGB")
+            return np.asarray(rgb_image)
+
+        # En modo 'human', devolvemos las dimensiones
         return self.WIDTH, self.HEIGHT

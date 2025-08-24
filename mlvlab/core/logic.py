@@ -39,7 +39,6 @@ class InteractiveLogic:
         a la función de la escena final del entorno.
         """
         if hasattr(self.env.unwrapped, 'trigger_end_scene'):
-            # --- LÓGICA MODIFICADA ---
             # Leemos los valores guardados y los pasamos como argumentos.
             self.env.unwrapped.trigger_end_scene(
                 terminated=self.last_terminated,
