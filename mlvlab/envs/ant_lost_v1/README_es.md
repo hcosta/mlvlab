@@ -262,4 +262,24 @@ print(f"Duración promedio del episodio: {np.mean(episode_lengths):.2f}")
 print(f"Total de pasos en todos los episodios: {sum(episode_lengths)}")
 ```
 
+```python
+# Usando wrapper de recompensas personalizadas
+from mlvlab.envs.ant_lost_v1.reward_wrapper import AntLostRewardWrapper
+import gymnasium as gym
+import mlvlab
+
+# Crear entorno con recompensas personalizadas
+env = gym.make("mlv/AntLost-v1")
+env = AntLostRewardWrapper(env)  # Ahora las recompensas son: -1 por paso, -100 por obstáculo, -1000 por muerte
+
+obs, info = env.reset(seed=42)
+terminated = truncated = False
+
+while not (terminated or truncated):
+    action = env.action_space.sample()
+    obs, reward, terminated, truncated, info = env.step(action)
+    print(f"Posición: {obs}, Recompensa: {reward}")
+env.close()
+```
+
 **Sugerencia**: Usa este entorno para experimentar con diferentes estructuras de recompensas, longitudes de episodios, y para entender la mecánica fundamental de los entornos de aprendizaje por refuerzo antes de pasar a escenarios más complejos orientados a objetivos.

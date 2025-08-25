@@ -18,14 +18,14 @@ class LostAntEnv(ScoutAntEnv):
 
     def __init__(self, render_mode=None, grid_size=10):
         super().__init__(render_mode=render_mode, grid_size=grid_size,
-                         reward_goal=0, reward_obstacle=-1, reward_move=0)
+                         reward_goal=0, reward_obstacle=-100.0, reward_move=-1.0)
 
         # Ahora, sobrescribimos el self._game del padre con nuestra propia
         # lógica de juego de AntLost, que sí tiene terminación.
         self._game = AntGame(
-            grid_size=grid_size,
-            reward_obstacle=-1,
-            reward_move=0
+            grid_size=self.GRID_SIZE,
+            reward_obstacle=self.REWARD_OBSTACLE,
+            reward_move=self.REWARD_MOVE
         )
 
         # Ya no intentamos acceder a self.spec aquí.

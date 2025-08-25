@@ -262,4 +262,24 @@ print(f"Average episode length: {np.mean(episode_lengths):.2f}")
 print(f"Total steps across all episodes: {sum(episode_lengths)}")
 ```
 
+```python
+# Using custom reward wrapper
+from mlvlab.envs.ant_lost_v1.reward_wrapper import AntLostRewardWrapper
+import gymnasium as gym
+import mlvlab
+
+# Create environment with custom rewards
+env = gym.make("mlv/AntLost-v1")
+env = AntLostRewardWrapper(env)  # Now rewards are: -1 per step, -100 for obstacle, -1000 for death
+
+obs, info = env.reset(seed=42)
+terminated = truncated = False
+
+while not (terminated or truncated):
+    action = env.action_space.sample()
+    obs, reward, terminated, truncated, info = env.step(action)
+    print(f"Position: {obs}, Reward: {reward}")
+env.close()
+```
+
 **Suggestion**: Use this environment to experiment with different reward structures, episode lengths, and to understand the fundamental mechanics of reinforcement learning environments before moving to more complex goal-oriented scenarios.
