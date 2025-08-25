@@ -54,7 +54,12 @@
       "docs_full_documentation": "Full Documentation:",
       "docs_observation_space": "Observation Space:",
       "docs_action_space": "Action Space:",
-      "dev_note": "Developer Note: To use in scripts, add the prefix 'mlv/' to the ID (e.g. 'mlv/AntScout-v1')."
+      "dev_note": "Developer Note: To use in scripts, add the prefix 'mlv/' to the ID (e.g. 'mlv/AntScout-v1').",
+      "random_training_end": "✅ Random training completed.",
+      "random_training_start": "🚩 Starting random training...",
+      "evaluating_random": "🛠️ Evaluating random agent...",
+      "random_eval_start": "🎬 Starting random evaluation...",
+      "random_eval_end": "✅ Random evaluation completed."
     },
     "options": {
       "seed": "Seed for reproducibility (if not given, one is generated).",
@@ -223,6 +228,8 @@
     "no_description": "N/D",
     "custom_unit": "Custom Unit",
     "other": "Other",
-    "dash": "—"
+    "dash": "—",
+    "training": "🏃 Training",
+    "evaluating_episode": "🛠️  Evaluating episode"
   }
 }

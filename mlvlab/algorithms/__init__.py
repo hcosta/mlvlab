@@ -1,15 +1,26 @@
+# mlvlab/algorithms/__init__.py
 from __future__ import annotations
+import importlib
+from pathlib import Path
 
-# Inicializa el registro importando plugins integrados
+# Re-exportar el registro para que sea accesible desde mlvlab.algorithms.registry
 try:
-    from . import registry as registry  # re-export
-    # Importar plugin Q-Learning integrado para autorregistro
-    from .ql import plugin as _ql_plugin  # noqa: F401
-    from .random import plugin as _random_plugin  # noqa: F401
-except Exception:
-    # Permitir que el paquete se importe aun si faltan dependencias opcionales
+    from . import registry as registry
+except ImportError:
     pass
 
-__all__ = [
-    "registry",
-]
+# --- Detección automática de plugins ---
+# Busca en todas las subcarpetas de este directorio...
+package_dir = Path(__file__).parent
+for subdir in package_dir.iterdir():
+    # Si es una carpeta y contiene un archivo 'plugin.py'...
+    if subdir.is_dir() and (subdir / "plugin.py").exists():
+        try:
+            # ...intenta importarlo. La importación ejecutará 'register_algorithm()'.
+            module_name = f"{__name__}.{subdir.name}.plugin"
+            importlib.import_module(module_name)
+        except (ImportError, ModuleNotFoundError):
+            # Permite que el paquete se importe aun si faltan dependencias opcionales
+            pass
+
+__all__ = ["registry"]

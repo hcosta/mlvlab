@@ -41,26 +41,6 @@ def main():
     args = parser.parse_args()
 
     normalized_env_id = normalize_env_id(args.env_id)
-
-    run_dir = None
-    if args.seed is not None:
-        run_dir = get_run_dir(normalized_env_id, args.seed)
-    else:
-        print(i18n.t("cli.messages.searching_last_training"))
-        run_dir = find_latest_run_dir(normalized_env_id)
-
-    if not run_dir or not (run_dir / "q_table.npy").exists():
-        print(i18n.t('cli.entry.no_valid_training',
-              env_id=normalized_env_id), file=sys.stderr)
-        sys.exit(1)
-
-    print(i18n.t("cli.messages.evaluating_from", run_dir=str(run_dir)))
-
-    try:
-        eval_seed = int(run_dir.name.split('-')[1])
-    except (IndexError, ValueError):
-        eval_seed = None
-
     config = get_env_config(normalized_env_id)
     algorithm_key = config.get("ALGORITHM") or config.get("UNIT")
 
@@ -69,11 +49,40 @@ def main():
               env_id=normalized_env_id), file=sys.stderr)
         sys.exit(1)
 
+    # --- LÓGICA MODIFICADA ---
+    run_dir = None
+    eval_seed = args.seed
+
+    # Si el algoritmo NO es 'random', necesitamos buscar y cargar un entrenamiento.
+    if algorithm_key != 'random':
+        if args.seed is not None:
+            run_dir = get_run_dir(normalized_env_id, args.seed)
+        else:
+            print(i18n.t("cli.messages.searching_last_training"))
+            run_dir = find_latest_run_dir(normalized_env_id)
+
+        if not run_dir or not (run_dir / "q_table.npy").exists():
+            print(i18n.t('cli.entry.no_valid_training',
+                  env_id=normalized_env_id), file=sys.stderr)
+            sys.exit(1)
+
+        print(i18n.t("cli.messages.evaluating_from", run_dir=str(run_dir)))
+        try:
+            # Si no se especifica una semilla para eval, la tomamos del entrenamiento
+            if eval_seed is None:
+                eval_seed = int(run_dir.name.split('-')[1])
+        except (IndexError, ValueError):
+            eval_seed = None  # Fallback
+    else:
+        # Si es random, no buscamos directorio, solo usamos la semilla si se proveyó
+        print(i18n.t("cli.messages.evaluating_random"))
+    # --- FIN DE LA LÓGICA MODIFICADA ---
+
     try:
         algo = get_algorithm(algorithm_key)
         algo.eval(
             normalized_env_id,
-            run_dir=run_dir,
+            run_dir=run_dir,  # Será None para el agente random
             episodes=args.episodes,
             seed=eval_seed,
             video=args.record,

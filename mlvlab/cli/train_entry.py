@@ -5,8 +5,9 @@ from mlvlab.cli.utils import get_env_config
 from mlvlab.cli.run_manager import get_run_dir
 import argparse
 import sys
-import random as rd
+import random
 from pathlib import Path
+import traceback
 
 # Añadimos la raíz del proyecto al path para que los imports funcionen
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -22,8 +23,6 @@ def main():
     """
     Punto de entrada para ejecutar una sesión de entrenamiento en un proceso separado.
     """
-    # La inicialización de i18n es automática al importar. No se necesita ninguna llamada aquí.
-
     parser = argparse.ArgumentParser(description="MLV-Lab Trainer")
     parser.add_argument("env_id", type=str,
                         help="El ID del entorno a entrenar.")
@@ -54,23 +53,30 @@ def main():
 
     run_seed = args.seed
     if run_seed is None:
-        run_seed = rd.randint(0, 10000)
+        run_seed = random.randint(0, 10000)
         print(i18n.t("cli.messages.no_seed_random", seed=run_seed))
 
-    run_dir = get_run_dir(normalized_env_id, run_seed)
-    print(i18n.t("cli.messages.working_dir", run_dir=str(run_dir)))
+    # --- LÓGICA CORREGIDA PARA EL DIRECTORIO ---
+    run_dir = None
+    # Solo creamos un directorio si el algoritmo no es 'random'
+    if algorithm_key != 'random':
+        run_dir = get_run_dir(normalized_env_id, run_seed)
+        print(i18n.t("cli.messages.working_dir", run_dir=str(run_dir)))
+    # --- FIN DE LA LÓGICA CORREGIDA ---
 
     try:
         algo = get_algorithm(algorithm_key)
+        # La llamada a train es ahora simple y universal para todos los algoritmos
         algo.train(
             normalized_env_id,
             train_config,
-            run_dir=run_dir,
+            run_dir=run_dir,  # Será None para 'random', lo cual es correcto
             seed=run_seed,
             render=args.render
         )
     except Exception as e:
         print(i18n.t('cli.entry.train_error', error=e), file=sys.stderr)
+        traceback.print_exc()
         sys.exit(1)
 
 

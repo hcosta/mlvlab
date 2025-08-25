@@ -6,6 +6,7 @@ import gymnasium as gym
 from tqdm import tqdm
 from mlvlab.i18n.core import i18n
 from mlvlab.algorithms.registry import register_algorithm
+import sys  # <-- 1. Importar el módulo 'sys'
 
 
 class RandomAgent:
@@ -38,7 +39,7 @@ class RandomPlugin:
         env = gym.make(env_id, render_mode="human" if render else None)
         agent = self.build_agent(env, {})
 
-        for _ in tqdm(range(episodes), desc=i18n.t("common.training")):
+        for _ in tqdm(range(episodes), desc=i18n.t("common.training"), ncols=50, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}'):
             obs, info = env.reset(seed=seed)
             terminated, truncated = False, False
             while not terminated and not truncated:
@@ -60,10 +61,19 @@ class RandomPlugin:
         episodes = int(kwargs.get("episodes", 5))
         seed = kwargs.get("seed")
         speed = float(kwargs.get("speed", 1.0))
-        frame_delay = (1.0 / 60.0) / speed if speed > 0 else 0
+        # Ajustamos el frame_delay base para que sea más lento por defecto
+        # Usamos 30 FPS en lugar de 60 FPS para una velocidad más natural
+        base_fps = 30.0
+        frame_delay = (1.0 / base_fps) / speed if speed > 0 else 0
 
+        # --- 2. LÓGICA DE PROGRESIÓN MODIFICADA ---
         for episode in range(episodes):
-            print(i18n.t("common.episode_n", n=episode + 1))
+            # Construimos el texto que queremos mostrar
+            progress_text = f"{i18n.t('common.evaluating_episode')}: {episode + 1}/{episodes}"
+            # Escribimos en la salida estándar sin saltar de línea y volvemos al principio
+            sys.stdout.write(progress_text + "\r")
+            sys.stdout.flush()
+
             obs, info = env.reset(seed=seed)
             terminated, truncated = False, False
             while not terminated and not truncated:
@@ -72,6 +82,10 @@ class RandomPlugin:
                 env.render()
                 if frame_delay > 0:
                     time.sleep(frame_delay)
+
+        # 3. Añadimos un print() vacío al final para saltar de línea y no sobreescribir la última
+        print()
+        # --- FIN DE LA MODIFICACIÓN ---
 
         env.close()
         print(i18n.t("cli.messages.random_eval_end"))

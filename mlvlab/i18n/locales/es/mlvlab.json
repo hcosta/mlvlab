@@ -54,7 +54,12 @@
       "docs_full_documentation": "Documentación Online:",
       "docs_observation_space": "Observation Space:",
       "docs_action_space": "Action Space:",
-      "dev_note": "Nota del Desarrollador: Para usar en scripts, añade el prefijo 'mlv/' al ID (ej. 'mlv/AntScout-v1')."
+      "dev_note": "Nota del Desarrollador: Para usar en scripts, añade el prefijo 'mlv/' al ID (ej. 'mlv/AntScout-v1').",
+      "random_training_end": "✅ Entrenamiento aleatorio completado.",
+      "random_training_start": "🚩 Iniciando entrenamiento aleatorio...",
+      "evaluating_random": "🏃 Evaluando agente aleatorio...",
+      "random_eval_start": "🎬 Iniciando evaluación aleatoria...",
+      "random_eval_end": "✅ Evaluación aleatoria completada."
     },
     "options": {
       "seed": "Semilla para reproducibilidad (si no se da, se genera una).",
@@ -223,6 +228,8 @@
     "no_description": "N/D",
     "custom_unit": "Unidad personalizada",
     "other": "Otros",
-    "dash": "—"
+    "dash": "—",
+    "training": "🏃 Entrenamiento",
+    "evaluating_episode": "🛠️  Evaluando episodio"
   }
 }
