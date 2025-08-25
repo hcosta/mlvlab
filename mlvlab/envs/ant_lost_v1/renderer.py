@@ -47,7 +47,7 @@ class ArcadeRenderer:
 
         # Paleta de colores
         self.COLOR_GRASS = (107, 142, 35)
-        self.COLOR_ANT = (137, 48, 43)
+        self.COLOR_ANT = (67, 67, 67)
         self.COLOR_OBSTACLE = (100, 100, 100)
         self.COLOR_PARTICLE_DUST = (210, 180, 140)
 
@@ -299,7 +299,7 @@ class ArcadeRenderer:
         is_moving = math.sqrt((self.game.ant_pos[0] - self.ant_display_pos[0])**2 +
                               (self.game.ant_pos[1] - self.ant_display_pos[1])**2) > 0.01
 
-        # --- CORRECCIÓN 1: Determinar el tipo de muerte aquí ---
+        # Determinar el tipo de muerte aquí
         is_horizontal_death_flag = self.in_death_transition and self.game.last_action in [
             2, 3]
 
@@ -310,21 +310,21 @@ class ArcadeRenderer:
                 draw_cx += self.rng_visual.uniform(-tremor, tremor)
                 draw_cy += self.rng_visual.uniform(-tremor, tremor)
 
-            # --- CORRECCIÓN 2: Aplicar el volteo SÓLO si la muerte NO es horizontal ---
+            #  Aplicar el volteo SÓLO si la muerte NO es horizontal
             if self.ant_vertical_flip and not is_horizontal_death_flag:
                 vertical_flip_multiplier = -1
         else:
             if is_moving:
                 draw_cy += abs(math.sin(time.time() * 25.0)) * 3
 
-        size_multiplier = 1.5
+        size_multiplier = 1.25
         angle = self.ant_current_angle
         body_color = (*self.COLOR_ANT, self.ant_alpha)
         shadow_color = (*(int(c * 0.3) for c in self.COLOR_ANT),
                         int(180 * (self.ant_alpha / 255)))
         leg_color = (*(max(0, c - 50) for c in self.COLOR_ANT), self.ant_alpha)
 
-        head_radius = self.CELL_SIZE * 0.16 * size_multiplier
+        head_radius = self.CELL_SIZE * 0.105 * size_multiplier
         thorax_radius_x = self.CELL_SIZE * 0.21 * size_multiplier
         thorax_radius_y = self.CELL_SIZE * 0.18 * size_multiplier
         abdomen_radius_x = self.CELL_SIZE * 0.28 * size_multiplier
@@ -370,6 +370,64 @@ class ArcadeRenderer:
             draw_cx + ax_rel, draw_cy + ay_rel, abdomen_radius_x, abdomen_radius_y, body_color, angle)
         self.arcade.draw_ellipse_filled(draw_cx + shadow_offset_x, draw_cy +
                                         shadow_offset_y, thorax_radius_x, thorax_radius_y, shadow_color, angle)
+
+        # Alas
+
+        # Calculamos la transparencia del ala basándonos en la transparencia general de la hormiga.
+        # Cuando la hormiga está viva (alpha=255), el ala tiene su opacidad base (70).
+        # Cuando la hormiga se desvanece, el alpha del ala se reduce proporcionalmente.
+        base_wing_alpha = 135
+        wing_alpha = int(base_wing_alpha * (self.ant_alpha / 255.0))
+
+        # Usamos la nueva transparencia dinámica
+        wing_color = (220, 220, 240, wing_alpha)
+        wing_length = self.CELL_SIZE * 0.78 * size_multiplier
+        wing_width = self.CELL_SIZE * 0.22 * size_multiplier
+
+        # Oscilación para un sutil aleteo al moverse.
+        flap_oscillation = 0
+        # Hacemos que dejen de aletear al morir.
+        if is_moving and not self.in_death_transition:
+            flap_oscillation = math.sin(time.time() * 50.0) * 15
+
+        # Punto de anclaje de las alas en el tórax (tus valores).
+        wing_anchor_x_offset = -thorax_radius_x * 2.55
+        wing_anchor_y_offset = thorax_radius_y * 0.2
+
+        # Dibujar un ala a cada lado.
+        for side in [-1, 1]:
+            # Ángulo del ala respecto al cuerpo + aleteo.
+            wing_angle = (angle + 50 * side) - \
+                (20 * side) - (flap_oscillation * side)
+
+            # Rotar la posición del anclaje del ala junto con la hormiga.
+            wax_rel, way_rel = rotate(
+                wing_anchor_x_offset, wing_anchor_y_offset * side)
+
+            # Esta es la posición DONDE NACE el ala (el anclaje).
+            wing_anchor_x = draw_cx + wax_rel
+            wing_anchor_y = draw_cy + way_rel
+
+            # Ahora, calculamos el verdadero CENTRO de la elipse del ala.
+            # Está a la mitad de la longitud del ala, desplazado desde el anclaje.
+            wing_angle_rad = math.radians(wing_angle)
+            offset_x = math.cos(wing_angle_rad) * (wing_length / 2)
+            offset_y = math.sin(wing_angle_rad) * (wing_length / 2)
+
+            # El centro final para dibujar la elipse.
+            final_wing_center_x = wing_anchor_x + offset_x
+            final_wing_center_y = wing_anchor_y + offset_y
+
+            # Dibujar el ala como una elipse usando el centro corregido.
+            self.arcade.draw_ellipse_filled(
+                center_x=final_wing_center_x,
+                center_y=final_wing_center_y,
+                width=wing_length,
+                height=wing_width,
+                color=wing_color,
+                tilt_angle=wing_angle
+            )
+
         self.arcade.draw_ellipse_filled(
             draw_cx, draw_cy, thorax_radius_x, thorax_radius_y, body_color, angle)
         head_offset_x = head_radius * 0.85 + thorax_radius_x
