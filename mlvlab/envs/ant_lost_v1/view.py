@@ -36,7 +36,8 @@ def main():
             ui.MetricsDashboard(
                 metrics=["current_reward", "episodes_completed",
                          "steps_per_second", "seed"],
-            )
+            ),
+            ui.RewardChart(history_size=20),
         ],
     )
     view.run()

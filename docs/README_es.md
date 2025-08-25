@@ -74,9 +74,6 @@ MLV-Lab> train AntScout-v1 --seed 123
 # 4. Evaluamos el resultado de ese específico en una simulación en vivo
 MLV-Lab> eval AntScout-v1 --seed 123
 
-# 5. (Opcional) Guardamos el entrenamiento en un video a velocidad reducida
-MLV-Lab> eval AntScout-v1 --seed 123 --rec --speed 0.15
-
 # 6. Consultamos la documentación para saber más
 MLV-Lab> docs AntScout-v1
 
@@ -194,14 +191,13 @@ train AntScout-v1 --seed 123 --eps 500 --render
 
 ### Comando evaluación: `eval <env-id> [opciones]`
 
-Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos. Para grabar un vídeo en disco, añade `--rec`.
+Evalúa un entrenamiento existente cargando la Q-Table/pesos desde el directorio de `run` correspondiente. Por defecto, se abre la ventana (modo `human`) y se visualiza al agente usando sus pesos.
 
 - **Uso básico**: `eval <env-id> [opciones]`
 - **Parámetros**:
   - **env_id**: ID del entorno.
   - **--seed, -s**: Semilla del `run` a evaluar. Si no se indica, se usa el último `run` disponible para ese entorno.
   - **--eps, -e**: Número de episodios a ejecutar durante la evaluación. Por defecto: 5.
-  - **--rec, -r**: Graba y genera un vídeo de la evaluación (en `evaluation.mp4` dentro del directorio del `run`). Si no se especifica, solo se muestra la ventana interactiva y no se guardan vídeos.
   - **--speed, -sp**: Factor de multiplicación de velocidad, por defecto es `1.0`, para verlo a la mitad poner `.5`.
 
 Ejemplos:
@@ -210,11 +206,11 @@ Ejemplos:
 # Visualizar el agente usando los pesos del último entrenamiento
 eval AntScout-v1
 
-# Visualizar un entrenamiento concreto y grabar vídeo
-eval AntScout-v1 --seed 123 --rec
+# Visualizar un entrenamiento concreto
+eval AntScout-v1 --seed 123
 
 # Evaluar 10 episodios
-eval AntScout-v1 --seed 123 --eps 10 --rec
+eval AntScout-v1 --seed 123 --eps 10
 ```
 
 ### Comando vista interactiva: `view <env-id>`

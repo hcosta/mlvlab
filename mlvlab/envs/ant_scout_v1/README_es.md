@@ -79,7 +79,7 @@ Tanto `reset()` como `step()` devuelven un diccionario **`info`**, útil para de
 | `goal_pos`         | Coordenadas `[x, y]` de la meta (objetivo). |
 | `collided`         | `True` si la hormiga colisiona o sale de los límites del grid. |
 | `terminated`       | `True` si el episodio termina porque la hormiga alcanzó la meta. |
-| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'success.wav', 'volume': 10}` → al alcanzar la meta.<br>• `{'filename': 'bump.wav', 'volume': 5}` → al colisionar. |
+| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'success.wav', 'volume': 10}` → al alcanzar la meta.<br>• `{'filename': 'bump.wav', 'volume': 5}` → al colisionar con un obstáculo. |
 
 ---
 
@@ -114,8 +114,8 @@ eval AntScout-v1
 # Evaluar un entrenamiento de una semilla específica
 eval AntScout-v1 --seed 42
 
-# Evaluar un entrenamiento en modo headless grabando un video de 100 episodios
-eval AntScout-v1 --rec --eps 100
+# Evaluar un entrenamiento de 100 episodios
+eval AntScout-v1 --eps 100
 
 # Lanza una vista interactiva para manipular el entorno usando controles
 view AntScout-v1

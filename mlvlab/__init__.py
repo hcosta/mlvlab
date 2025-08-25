@@ -4,7 +4,7 @@ from gymnasium.envs.registration import register
 register(
     id="mlv/AntLost-v1",
     entry_point="mlvlab.envs.ant_lost_v1.env:LostAntEnv",
-    max_episode_steps=5,
+    max_episode_steps=20,
     kwargs={'grid_size': 10}
 )
 

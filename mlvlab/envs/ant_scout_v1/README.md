@@ -114,8 +114,8 @@ eval AntScout-v1
 # Evaluate a training with a specific seed
 eval AntScout-v1 --seed 42
 
-# Evaluate a training in headless mode recording a video of 100 episodes
-eval AntScout-v1 --rec --eps 100
+# Evaluate a training of 100 episodes
+eval AntScout-v1 --seed --eps 100
 
 # Launch an interactive view to manipulate the environment using controls
 view AntScout-v1

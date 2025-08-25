@@ -656,8 +656,8 @@ def docs_command(
 
         # Mapear nombres de entorno a nombres de directorio
         env_dir_mapping = {
+            "antlost-v1": "ant_lost_v1",
             "antscout-v1": "ant_scout_v1",
-            # Agregar más mapeos según sea necesario
         }
 
         # Usar el mapeo si existe, sino convertir a snake_case
@@ -695,7 +695,6 @@ def docs_command(
             f"\n[bold yellow]{i18n.t('cli.messages.docs_observation_space')}[/bold yellow]\t{env.observation_space}")
         console.print(
             f"[bold yellow]{i18n.t('cli.messages.docs_action_space')}[/bold yellow]\t\t{env.action_space}\n")
-
         env.close()
     except NameNotFound:
         console.print(i18n.t("cli.messages.error_env_not_found",

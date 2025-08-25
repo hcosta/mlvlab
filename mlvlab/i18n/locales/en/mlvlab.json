@@ -48,7 +48,7 @@
       "error_cannot_start_view": "❌ [bold red]Error:[/bold red] Could not start view: {error}",
       "error_no_main_function": "❌ [bold red]Error:[/bold red] Module '{module_path}' does not expose main() function.",
       "error_plugin_load": "❌ [red]Error loading plugin '{plugin_name}':[/red] {error}",
-      "game_started": "Game started. Use the defined keys. ESC to exit.",
+      "game_started": "🕹️  Game started. Use the defined keys. ESC to exit.",
       "docs_browser_opened": "📖 [bold green]Documentation opened in browser[/bold green]",
       "docs_browser_error": "⚠️  [yellow]Can't open browser: {error}[/yellow]",
       "docs_full_documentation": "Full Documentation:",
@@ -57,7 +57,7 @@
       "dev_note": "Developer Note: To use in scripts, add the prefix 'mlv/' to the ID (e.g. 'mlv/AntScout-v1').",
       "random_training_end": "✅ Random training completed.",
       "random_training_start": "🚩 Starting random training...",
-      "evaluating_random": "🛠️ Evaluating random agent...",
+      "evaluating_random": "🏃 Evaluating random agent...",
       "random_eval_start": "🎬 Starting random evaluation...",
       "random_eval_end": "✅ Random evaluation completed."
     },

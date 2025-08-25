@@ -90,9 +90,10 @@ class ArcadeRenderer:
         self.WIDTH = game.grid_size * self.CELL_SIZE
         self.HEIGHT = game.grid_size * self.CELL_SIZE
         if self.window is None:
+            title = "Ants Saga - Errant Drone - MLVisual®"
             visible = render_mode == "human"
             self.window = self.arcade.Window(
-                self.WIDTH, self.HEIGHT, "Ant Lost", visible=visible)
+                self.WIDTH, self.HEIGHT, title, visible=visible)
             if not visible:
                 self.window.set_visible(False)
             self.arcade.set_background_color(self.COLOR_GRASS)
