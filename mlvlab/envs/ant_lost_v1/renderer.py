@@ -412,26 +412,15 @@ class ArcadeRenderer:
         if is_moving and not self.in_death_transition:
             flap_oscillation = math.sin(time.time() * 50.0) * 15
 
-        # Punto de anclaje de las alas en el tórax.
-        # El anclaje original (-thorax_radius_x * 2.55) estaba demasiado lejos del centro de rotación,
-        # causando amplificación geométrica y artefactos visuales durante la rotación.
-
-        # 1. Movemos el anclaje cerca del centro del tórax (el centro de rotación).
-        wing_anchor_x_offset = -thorax_radius_x * 0.1  # Nuevo valor (era 2.55)
-        wing_anchor_y_offset = thorax_radius_y * \
-            0.3
+        # Punto de anclaje de las alas en el tórax (tus valores).
+        wing_anchor_x_offset = -thorax_radius_x * 2.55
+        wing_anchor_y_offset = thorax_radius_y * 0.2
 
         # Dibujar un ala a cada lado.
         for side in [-1, 1]:
-            # 2. Ángulo del ala respecto al cuerpo + aleteo.
-            # Como hemos movido el anclaje hacia adelante, debemos angular las alas hacia atrás
-            # para compensar y mantener la estética. Usamos un offset base de 140 grados.
-            # El cálculo original era equivalente a 30 grados hacia adelante.
-
-            base_wing_offset = 140
-            # Nuevo cálculo del ángulo
-            wing_angle = angle + (base_wing_offset * side) - \
-                (flap_oscillation * side)
+            # Ángulo del ala respecto al cuerpo + aleteo.
+            wing_angle = (angle + 50 * side) - \
+                (20 * side) - (flap_oscillation * side)
 
             # Rotar la posición del anclaje del ala junto con la hormiga.
             wax_rel, way_rel = rotate(
