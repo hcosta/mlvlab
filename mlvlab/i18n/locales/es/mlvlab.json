@@ -92,10 +92,6 @@
     },
     "unit_names": {
       "ants": "Saga de las hormigas",
-      "ql": "Simulaciones de Q-Learning",
-      "sarsa": "Simulaciones de SARSA",
-      "dqn": "Simulaciones de DQN",
-      "dqnp": "Simulaciones DQN Plus (avanzado)"
     },
     "unit_descriptions": {
       "ants": "Introducción al Reinforcement Learning"
