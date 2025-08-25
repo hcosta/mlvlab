@@ -155,8 +155,29 @@ class ArcadeRenderer:
         target_pos = list(self.game.ant_pos.astype(float))
         dist_x = target_pos[0] - self.ant_display_pos[0]
         dist_y = target_pos[1] - self.ant_display_pos[1]
-        is_at_target = math.sqrt(dist_x**2 + dist_y**2) < 0.01
 
+        # Calculamos la distancia total al objetivo.
+        distance = math.sqrt(dist_x**2 + dist_y**2)
+        is_at_target = distance < 0.01
+
+        # Determinar el ángulo objetivo (target_angle)
+
+        if not is_at_target and distance > 0.01:
+            # Calculamos el ángulo basado en el vector de movimiento.
+            # IMPORTANTE: Invertimos dist_y (-dist_y).
+            # Esto es necesario porque el eje Y de la cuadrícula del juego está invertido
+            # respecto al sistema de ángulos de renderizado (90º es Arriba).
+            # Esto corrige el "moonwalk" y estabiliza la rotación en diagonales.
+            movement_angle_rad = math.atan2(-dist_y, dist_x)
+            target_angle = math.degrees(movement_angle_rad)
+        else:
+            # Si ya está en el objetivo, usa el ángulo final dictado por la última acción.
+            target_angle = self._get_angle_from_action(self.game.last_action)
+
+        # Normalizamos el ángulo objetivo a [0, 360) para consistencia.
+        target_angle = target_angle % 360
+
+        # Actualizar posición (Se mantiene igual)
         if not is_at_target:
             lerp_factor = 1.0 - math.exp(-delta_time * 15.0)
             self.ant_display_pos[0] += dist_x * lerp_factor
@@ -164,7 +185,8 @@ class ArcadeRenderer:
         else:
             self.ant_display_pos = target_pos
 
-        target_angle = self._get_angle_from_action(self.game.last_action)
+        # Actualizar rotación usando el target_angle calculado dinámicamente
+        # Calculamos la diferencia angular más corta
         diff = (target_angle - self.ant_current_angle + 180) % 360 - 180
         if abs(diff) > 0.1:
             lerp_factor = 1.0 - math.exp(-delta_time * 25.0)
@@ -177,8 +199,8 @@ class ArcadeRenderer:
             self.death_transition_time = 0.0
             self.ant_vertical_flip = False
             self.ant_alpha = 255
-            self.ant_current_angle = self._get_angle_from_action(
-                self.game.last_action)
+            # Usamos el target_angle calculado (que ya es el ángulo final y está normalizado)
+            self.ant_current_angle = target_angle
 
         if self.game.collided and not self.was_colliding_last_frame:
             self._spawn_collision_particles()

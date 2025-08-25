@@ -4,10 +4,58 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlvlab"
-version = "0.2.21"
-description = "Visual AI Learning Ecosystem - MLVisual®"
+version = "0.2.23"
+description = "Visual AI Ecosystem with Reinforced Learning Simulations based on Gymnasium - MLVisual®"
 readme = "docs/README_PyPI.md"
 requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "MLVisual Team", email = "contact@mlvisual.com"},
+]
+keywords = [
+    "reinforcement-learning",
+    "artificial-intelligence",
+    "machine-learning",
+    "gymnasium",
+    "simulation",
+    "visualization",
+    "ai-training",
+    "q-learning",
+    "ant-environment",
+    "educational",
+    "research",
+    "robotics",
+    "neural-networks",
+    "deep-learning",
+    "interactive-learning",
+    "real-time-visualization",
+    "gym-environments",
+    "ml-visualization",
+    "ai-simulation",
+    "learning-algorithms"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Education",
+    "Topic :: Games/Entertainment :: Simulation",
+    "Typing :: Typed",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Natural Language :: English",
+    "Natural Language :: Spanish",
+]
 
 # --- Dependencias Principales (Flexibles) ---
 # ~=2.0 permite 2.0.2, 2.1, etc., pero no 3.0.
@@ -30,6 +78,10 @@ dependencies = [
     "PySide6>=6.9,<6.10",
 ]
 
+# URLs del proyecto
+[project.urls]
+Homepage = "https://github.com/hcosta/mlvlab"
+
 [project.optional-dependencies]
 # Dependencias de desarrollo, aquí sí puedes ser más flexible con '>='
 dev = [
@@ -44,7 +96,7 @@ dev = [
 [project.scripts]
 mlv = "mlvlab.cli.main:app"
 
-
+# Configuración de setuptools
 [tool.setuptools.packages.find]
 where = ["."]
 
@@ -53,3 +105,4 @@ mlvlab = [
     "envs/*/assets/*", 
     "i18n/locales/*/*.json"
 ]
+
