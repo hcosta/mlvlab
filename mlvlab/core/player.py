@@ -6,6 +6,7 @@ from typing import Optional
 import time
 import arcade
 import pyglet
+import random
 from mlvlab.i18n.core import i18n
 
 
@@ -89,9 +90,17 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
         if waiting_for_end_scene:
             # 1. Si estamos esperando, comprobamos si la animación ha terminado.
             if env.unwrapped.is_end_scene_animation_finished():
-                # 2. Si ha terminado, reseteamos el entorno y salimos del modo espera.
-                obs, info = env.reset()
+                # Si estamos jugando a AntScout, queremos un mapa nuevo y fresco.
+                if env_id.startswith("mlv/AntScout"):
+                    # 2. Generamos una nueva semilla aleatoria en cada reseteo.
+                    new_seed = random.randint(0, 1_000_000)
+                    obs, info = env.reset(seed=new_seed)
+                else:
+                    # Para otros entornos, mantenemos el comportamiento de reset por defecto.
+                    obs, info = env.reset()
+                # Reseteamos las flags del episodio para el nuevo comienzo.
                 terminated, truncated = False, False
+                # Le decimos al bucle que ya no estamos esperando. ¡Esto rompe el bucle infinito!
                 waiting_for_end_scene = False
         elif terminated or truncated:
             # 3. Si el episodio acaba de terminar, activamos la animación y el modo espera.
