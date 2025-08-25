@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Callable
+from typing import Optional
 import time
 from threading import Lock, Thread
 import atexit
@@ -36,17 +36,12 @@ class SimulationRunner:
         self._current_state = None
         self._runner_state = "RUNNING"
 
-        # Generamos, aplicamos y guardamos una semilla inicial al arrancar.
-        # Esto asegura que la simulación sea reproducible desde el principio.
+        # Simplemente inicializamos los valores del estado a None o por defecto.
+        # Podemos generar una semilla para mostrar
         initial_seed = random.randint(0, 1_000_000)
-        with self.env_lock:
-            obs, info = self.env.reset(seed=initial_seed)
-
-        # Guardamos la seed en el estado
         self.state.set(['sim', 'seed'], initial_seed)
-
-        self.state.set(['sim', 'obs'], obs)
-        self.state.set(['sim', 'info'], info)
+        self.state.set(['sim', 'obs'], None)
+        self.state.set(['sim', 'info'], {})
 
     def start(self) -> None:
         # Esta función no cambia
@@ -134,6 +129,22 @@ class SimulationRunner:
                 self._episode_active = True
                 self.state.set(['sim', 'current_episode_reward'], 0.0)
 
+                # >>> INICIO BLOQUE AÑADIDO (Sincronización Inicial) <<<
+                # Esperamos a que el renderer capture el estado inicial antes del primer step.
+                target_step = int(self.state.get(['sim', 'total_steps']) or 0)
+                start_wait = time.time()
+                while True:
+                    # 'ui/last_frame_step' es actualizado por RenderingThread (analytics.py)
+                    rendered_step = int(self.state.get(
+                        ['ui', 'last_frame_step']) or 0)
+                    if rendered_step >= target_step:
+                        break
+                    if time.time() - start_wait > 0.5:  # Timeout 0.5s
+                        break
+                    time.sleep(0.001)  # Ceder ejecución
+                # Continuamos para separar la lógica de inicialización del step.
+                continue
+
             spm = max(1, int(self.state.get(['sim', 'speed_multiplier']) or 1))
             turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
             effective_speed = 100000.0 if turbo else float(spm)
@@ -159,10 +170,11 @@ class SimulationRunner:
             with self.env_lock:
                 next_state, reward, done, info = self.logic.step(
                     self._current_state)
-                print(info, "done", done)
+                # print(info, "done", done)
                 if info and spm <= 200 and not turbo and 'play_sound' in info and info['play_sound']:
                     self.state.set(['sim', 'last_sound'], info['play_sound'])
 
+            # Actualización de reward y total_steps
             self._current_state = next_state
             cur_rew = float(self.state.get(
                 ['sim', 'current_episode_reward']) or 0.0) + reward
@@ -171,11 +183,28 @@ class SimulationRunner:
             total_steps = int(self.state.get(['sim', 'total_steps']) or 0) + 1
             self.state.set(['sim', 'total_steps'], total_steps)
 
+            total_steps = int(self.state.get(['sim', 'total_steps']) or 0) + 1
+            self.state.set(['sim', 'total_steps'], total_steps)
             if done:
+                # Asegúrate de capturar el estado turbo y effective_speed actualizados
+                turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
+
                 if self.trainer.use_end_scene_animation and effective_speed <= 50:
                     self.logic.on_episode_end()
                     self._runner_state = "ENDING_SCENE"
                 else:
+                    # Si no hay animación (alta velocidad), esperamos a que el renderer capture el último frame.
+                    if not turbo:
+                        target_step = total_steps
+                        start_wait = time.time()
+                        while True:
+                            rendered_step = int(self.state.get(
+                                ['ui', 'last_frame_step']) or 0)
+                            if rendered_step >= target_step:
+                                break
+                            if time.time() - start_wait > 0.5:  # Timeout 0.5s
+                                break
+                            time.sleep(0.001)  # Ceder ejecución
                     self._episode_active = False
                     cur_rew_done = float(self.state.get(
                         ['sim', 'current_episode_reward']) or 0.0)
@@ -197,7 +226,9 @@ class SimulationRunner:
                                        self.agent.epsilon)
 
             if not turbo:
-                sleep_duration = (1.0/spm) / spm
+                # sleep_duration = (1.0/spm) / spm (escala cuadrática)
+                # time.sleep(sleep_duration)
+                sleep_duration = 1.0 / spm  # Línea corregida (escala lineal)
                 time.sleep(sleep_duration)
 
             now = time.time()

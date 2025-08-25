@@ -1,4 +1,5 @@
 # mlvlab/envs/ant_lost_v1/env.py
+from arcade.key import P
 import gymnasium as gym
 import numpy as np
 import pprint
@@ -20,20 +21,56 @@ class LostAntEnv(ScoutAntEnv):
         # Ya no intentamos acceder a self.spec aquí.
         self._max_episode_steps = None
         self._elapsed_steps = 0
+        self._end_scene_state = "IDLE"
+        self._simulation_speed = 1.0
 
     def reset(self, seed=None, options=None):
-        obs, info = super().reset(seed=seed, options=options)
+        """
+        Esta es la versión definitiva y desacoplada.
+        No llamamos a super().reset() para evitar la lógica conflictiva
+        del padre y garantizar un inicio idéntico en todos los modos.
+        """
+        # 1. Reseteamos el generador de números aleatorios (importante).
+        super().reset(seed=seed)
+
+        # 2. Reseteamos la lógica del juego base.
+        self._game.reset(self.np_random)
+
+        # 3. Anulamos el objetivo, como es específico de LostAntEnv.
         self._game.goal_pos = np.array([-1, -1])
+
+        # 4. Sincronizamos los atributos del entorno.
         self._sync_game_state()
 
-        # Al resetear, los pasos vuelven a ser 0.
+        # 5. Reseteamos el renderer si ya existe.
+        if self._renderer:
+            self._renderer.reset()
+
+        # Nos aseguramos de que el contador de pasos empiece en 0.
         self._elapsed_steps = 0
 
-        return obs, self._get_info()
+        # Añadir esta línea para resetear el estado de la animación:
+        self._end_scene_state = "IDLE"
+
+        # 7. Devolvemos la observación y la info inicial.
+        return self._get_obs(), self._get_info()
+
+    def set_simulation_speed(self, speed: float):
+        """Permite al runner controlar la velocidad de simulación."""
+        self._simulation_speed = speed
+
+    def is_end_scene_animation_finished(self) -> bool:
+        """Comprueba si la animación de la escena final ha terminado (usado por el runner)."""
+        if not hasattr(self, '_end_scene_state'):
+            return True
+        # La animación se considera terminada cuando el estado vuelve a IDLE (gestionado en _render_frame).
+        return self._end_scene_state == "IDLE"
 
     def step(self, action):
+        # --- LÓGICA DE CARGA PEREZOSA (Tu corrección) ---
         # Si es la primera vez que se llama a step, obtenemos el valor.
         if self._max_episode_steps is None:
+            # Para cuando se llama a step, self.spec ya existe y es seguro acceder a él.
             self.spec = gym.spec(self.unwrapped.spec.id)
             self._max_episode_steps = self.spec.max_episode_steps or float(
                 'inf')
@@ -41,11 +78,14 @@ class LostAntEnv(ScoutAntEnv):
         # Ejecutamos la acción en la lógica del juego.
         obs, reward, terminated, game_info = self._game.step(action)
 
-        # Preparamos el diccionario de información que devolveremos.
+        # Incrementamos nuestro contador de pasos.
+        self._elapsed_steps += 1
+
+        # Preparamos el diccionario de información.
         info = self._get_info()
         info.update(game_info)
 
-        # Lógica de partículas si hay colisión.
+        # Lógica de partículas por colisión
         if info.get("collided", False) and self.render_mode:
             self._lazy_init_renderer()
             if self._renderer:
@@ -54,22 +94,18 @@ class LostAntEnv(ScoutAntEnv):
                 else:
                     self._renderer._spawn_collision_particles()
 
-        # Comprobamos si es el último paso para añadir el sonido de muerte.
-        info['truncated'] = False
-        if self._elapsed_steps == self._max_episode_steps - 1:
-            info['truncated'] = True
+        # Lógica de sonidos, usando el contador y el valor cargado perezosamente.
+        # print(self._elapsed_steps, self._max_episode_steps)
+        if self._elapsed_steps == self._max_episode_steps:
             info['play_sound'] = {'filename': 'fail.wav', 'volume': 8}
-        # Si no es el último, comprobamos si ha habido una colisión.
         elif info.get("collided", False):
             info['play_sound'] = {'filename': 'bump.wav', 'volume': 5}
 
-        # Sincronizamos el estado y devolvemos los resultados.
         self._sync_game_state()
 
-        # Incrementamos nuestro contador de pasos interno.
-        self._elapsed_steps += 1
-
-        return obs, reward, terminated, info['truncated'], info
+        # Devolvemos siempre truncated=False y dejamos que el wrapper de Gymnasium
+        # haga su trabajo, asegurando la sincronización perfecta.
+        return obs, reward, terminated, False, info
 
     def _render_frame(self):
         """

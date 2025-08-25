@@ -22,8 +22,6 @@ class AntLogic(InteractiveLogic):
         done = bool(terminated or truncated)
         self.agent.learn(state, action, reward, next_state, done)
         self.total_reward += reward
-        self.last_terminated = terminated
-        self.last_truncated = truncated
         return next_state, reward, done, info
 
 

@@ -1,4 +1,29 @@
 # mlvlab/core/logic.py
+import gymnasium as gym
+
+
+class LogicStepRecorder(gym.Wrapper):
+    """
+    Wrapper para registrar automáticamente el estado de terminación/truncamiento.
+    """
+
+    def __init__(self, env, logic_instance):
+        super().__init__(env)
+        self.logic = logic_instance
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        # Guardamos automáticamente los flags en la instancia de InteractiveLogic
+        self.logic.last_terminated = bool(terminated)
+        self.logic.last_truncated = bool(truncated)
+        return obs, reward, terminated, truncated, info
+
+    def reset(self, **kwargs):
+        # Reseteamos los flags al inicio del episodio
+        self.logic.last_terminated = False
+        self.logic.last_truncated = False
+        return self.env.reset(**kwargs)
+
 
 class InteractiveLogic:
     """
@@ -7,7 +32,7 @@ class InteractiveLogic:
     """
 
     def __init__(self, env, agent):
-        self.env = env
+        self.env = LogicStepRecorder(env, self)
         self.agent = agent
         self.total_reward = 0.0
         self.state = None
