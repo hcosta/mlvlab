@@ -99,6 +99,9 @@ class LostAntEnv(ScoutAntEnv):
 
         self._sync_game_state()
 
+        if self.render_mode == "human":
+            self.render()
+
         # El entorno en sí no decide la terminación ni el truncamiento.
         # Devuelve los valores del juego (terminated=False) y deja que
         # el wrapper TimeLimit de Gymnasium gestione el truncamiento.

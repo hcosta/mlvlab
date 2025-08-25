@@ -490,6 +490,12 @@ class ArcadeRenderer:
                               aey_rel_R * vertical_flip_multiplier, leg_color, antenna_thickness)
 
     def draw(self, game: AntGame, render_mode: str, simulation_speed: float = 1.0):
+        """
+        Función de dibujo principal. AHORA devuelve el array de la imagen
+        directamente en modo rgb_array.
+        """
+        if render_mode is None:
+            return None
         if not self.initialized:
             self._initialize(game, render_mode)
 

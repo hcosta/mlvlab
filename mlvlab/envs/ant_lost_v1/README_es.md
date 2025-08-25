@@ -205,7 +205,7 @@ terminated = truncated = False
 while not (terminated or truncated):
     action = env.action_space.sample()  # Acciones aleatorias
     obs, reward, terminated, truncated, info = env.step(action)
-    print(f"Posición: {obs}, Recompensa: {reward}, Paso: {info['step']}")
+    print(f"Posición: {obs}, Recompensa: {reward}, Info: {info}")
 env.close()
 ```
 
