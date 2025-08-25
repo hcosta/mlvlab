@@ -1,4 +1,4 @@
-# mlvlab/envs/ant/env.py
+# mlvlab/envs/ant_scout_v1/env.py
 
 import gymnasium as gym
 from gymnasium import spaces

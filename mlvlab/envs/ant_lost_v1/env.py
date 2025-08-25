@@ -7,6 +7,7 @@ import pprint
 # Importamos la clase base ScoutAntEnv y el renderer local
 from mlvlab.envs.ant_scout_v1.env import ScoutAntEnv
 from .renderer import ArcadeRenderer
+from .game import AntGame
 
 
 class LostAntEnv(ScoutAntEnv):
@@ -18,6 +19,15 @@ class LostAntEnv(ScoutAntEnv):
     def __init__(self, render_mode=None, grid_size=10):
         super().__init__(render_mode=render_mode, grid_size=grid_size,
                          reward_goal=0, reward_obstacle=-1, reward_move=0)
+
+        # Ahora, sobrescribimos el self._game del padre con nuestra propia
+        # lógica de juego de AntLost, que sí tiene terminación.
+        self._game = AntGame(
+            grid_size=grid_size,
+            reward_obstacle=-1,
+            reward_move=0
+        )
+
         # Ya no intentamos acceder a self.spec aquí.
         self._max_episode_steps = None
         self._elapsed_steps = 0
@@ -67,35 +77,21 @@ class LostAntEnv(ScoutAntEnv):
         return self._end_scene_state == "IDLE"
 
     def step(self, action):
-        # --- LÓGICA DE CARGA PEREZOSA (Tu corrección) ---
-        # Si es la primera vez que se llama a step, obtenemos el valor.
         if self._max_episode_steps is None:
-            # Para cuando se llama a step, self.spec ya existe y es seguro acceder a él.
             self.spec = gym.spec(self.unwrapped.spec.id)
             self._max_episode_steps = self.spec.max_episode_steps or float(
                 'inf')
 
         # Ejecutamos la acción en la lógica del juego.
+        # 'terminated' de aquí siempre será False, como debe ser.
         obs, reward, terminated, game_info = self._game.step(action)
 
-        # Incrementamos nuestro contador de pasos.
         self._elapsed_steps += 1
 
-        # Preparamos el diccionario de información.
         info = self._get_info()
         info.update(game_info)
 
-        # Lógica de partículas por colisión
-        if info.get("collided", False) and self.render_mode:
-            self._lazy_init_renderer()
-            if self._renderer:
-                if hasattr(self._renderer, 'spawn_collision_particles'):
-                    self._renderer.spawn_collision_particles()
-                else:
-                    self._renderer._spawn_collision_particles()
-
-        # Lógica de sonidos, usando el contador y el valor cargado perezosamente.
-        # print(self._elapsed_steps, self._max_episode_steps)
+        # La lógica de sonidos y sincronización no cambia.
         if self._elapsed_steps == self._max_episode_steps:
             info['play_sound'] = {'filename': 'fail.wav', 'volume': 8}
         elif info.get("collided", False):
@@ -103,8 +99,9 @@ class LostAntEnv(ScoutAntEnv):
 
         self._sync_game_state()
 
-        # Devolvemos siempre truncated=False y dejamos que el wrapper de Gymnasium
-        # haga su trabajo, asegurando la sincronización perfecta.
+        # El entorno en sí no decide la terminación ni el truncamiento.
+        # Devuelve los valores del juego (terminated=False) y deja que
+        # el wrapper TimeLimit de Gymnasium gestione el truncamiento.
         return obs, reward, terminated, False, info
 
     def _render_frame(self):

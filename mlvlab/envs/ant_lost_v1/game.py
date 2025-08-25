@@ -1,26 +1,22 @@
-# mlvlab/envs/ant/game.py
+# mlvlab/envs/ant_lost_v1/game.py
 import numpy as np
 
 
 class AntGame:
     """
-    Lógica del juego (estado y transición), sin dependencias de UI.
-    Mantiene la lógica pura y el estado del gridworld.
+    Lógica de juego para AntLost. NO gestiona la terminación.
+    Solo se encarga del movimiento, colisiones y estado del mundo.
     """
 
     def __init__(self, grid_size: int, reward_obstacle: int, reward_move: int) -> None:
         self.grid_size = int(grid_size)
         self.reward_obstacle = int(reward_obstacle)
         self.reward_move = int(reward_move)
-
-        # Estado del juego
         self.ant_pos = np.zeros(2, dtype=np.int32)
         self.obstacles: set[tuple[int, int]] = set()
-        self.is_dead = False  # Flag para el estado de la hormiga
-
+        self.goal_pos = np.array(
+            [-1, -1], dtype=np.int32)  # Para compatibilidad
         self._np_random = None
-
-        # Estado para el renderer
         self.last_action = 3
         self.collided = False
 
@@ -30,7 +26,7 @@ class AntGame:
         self.place_ant(np_random)
         self.last_action = 3
         self.collided = False
-        self.is_dead = False  # Reseteamos el estado de la hormiga
+        self.goal_pos = np.array([-1, -1], dtype=np.int32)
 
     def generate_scenario(self, np_random) -> None:
         self._np_random = np_random
@@ -51,17 +47,13 @@ class AntGame:
         return np.array(self.ant_pos, dtype=np.int32)
 
     def step(self, action: int) -> tuple[np.ndarray, int, bool, dict]:
-        # En este entorno, la hormiga nunca "termina" por llegar a una meta.
-        # Siempre devuelve terminated = False.
-        terminated = False
-
         ax, ay = int(self.ant_pos[0]), int(self.ant_pos[1])
         info: dict = {}
         self.last_action = action
         self.collided = False
-
         prev_ax, prev_ay = ax, ay
         target_ax, target_ay = ax, ay
+
         if action == 0:
             target_ay -= 1
         elif action == 1:
@@ -76,6 +68,7 @@ class AntGame:
             target_ay < 0 or target_ay >= self.grid_size
         )
 
+        # La colisión (con roca o límite) solo impide el movimiento. NO termina el juego.
         if out_of_bounds or (target_ax, target_ay) in self.obstacles:
             reward = self.reward_obstacle
             ax, ay = prev_ax, prev_ay
@@ -88,4 +81,5 @@ class AntGame:
         self.ant_pos[0], self.ant_pos[1] = ax, ay
         info["collided"] = self.collided
 
-        return np.array((ax, ay), dtype=np.int32), int(reward), bool(terminated), info
+        # El juego NUNCA termina por sí mismo. Siempre devuelve terminated = False.
+        return self.get_obs(), int(reward), False, info

@@ -47,7 +47,7 @@ class ArcadeRenderer:
 
         # Paleta de colores
         self.COLOR_GRASS = (107, 142, 35)
-        self.COLOR_ANT = (192, 57, 43)
+        self.COLOR_ANT = (137, 48, 43)
         self.COLOR_OBSTACLE = (100, 100, 100)
         self.COLOR_PARTICLE_DUST = (210, 180, 140)
 
@@ -60,8 +60,10 @@ class ArcadeRenderer:
 
         # Lógica de animación de muerte
         self.in_death_transition = False
+        self.death_pending_completion = False
         self.death_transition_time = 0.0
-        self.DEATH_TRANSITION_DURATION = 2.0
+        self.DEATH_TRANSITION_DURATION = 1.5
+        self.DEATH_PAUSE_DURATION = 0.5
         self.ant_vertical_flip = False
         self.ant_alpha = 255
 
@@ -105,8 +107,8 @@ class ArcadeRenderer:
         self.last_time = time.time()
         self.particles = []
         self.was_colliding_last_frame = False
-
         self.in_death_transition = False
+        self.death_pending_completion = False
         self.death_transition_time = 0.0
         self.ant_vertical_flip = False
         self.ant_alpha = 255
@@ -118,62 +120,77 @@ class ArcadeRenderer:
         return x_px, y_px
 
     def start_death_transition(self):
-        if not self.in_death_transition:
-            self.in_death_transition = True
-            self.death_transition_time = 0.0
-            self.ant_vertical_flip = False
-            self.ant_alpha = 255
-            if self.game:
-                self.ant_display_pos = list(self.game.ant_pos.astype(float))
-                # Fija el ángulo de la hormiga para que se alinee perfectamente
-                # con la dirección del último movimiento que causó la muerte.
-                self.ant_current_angle = self._get_angle_from_action(
-                    self.game.last_action)
+        if not self.in_death_transition and not self.death_pending_completion:
+            self.death_pending_completion = True
 
     def is_in_death_transition(self) -> bool:
-        return self.in_death_transition
+        # La escena de muerte se considera activa si la animación está
+        # pendiente de empezar O si ya se está ejecutando.
+        return self.in_death_transition or self.death_pending_completion
 
     def _update_death_transition(self, delta_time: float):
         if not self.in_death_transition:
             return
         self.death_transition_time += delta_time
+        # El progreso de la animación visual sigue basándose en la duración original.
+        # Esto hace que la animación se complete y luego se detenga.
         progress = min(1.0, self.death_transition_time /
                        self.DEATH_TRANSITION_DURATION)
         if progress >= 0.25:
             self.ant_vertical_flip = True
         if progress >= 0.35:
+            # Hacemos que la hormiga se desvanezca hasta un valor bajo pero visible (60), no hasta 0.
             fade_progress = (progress - 0.35) / 0.65
-            self.ant_alpha = int(255 * (1.0 - fade_progress))
-        if progress >= 1.0:
+            min_alpha = 60
+            self.ant_alpha = int(255 - (255 - min_alpha) * fade_progress)
+        # La transición completa (incluida la pausa) termina ahora más tarde.
+        total_duration = self.DEATH_TRANSITION_DURATION + self.DEATH_PAUSE_DURATION
+        if self.death_transition_time >= total_duration:
             self.in_death_transition = False
-            self.ant_alpha = 0
+            self.ant_alpha = 0  # Desaparece por completo al final.
 
     def _get_angle_from_action(self, action):
         return {0: 90, 1: 270, 2: 180, 3: 0}.get(action, self.ant_current_angle)
 
     def _update_animations(self, delta_time: float):
+        # La transición de muerte se sigue gestionando aquí, pero ahora permitimos
+        # que el último movimiento se complete antes de que comience.
         if self.in_death_transition:
             self._update_death_transition(delta_time)
             return
 
-        # Lógica de movimiento suave normal
+        # --- LÓGICA DE MOVIMIENTO Y ROTACIÓN (se ejecuta siempre primero) ---
         target_pos = list(self.game.ant_pos.astype(float))
         dist_x = target_pos[0] - self.ant_display_pos[0]
         dist_y = target_pos[1] - self.ant_display_pos[1]
-        if math.sqrt(dist_x**2 + dist_y**2) > 0.001:
+        is_at_target = math.sqrt(dist_x**2 + dist_y**2) < 0.01
+
+        if not is_at_target:
             lerp_factor = 1.0 - math.exp(-delta_time * 15.0)
             self.ant_display_pos[0] += dist_x * lerp_factor
             self.ant_display_pos[1] += dist_y * lerp_factor
         else:
             self.ant_display_pos = target_pos
 
-        # Lógica de rotación suave
         target_angle = self._get_angle_from_action(self.game.last_action)
         diff = (target_angle - self.ant_current_angle + 180) % 360 - 180
         if abs(diff) > 0.1:
             lerp_factor = 1.0 - math.exp(-delta_time * 25.0)
             self.ant_current_angle += diff * lerp_factor
             self.ant_current_angle %= 360
+
+        # --- LÓGICA DE INICIO DE MUERTE RETRASADA ---
+        # Si una muerte está pendiente Y la hormiga ha llegado a su celda,
+        # inicia AHORA la transición de muerte.
+        if self.death_pending_completion and is_at_target:
+            self.death_pending_completion = False
+            self.in_death_transition = True
+            self.death_transition_time = 0.0
+            self.ant_vertical_flip = False
+            self.ant_alpha = 255
+            # Fija el ángulo de la hormiga para que se alinee perfectamente
+            self.ant_current_angle = self._get_angle_from_action(
+                self.game.last_action)
 
         # Lógica de colisión
         if self.game.collided and not self.was_colliding_last_frame:
@@ -301,7 +318,6 @@ class ArcadeRenderer:
         draw_cx, draw_cy = base_cx, base_cy
         vertical_flip_multiplier = 1
 
-        # Primero, determinamos si la hormiga está en proceso de moverse a otra celda.
         is_moving = math.sqrt((self.game.ant_pos[0] - self.ant_display_pos[0])**2 +
                               (self.game.ant_pos[1] - self.ant_display_pos[1])**2) > 0.01
 
@@ -316,9 +332,10 @@ class ArcadeRenderer:
         else:
             if is_moving:
                 draw_cy += abs(math.sin(time.time() * 25.0)) * 3
-            # t = time.time()
-            # if math.sqrt((self.game.ant_pos[0] - self.ant_display_pos[0])**2 + (self.game.ant_pos[1] - self.ant_display_pos[1])**2) > 0.01:
-            #     draw_cy += abs(math.sin(t * 25.0)) * 3
+
+        # --- LÓGICA MODIFICADA ---
+        # Factor de escala para hacer el zángano un 30% más grande.
+        size_multiplier = 1.5
 
         # Preparar colores y parámetros de dibujo
         angle = self.ant_current_angle
@@ -327,11 +344,12 @@ class ArcadeRenderer:
                         int(180 * (self.ant_alpha / 255)))
         leg_color = (*(max(0, c - 50) for c in self.COLOR_ANT), self.ant_alpha)
 
-        head_radius = self.CELL_SIZE * 0.16
-        thorax_radius_x = self.CELL_SIZE * 0.21
-        thorax_radius_y = self.CELL_SIZE * 0.18
-        abdomen_radius_x = self.CELL_SIZE * 0.28
-        abdomen_radius_y = self.CELL_SIZE * 0.22
+        # Se aplica el multiplicador a todas las dimensiones del cuerpo.
+        head_radius = self.CELL_SIZE * 0.16 * size_multiplier
+        thorax_radius_x = self.CELL_SIZE * 0.21 * size_multiplier
+        thorax_radius_y = self.CELL_SIZE * 0.18 * size_multiplier
+        abdomen_radius_x = self.CELL_SIZE * 0.28 * size_multiplier
+        abdomen_radius_y = self.CELL_SIZE * 0.22 * size_multiplier
 
         angle_rad = math.radians(angle)
 
@@ -340,17 +358,17 @@ class ArcadeRenderer:
             ry = x * math.sin(angle_rad) + y * math.cos(angle_rad)
             return rx, ry
 
-        # Por defecto, la oscilación es 0 (patas quietas).
         oscillation = 0.0
-        # Solo calculamos la oscilación si la hormiga se está moviendo o muriendo.
         if is_moving or self.in_death_transition:
             oscillation = math.sin(
                 time.time() * (3.0 if self.in_death_transition else 25.0))
 
         leg_osc_amount = 3 if self.in_death_transition else 25
         ant_osc_amount = 5 if self.in_death_transition else 10
-        leg_length = self.CELL_SIZE * 0.28
-        leg_thickness = 3
+
+        # Se aplica también a las patas y antenas.
+        leg_length = self.CELL_SIZE * 0.28 * size_multiplier
+        leg_thickness = 3 * size_multiplier
 
         for side in [-1, 1]:
             for i, offset_angle in enumerate([-40, 0, 40]):
@@ -385,6 +403,7 @@ class ArcadeRenderer:
             draw_cx + hx_rel, draw_cy + hy_rel, head_radius, body_color)
 
         # Ojos y Antenas
+        # El tamaño del ojo escala automáticamente al depender del radio de la cabeza.
         eye_radius = head_radius * 0.3
         eye_color = (*(30, 30, 30), self.ant_alpha)
         for side in [-1, 1]:
@@ -393,9 +412,8 @@ class ArcadeRenderer:
                 draw_cx + hx_rel + eox, draw_cy + hy_rel + eoy, eye_radius, eye_color)
 
         antenna_length = head_radius * 1.8
-        antenna_thickness = 2
+        antenna_thickness = 2 * size_multiplier
         for side in [-1, 1]:
-            # La oscilación de las antenas ahora también depende de si se está moviendo.
             end_angle = angle + (45 * side) + oscillation * ant_osc_amount
             asx_rel, asy_rel = rotate(
                 head_radius * 0.9, head_radius * 0.4 * side)

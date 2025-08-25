@@ -5,7 +5,7 @@ from mlvlab.cli.utils import get_env_config
 from mlvlab.cli.run_manager import get_run_dir
 import argparse
 import sys
-import random
+import random as rd
 from pathlib import Path
 
 # Añadimos la raíz del proyecto al path para que los imports funcionen
@@ -54,7 +54,7 @@ def main():
 
     run_seed = args.seed
     if run_seed is None:
-        run_seed = random.randint(0, 10000)
+        run_seed = rd.randint(0, 10000)
         print(i18n.t("cli.messages.no_seed_random", seed=run_seed))
 
     run_dir = get_run_dir(normalized_env_id, run_seed)

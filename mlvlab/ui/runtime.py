@@ -111,16 +111,38 @@ class SimulationRunner:
                     obs, info = self.env.reset(seed=new_seed)
                 if hasattr(self.agent, "reset"):
                     self.agent.reset()
+
                 self.state.set(['sim', 'current_episode_reward'], 0.0)
                 self.state.set(['sim', 'total_steps'], 0)
                 self.state.set(['metrics', 'episodes_completed'], 0)
                 self.state.set(['metrics', 'reward_history'], [])
                 self.state.set(['agent', 'epsilon'], 1.0)
-                # <-- Aquí se guarda la nueva seed
                 self.state.set(['sim', 'seed'], new_seed)
+
+                # Incrementamos el contador de resets (Nueva generación).
+                current_reset_count = int(self.state.get(
+                    ['sim', 'reset_counter']) or 0) + 1
+                self.state.set(['sim', 'reset_counter'], current_reset_count)
+
                 self._current_state = self.logic._obs_to_state(obs)
                 self._episode_active = True
                 self.state.set(['sim', 'command'], "run")
+
+                # Lógica de espera sincronizada robusta
+                turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
+                if not turbo:
+                    target_reset_count = current_reset_count
+                    start_wait = time.time()
+                    while True:
+                        # Esperamos hasta que el renderer confirme que está en la generación actual.
+                        rendered_reset_count = int(self.state.get(
+                            ['ui', 'last_rendered_reset_counter']) or -1)
+                        if rendered_reset_count >= target_reset_count:
+                            break
+                        if time.time() - start_wait > 0.5:  # Timeout 0.5s
+                            break
+                        time.sleep(0.001)  # Ceder ejecución
+                    continue  # Forzar re-evaluación de la UI
                 continue
 
             if not self._episode_active:
@@ -133,26 +155,26 @@ class SimulationRunner:
                 if not self.state.get(['sim', 'initialized']):
                     self.state.set(['sim', 'initialized'], True)
 
-                # Comprobamos el estado actual del modo turbo.
-                turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
+#                Incrementamos el contador de resets (Nueva generación).
+                current_reset_count = int(self.state.get(
+                    ['sim', 'reset_counter']) or 0) + 1
+                self.state.set(['sim', 'reset_counter'], current_reset_count)
 
-                # Solo esperamos si NO estamos en modo turbo.
+                turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
                 if not turbo:
-                    # Esperamos a que el renderer capture el estado inicial antes del primer step.
-                    target_step = int(self.state.get(
-                        ['sim', 'total_steps']) or 0)
+                    target_reset_count = current_reset_count
                     start_wait = time.time()
                     while True:
-                        # 'ui/last_frame_step' es actualizado por RenderingThread (analytics.py)
-                        rendered_step = int(self.state.get(
-                            ['ui', 'last_frame_step']) or 0)
-                        if rendered_step >= target_step:
+                        # Usamos el nuevo contador robusto.
+                        rendered_reset_count = int(self.state.get(
+                            ['ui', 'last_rendered_reset_counter']) or -1)
+                        if rendered_reset_count >= target_reset_count:
                             break
                         if time.time() - start_wait > 0.5:  # Timeout 0.5s
                             break
                         time.sleep(0.001)  # Ceder ejecución
 
-                    # Si esperamos, forzamos una nueva iteración para mantener la responsividad de la UI.
+                    # Si esperamos, forzamos una nueva iteración para mantener la responsividad.
                     continue
             # Si estamos en modo turbo, el código continúa inmediatamente abajo
             # ejecutando el primer paso en la misma iteración (máxima velocidad).

@@ -109,6 +109,11 @@ class RenderingThread(threading.Thread):
                         last_step = int(self.state.get(
                             ["sim", "total_steps"]) or 0)
                         self.state.set(["ui", "last_frame_step"], last_step)
+                        # Actualizamos el contador de generación renderizada.
+                        reset_count = int(self.state.get(
+                            ["sim", "reset_counter"]) or 0)
+                        self.state.set(
+                            ["ui", "last_rendered_reset_counter"], reset_count)
                     except Exception:
                         pass
 
@@ -195,7 +200,7 @@ class AnalyticsView:
 
         self.state = StateStore(
             defaults={
-                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0,  "active_model_name": "Ninguno (Nuevo)", "initialized": False},
+                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0,  "active_model_name": "Ninguno (Nuevo)", "initialized": False, "reset_counter": 0},
                 "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
                 "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": effective_history_size},
                 "ui": {"sound_enabled": True, "chart_visible": True, "debug_mode": False, "dark_mode": dark},
