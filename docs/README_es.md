@@ -88,8 +88,9 @@ MLV-Lab> docs AntScout-v1
 
 ## 📦 Entornos disponibles
 
-| ID                                       | Entorno           | Saga        | Baseline   | Detalles                                                   | Vista Previa                                                                                                             |
-| ---------------------------------------- | ----------------- | ----------- | ---------- | ---------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------: |
+| Nombre | Entorno | Saga | Baseline |Detalles | Vista Previa |
+| -------| --------| ---- | -------- | ------- | :----------: |
+| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Zángano Errante  | 🐜 Hormigas | Aleatorio | [README.md](/mlvlab/envs/ant_lost_v1/README_es.md) | <a href="/mlvlab/envs/ant_lost_v1/README_es.md"><img src="./ant_lost_v1/mode_play.jpg" alt="play mode" width="75px"></a> |
 | `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Exploradora Vigía | 🐜 Hormigas | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README_es.md) | <a href="/mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="75px"></a> |
 
 ---
