@@ -76,37 +76,25 @@
       "error": "Failed to start sub-shell: {error}"
     },
     "tables": {
-      "unit_id": "Unit ID",
-      "environment": "Environment",
-      "collection": "Collection",
+      "unit_id": "Unit",
+      "environment": "Name",
+      "collection": "Theme",
       "objective": "Objective",
       "description": "Description",
       "name_mlv": "Name (MLV)",
-      "id_command": "Shell ID",
+      "id_command": "Environment",
       "id_gymnasium": "ID (Gymnasium)",
       "baseline_agent": "Baseline Agent",
       "unit_description": "Unit Description"
     },
     "units": {
-      "ants": "🐜",
-      "ql": "🧠",
-      "sarsa": "🔄",
-      "dqn": "🕸️",
-      "dqnp": "🚀"
+      "ants": "🐜"
     },
     "unit_names": {
-      "ants": "Ant Saga",
-      "ql": "Q-Learning Simulations",
-      "sarsa": "SARSA Simulations",
-      "dqn": "DQN Simulations",
-      "dqnp": "DQN Plus Simulations (Advanced)"
+      "ants": "Ant Saga"
     },
     "unit_descriptions": {
-      "ants": "Q-Learning Simulations",
-      "ql": "Q-Learning Simulations",
-      "sarsa": "SARSA Simulations",
-      "dqn": "DQN Simulations",
-      "dqnp": "Advanced DQN Simulations"
+      "ants": "Introduction to Reinforcement Learning"
     },
     "errors": {
       "player_entry_not_found": "Error: Could not find player entry script on '{path}'",
@@ -171,6 +159,11 @@
     }
   },
   "environments": {
+    "antlost_v1": {
+      "name": "🐜 Errant Drone",
+      "description": "Walk aimlessly until perishing",
+      "baseline_agent": "Random"
+    },
     "antscout_v1": {
       "name": "🐜 Lookout Scout",
       "description": "Find the lost colony",
