@@ -73,6 +73,11 @@ class RenderingThread(threading.Thread):
     def run(self):
         print(i18n.t("analytics.render_thread_started", thread_id=self.ident))
         while not self._stop_event.is_set():
+            # Esperamos a que el entorno se inicialice
+            if not self.state.get(["sim", "initialized"]):
+                # Esperar hasta que SimulationRunner haya llamado al primer reset().
+                self._stop_event.wait(0.01)
+                continue
             try:
                 debug_is_on = bool(self.state.get(["ui", "debug_mode"]))
                 with self.env_lock:
@@ -190,7 +195,7 @@ class AnalyticsView:
 
         self.state = StateStore(
             defaults={
-                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0,  "active_model_name": "Ninguno (Nuevo)"},
+                "sim": {"command": "run", "speed_multiplier": 1, "turbo_mode": False, "total_steps": 0, "current_episode_reward": 0.0,  "active_model_name": "Ninguno (Nuevo)", "initialized": False},
                 "agent": {**agent_defaults, **{k: float(v) for k, v in self.user_hparams.items()}},
                 "metrics": {"episodes_completed": 0, "reward_history": [], "steps_per_second": 0, "chart_reward_number": effective_history_size},
                 "ui": {"sound_enabled": True, "chart_visible": True, "debug_mode": False, "dark_mode": dark},

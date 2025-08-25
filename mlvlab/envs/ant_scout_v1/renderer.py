@@ -206,8 +206,6 @@ class ArcadeRenderer:
             (y_px - self.CELL_SIZE / 2) / self.CELL_SIZE
         return x_cell, y_cell
 
-    # Gestión de la Transición de Éxito ---
-
     def start_success_transition(self):
         if not self.in_success_transition:
             self.in_success_transition = True
@@ -253,7 +251,7 @@ class ArcadeRenderer:
         if self.anthill_hole_visual_center:
             target_x_px, target_y_px = self.anthill_hole_visual_center
             target_x_cell, target_y_cell = self._pixel_to_cell(
-                target_x_px, target_y_px)
+                target_x_px, target_y_px+15.5)  # Offset opara el centro real
             target_pos = [target_x_cell, target_y_cell]
         else:
             # Fallback al centro lógico

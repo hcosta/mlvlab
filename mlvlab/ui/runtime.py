@@ -129,22 +129,33 @@ class SimulationRunner:
                 self._episode_active = True
                 self.state.set(['sim', 'current_episode_reward'], 0.0)
 
-                # >>> INICIO BLOQUE AÑADIDO (Sincronización Inicial) <<<
-                # Esperamos a que el renderer capture el estado inicial antes del primer step.
-                target_step = int(self.state.get(['sim', 'total_steps']) or 0)
-                start_wait = time.time()
-                while True:
-                    # 'ui/last_frame_step' es actualizado por RenderingThread (analytics.py)
-                    rendered_step = int(self.state.get(
-                        ['ui', 'last_frame_step']) or 0)
-                    if rendered_step >= target_step:
-                        break
-                    if time.time() - start_wait > 0.5:  # Timeout 0.5s
-                        break
-                    time.sleep(0.001)  # Ceder ejecución
-                # Continuamos para separar la lógica de inicialización del step.
-                continue
+                # Señalamos al RenderingThread que el primer reset() se ha completado.
+                if not self.state.get(['sim', 'initialized']):
+                    self.state.set(['sim', 'initialized'], True)
 
+                # Comprobamos el estado actual del modo turbo.
+                turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
+
+                # Solo esperamos si NO estamos en modo turbo.
+                if not turbo:
+                    # Esperamos a que el renderer capture el estado inicial antes del primer step.
+                    target_step = int(self.state.get(
+                        ['sim', 'total_steps']) or 0)
+                    start_wait = time.time()
+                    while True:
+                        # 'ui/last_frame_step' es actualizado por RenderingThread (analytics.py)
+                        rendered_step = int(self.state.get(
+                            ['ui', 'last_frame_step']) or 0)
+                        if rendered_step >= target_step:
+                            break
+                        if time.time() - start_wait > 0.5:  # Timeout 0.5s
+                            break
+                        time.sleep(0.001)  # Ceder ejecución
+
+                    # Si esperamos, forzamos una nueva iteración para mantener la responsividad de la UI.
+                    continue
+            # Si estamos en modo turbo, el código continúa inmediatamente abajo
+            # ejecutando el primer paso en la misma iteración (máxima velocidad).
             spm = max(1, int(self.state.get(['sim', 'speed_multiplier']) or 1))
             turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
             effective_speed = 100000.0 if turbo else float(spm)

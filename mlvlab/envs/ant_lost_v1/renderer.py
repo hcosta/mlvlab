@@ -125,6 +125,10 @@ class ArcadeRenderer:
             self.ant_alpha = 255
             if self.game:
                 self.ant_display_pos = list(self.game.ant_pos.astype(float))
+                # Fija el ángulo de la hormiga para que se alinee perfectamente
+                # con la dirección del último movimiento que causó la muerte.
+                self.ant_current_angle = self._get_angle_from_action(
+                    self.game.last_action)
 
     def is_in_death_transition(self) -> bool:
         return self.in_death_transition
@@ -297,6 +301,10 @@ class ArcadeRenderer:
         draw_cx, draw_cy = base_cx, base_cy
         vertical_flip_multiplier = 1
 
+        # Primero, determinamos si la hormiga está en proceso de moverse a otra celda.
+        is_moving = math.sqrt((self.game.ant_pos[0] - self.ant_display_pos[0])**2 +
+                              (self.game.ant_pos[1] - self.ant_display_pos[1])**2) > 0.01
+
         if self.in_death_transition:
             progress = self.death_transition_time / self.DEATH_TRANSITION_DURATION
             if progress < 0.25:
@@ -306,9 +314,11 @@ class ArcadeRenderer:
             if self.ant_vertical_flip:
                 vertical_flip_multiplier = -1
         else:
-            t = time.time()
-            if math.sqrt((self.game.ant_pos[0] - self.ant_display_pos[0])**2 + (self.game.ant_pos[1] - self.ant_display_pos[1])**2) > 0.01:
-                draw_cy += abs(math.sin(t * 25.0)) * 3
+            if is_moving:
+                draw_cy += abs(math.sin(time.time() * 25.0)) * 3
+            # t = time.time()
+            # if math.sqrt((self.game.ant_pos[0] - self.ant_display_pos[0])**2 + (self.game.ant_pos[1] - self.ant_display_pos[1])**2) > 0.01:
+            #     draw_cy += abs(math.sin(t * 25.0)) * 3
 
         # Preparar colores y parámetros de dibujo
         angle = self.ant_current_angle
@@ -330,9 +340,13 @@ class ArcadeRenderer:
             ry = x * math.sin(angle_rad) + y * math.cos(angle_rad)
             return rx, ry
 
-        # Dibujar Componentes
-        t = time.time()
-        oscillation = math.sin(t * (3.0 if self.in_death_transition else 25.0))
+        # Por defecto, la oscilación es 0 (patas quietas).
+        oscillation = 0.0
+        # Solo calculamos la oscilación si la hormiga se está moviendo o muriendo.
+        if is_moving or self.in_death_transition:
+            oscillation = math.sin(
+                time.time() * (3.0 if self.in_death_transition else 25.0))
+
         leg_osc_amount = 3 if self.in_death_transition else 25
         ant_osc_amount = 5 if self.in_death_transition else 10
         leg_length = self.CELL_SIZE * 0.28
@@ -381,6 +395,7 @@ class ArcadeRenderer:
         antenna_length = head_radius * 1.8
         antenna_thickness = 2
         for side in [-1, 1]:
+            # La oscilación de las antenas ahora también depende de si se está moviendo.
             end_angle = angle + (45 * side) + oscillation * ant_osc_amount
             asx_rel, asy_rel = rotate(
                 head_radius * 0.9, head_radius * 0.4 * side)
