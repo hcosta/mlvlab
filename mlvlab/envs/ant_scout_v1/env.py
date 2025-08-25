@@ -198,7 +198,7 @@ class ScoutAntEnv(gym.Env):
         if terminated:
             info['play_sound'] = {'filename': 'success.wav', 'volume': 10}
         elif info.get("collided", False):
-            info['play_sound'] = {'filename': 'bump.wav', 'volume': 5}
+            info['play_sound'] = {'filename': 'bump.wav', 'volume': 7}
 
         self._sync_game_state()
         if self.render_mode == "human":

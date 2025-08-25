@@ -93,9 +93,9 @@ class LostAntEnv(ScoutAntEnv):
 
         # La lógica de sonidos y sincronización no cambia.
         if self._elapsed_steps == self._max_episode_steps:
-            info['play_sound'] = {'filename': 'fail.wav', 'volume': 8}
+            info['play_sound'] = {'filename': 'fail.wav', 'volume': 10}
         elif info.get("collided", False):
-            info['play_sound'] = {'filename': 'bump.wav', 'volume': 5}
+            info['play_sound'] = {'filename': 'bump.wav', 'volume': 7}
 
         self._sync_game_state()
 

@@ -1,6 +1,6 @@
 import arcade
 
-DESCRIPTION = "Encuentra la colonia perdida"
+DESCRIPTION = "Vigía Exploradora (AntScout-v1): Una hormiga exploradora que busca la colonia perdida."
 
 # Mapeo de teclas de Arcade a acciones del entorno (Action Space)
 # Esto permite que el Player genérico funcione con arcade/pyglet.
