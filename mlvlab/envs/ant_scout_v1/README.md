@@ -79,7 +79,7 @@ Both `reset()` and `step()` return an **`info`** dictionary, useful for debuggin
 | `goal_pos`   | Array with the `[x, y]` coordinates of the goal (target). |
 | `collided`   | `True` if the ant collided with an obstacle or moved out of the grid boundaries. |
 | `terminated` | `True` if the episode ended because the ant reached the goal. |
-| `play_sound` | Dictionary with sound information:<br>• `{'filename': 'success.wav', 'volume': 10}` → when the goal is reached.<br>• `{'filename': 'bump.wav', 'volume': 5}` → when an obstacle is hit. |
+| `play_sound` | Dictionary with sound information:<br>• `{'filename': 'success.wav', 'volume': 10}` → when the goal is reached.<br>• `{'filename': 'bump.wav', 'volume': 7}` → when an obstacle is hit. |
 
 ---
 

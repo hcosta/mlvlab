@@ -96,7 +96,7 @@ Tanto `reset()` como `step()` devuelven un diccionario **`info`**, útil para de
 | `collided`         | `True` si la hormiga colisiona o sale de los límites del grid. |
 | `terminated`       | Siempre `False` en este entorno. |
 | `truncated`        | `True` si el episodio terminó debido al límite de pasos. |
-| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'fail.wav', 'volume': 10}` → al superarse el límite de pasos.<br>• `{'filename': 'bump.wav', 'volume': 5}` → al colisionar con un obstáculo. |
+| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'fail.wav', 'volume': 10}` → al superarse el límite de pasos.<br>• `{'filename': 'bump.wav', 'volume': 7}` → al colisionar con un obstáculo. |
 
 ---
 

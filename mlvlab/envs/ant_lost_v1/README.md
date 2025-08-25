@@ -96,7 +96,7 @@ Both `reset()` and `step()` return an **`info`** dictionary, useful for debuggin
 | `collided`   | `True` if the ant collided with an obstacle or moved out of the grid boundaries. |
 | `terminated` | Always `False` in this environment. |
 | `truncated`  | `True` if the episode ended due to step limit. |
-| `play_sound` | Dictionary with sound information:<br>• `{'filename': 'fail.wav', 'volume': 10}` → when the maximum number of steps is reached.<br>• `{'filename': 'bump.wav', 'volume': 5}` → when an obstacle is hit. |
+| `play_sound` | Dictionary with sound information:<br>• `{'filename': 'fail.wav', 'volume': 10}` → when the maximum number of steps is reached.<br>• `{'filename': 'bump.wav', 'volume': 7}` → when an obstacle is hit. |
 
 ---
 

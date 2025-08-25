@@ -79,7 +79,7 @@ Tanto `reset()` como `step()` devuelven un diccionario **`info`**, útil para de
 | `goal_pos`         | Coordenadas `[x, y]` de la meta (objetivo). |
 | `collided`         | `True` si la hormiga colisiona o sale de los límites del grid. |
 | `terminated`       | `True` si el episodio termina porque la hormiga alcanzó la meta. |
-| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'success.wav', 'volume': 10}` → al alcanzar la meta.<br>• `{'filename': 'bump.wav', 'volume': 5}` → al colisionar con un obstáculo. |
+| `play_sound`       | Diccionario con información de sonido:<br>• `{'filename': 'success.wav', 'volume': 10}` → al alcanzar la meta.<br>• `{'filename': 'bump.wav', 'volume': 7}` → al colisionar con un obstáculo. |
 
 ---
 

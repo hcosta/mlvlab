@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlvlab"
-version = "0.2.20"
+version = "0.2.21"
 description = "Visual AI Learning Ecosystem - MLVisual®"
 readme = "docs/README_PyPI.md"
 requires-python = ">=3.10"
@@ -22,7 +22,7 @@ dependencies = [
     # Dependencias de la CLI
     "typer~=0.16",
     "rich>=13.0,<14.0",
-    "moviepy~=2.2",
+    # "moviepy~=2.2",
     "prompt_toolkit>=3.0,<4.0",
 
     # Dependencias de la UI (AnalyticsView)
