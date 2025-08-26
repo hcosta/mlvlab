@@ -7,6 +7,7 @@ import time
 from threading import Lock, Thread
 import atexit
 import random
+import os  # <<< CAMBIO: Importamos 'os' para contar los núcleos de la CPU
 
 from .state import StateStore
 from mlvlab.core.trainer import Trainer
@@ -35,6 +36,14 @@ class SimulationRunner:
         self._episode_active = False
         self._current_state = None
         self._runner_state = "RUNNING"
+
+        # Detectamos si la CPU es de bajo rendimiento al iniciar.
+        # Consideramos "bajo rendimiento" 4 núcleos o menos.
+        try:
+            self._is_low_power = (os.cpu_count() or 4) <= 4
+        except NotImplementedError:
+            # Si no se puede detectar, asumimos que sí.
+            self._is_low_power = True
 
         # Simplemente inicializamos los valores del estado a None o por defecto.
         # Podemos generar una semilla para mostrar
@@ -68,7 +77,9 @@ class SimulationRunner:
         self._thread = None
 
     def _loop(self) -> None:
-        # El bucle principal no cambia
+        # <<< CAMBIO: Añadimos un contador de pasos para ceder el control en modo turbo
+        steps_since_yield = 0
+
         while not self._stop:
             if self._runner_state == "ENDING_SCENE":
                 is_finished = True
@@ -103,7 +114,7 @@ class SimulationRunner:
                 time.sleep(0.01)
                 continue
 
-            # Este bloque ya guardaba correctamente la nueva semilla al reiniciar
+            # ... (código del 'reset' sin cambios)
             if cmd == "reset":
                 self._runner_state = "RUNNING"
                 new_seed = random.randint(0, 1_000_000)
@@ -151,11 +162,9 @@ class SimulationRunner:
                 self._episode_active = True
                 self.state.set(['sim', 'current_episode_reward'], 0.0)
 
-                # Señalamos al RenderingThread que el primer reset() se ha completado.
                 if not self.state.get(['sim', 'initialized']):
                     self.state.set(['sim', 'initialized'], True)
 
-#                Incrementamos el contador de resets (Nueva generación).
                 current_reset_count = int(self.state.get(
                     ['sim', 'reset_counter']) or 0) + 1
                 self.state.set(['sim', 'reset_counter'], current_reset_count)
@@ -165,22 +174,24 @@ class SimulationRunner:
                     target_reset_count = current_reset_count
                     start_wait = time.time()
                     while True:
-                        # Usamos el nuevo contador robusto.
                         rendered_reset_count = int(self.state.get(
                             ['ui', 'last_rendered_reset_counter']) or -1)
                         if rendered_reset_count >= target_reset_count:
                             break
                         if time.time() - start_wait > 0.5:  # Timeout 0.5s
                             break
-                        time.sleep(0.001)  # Ceder ejecución
-
-                    # Si esperamos, forzamos una nueva iteración para mantener la responsividad.
+                        time.sleep(0.001)
                     continue
-            # Si estamos en modo turbo, el código continúa inmediatamente abajo
-            # ejecutando el primer paso en la misma iteración (máxima velocidad).
+
             spm = max(1, int(self.state.get(['sim', 'speed_multiplier']) or 1))
             turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
-            effective_speed = 100000.0 if turbo else float(spm)
+
+            # Lógica para ajustar la velocidad del modo turbo
+            if turbo:
+                effective_speed = 10000.0 if self._is_low_power else 100000.0
+            else:
+                effective_speed = float(spm)
+
             if hasattr(self.env.unwrapped, "set_simulation_speed"):
                 self.env.unwrapped.set_simulation_speed(effective_speed)
 
@@ -203,11 +214,9 @@ class SimulationRunner:
             with self.env_lock:
                 next_state, reward, done, info = self.logic.step(
                     self._current_state)
-                # print(info, "done", done)
                 if info and spm <= 200 and not turbo and 'play_sound' in info and info['play_sound']:
                     self.state.set(['sim', 'last_sound'], info['play_sound'])
 
-            # Actualización de reward y total_steps
             self._current_state = next_state
             cur_rew = float(self.state.get(
                 ['sim', 'current_episode_reward']) or 0.0) + reward
@@ -219,14 +228,12 @@ class SimulationRunner:
             total_steps = int(self.state.get(['sim', 'total_steps']) or 0) + 1
             self.state.set(['sim', 'total_steps'], total_steps)
             if done:
-                # Asegúrate de capturar el estado turbo y effective_speed actualizados
                 turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
 
                 if self.trainer.use_end_scene_animation and effective_speed <= 50:
                     self.logic.on_episode_end()
                     self._runner_state = "ENDING_SCENE"
                 else:
-                    # Si no hay animación (alta velocidad), esperamos a que el renderer capture el último frame.
                     if not turbo:
                         target_step = total_steps
                         start_wait = time.time()
@@ -235,9 +242,9 @@ class SimulationRunner:
                                 ['ui', 'last_frame_step']) or 0)
                             if rendered_step >= target_step:
                                 break
-                            if time.time() - start_wait > 0.5:  # Timeout 0.5s
+                            if time.time() - start_wait > 0.5:
                                 break
-                            time.sleep(0.001)  # Ceder ejecución
+                            time.sleep(0.001)
                     self._episode_active = False
                     cur_rew_done = float(self.state.get(
                         ['sim', 'current_episode_reward']) or 0.0)
@@ -258,10 +265,16 @@ class SimulationRunner:
                         self.state.set(['agent', 'epsilon'],
                                        self.agent.epsilon)
 
-            if not turbo:
-                # sleep_duration = (1.0/spm) / spm (escala cuadrática)
-                # time.sleep(sleep_duration)
-                sleep_duration = 1.0 / spm  # Línea corregida (escala lineal)
+            # Lógica para ceder control y mantener la UI responsiva
+            if turbo:
+                steps_since_yield += 1
+                # Cada 1000 pasos, hacemos una pausa minúscula para que la UI respire.
+                # Este número (1000) se puede ajustar.
+                if steps_since_yield >= 1000:
+                    time.sleep(0)
+                    steps_since_yield = 0
+            else:
+                sleep_duration = 1.0 / spm
                 time.sleep(sleep_duration)
 
             now = time.time()

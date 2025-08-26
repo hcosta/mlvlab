@@ -9,9 +9,8 @@ description = "Visual AI Ecosystem with Reinforced Learning Simulations based on
 readme = "docs/README_PyPI.md"
 requires-python = ">=3.10"
 license = "MIT"
-authors = [
-    {name = "MLVisual Team", email = "contact@mlvisual.com"},
-]
+license-files = [ "LICENSE.txt" ]
+authors = [{name = "Héctor Costa Guzmán"}]
 keywords = [
     "reinforcement-learning",
     "artificial-intelligence",
@@ -76,11 +75,15 @@ dependencies = [
     # Dependencias de la UI (AnalyticsView)
     "nicegui[highcharts]~=2.22",
     "PySide6>=6.9,<6.10",
+    "itsdangerous~=2.1"
 ]
 
 # URLs del proyecto
 [project.urls]
 Homepage = "https://github.com/hcosta/mlvlab"
+Releases = "https://github.com/hcosta/mlvlab/releases"
+Source = "https://github.com/hcosta/mlvlab"
+
 
 [project.optional-dependencies]
 # Dependencias de desarrollo, aquí sí puedes ser más flexible con '>='

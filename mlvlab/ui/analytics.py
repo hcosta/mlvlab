@@ -6,9 +6,12 @@ import time
 import threading
 import asyncio
 import sys
+import secrets  # <<< CAMBIO AÑADIDO: Para generar una clave secreta segura
 from nicegui import ui, app, Client
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -301,6 +304,12 @@ class AnalyticsView:
             context.register_timer(ui.timer(1/15, render_tick))
 
     def run(self, host='127.0.0.1', port=8181) -> None:
+        # <<< CAMBIO AÑADIDO: Añadir el middleware de sesión a la aplicación FastAPI/NiceGUI
+        # Esto soluciona el error "SessionMiddleware must be installed".
+        # Generamos una clave secreta aleatoria en cada inicio.
+        secret_key = secrets.token_hex(32)
+        app.add_middleware(SessionMiddleware, secret_key=secret_key)
+
         def run_nicegui():
             self._build_page()
             ui.run(host=host, port=port, title=self.title, dark=self.dark, reload=False, show=False,
