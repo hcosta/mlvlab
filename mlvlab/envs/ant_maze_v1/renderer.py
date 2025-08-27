@@ -2,6 +2,9 @@
 import time
 import math
 import numpy as np
+import random
+from pathlib import Path
+
 try:
     from .game import MazeGame
 except ImportError:
@@ -36,28 +39,23 @@ class MazeRenderer:
         self.COLOR_GOAL = (40, 25, 10)
         self.COLOR_WALL = (89, 69, 40)
         self.COLOR_PARTICLE_DUST = (210, 180, 140)
-        self.ant_prev_pos = None
-        self.ant_display_pos = None
-        self.ant_current_angle = 0.0
-        self.ant_scale = 1.0
+        self.ant_prev_pos, self.ant_display_pos = None, None
+        self.ant_current_angle, self.ant_scale = 0.0, 1.0
         self.last_time = time.time()
         self.particles: list[ParticleFX] = []
         self.anthill_hole_visual_center = None
         self.was_colliding_last_frame = False
         self._q_value_text_objects: list = []
-        self.in_success_transition = False
-        self.success_transition_time = 0.0
+        self.in_success_transition, self.success_transition_time = False, 0.0
         self.SUCCESS_TRANSITION_DURATION = 1.5
-        self.initialized = False
-        self.debug_mode = False
+        self.initialized, self.debug_mode = False, False
         try:
             self.rng_visual = np.random.default_rng()
         except AttributeError:
             self.rng_visual = np.random.RandomState()
-        self.arcade = None
-        self._headless_mode = False
+        self.arcade, self._headless_mode = None, False
         self.wall_sprite_list: "arcade.SpriteList" | None = None
-        self.WALL_TILE_PATH = "assets/tile_wall.png"
+        self.ASSETS_PATH = Path(__file__).parent / "assets"
 
     def _lazy_import_arcade(self):
         if self.arcade is None:
@@ -102,71 +100,96 @@ class MazeRenderer:
         if full_reset:
             self.initialized = False
             self.wall_sprite_list = None
-        self.ant_display_pos, self.ant_prev_pos = None, None
-        self.ant_scale = 1.0
-        self.last_time = time.time()
-        self.particles, self._q_value_text_objects = [], []
-        self.in_success_transition, self.success_transition_time = False, 0.0
-        self.anthill_hole_visual_center = None
 
-    def _cell_to_pixel(self, x_cell, y_cell):
+        # Siempre reiniciamos el estado visual de la hormiga
+        # al inicio de CADA episodio. Esto asegura que siempre se dibuje
+        # desde el principio, incluso si el mapa no ha cambiado.
+        # Aseguramos que tenga un valor inicial
+        self.ant_display_pos = list(self.game.ant_pos.astype(float))
+        self.ant_prev_pos = list(self.game.ant_pos.astype(
+            float))    # También su posición anterior
+        # Aseguramos que sea visible
+        self.ant_scale = 1.0
+        self.ant_current_angle = self._get_angle_from_action(
+            self.game.last_action)  # Su ángulo inicial
+
+        self.last_time = time.time()
+        self.particles = []
+        self._q_value_text_objects = []  # Limpiamos los objetos de texto Q-value
+        self.in_success_transition = False
+        self.success_transition_time = 0.0
+        self.anthill_hole_visual_center = None
+        self.was_colliding_last_frame = False  # Reseteamos el estado de colisión
+
+    def _cell_to_pixel(self, x_cell: float, y_cell: float):
         x_px = x_cell * self.CELL_SIZE + self.CELL_SIZE / 2
         y_px = (self.game.grid_size - 1 - y_cell) * \
             self.CELL_SIZE + self.CELL_SIZE / 2
         return x_px, y_px
 
     def _setup_static_elements(self):
-        """Crea la SpriteList para los muros cargando la imagen desde el disco."""
+        """
+        Crea la SpriteList para los muros, asignando y rotando tiles de
+        forma aleatoria pero determinista para cada mapa.
+        """
+        # 1. Buscar todos los archivos de tile de muro en la carpeta de assets.
+        wall_tile_paths = list(self.ASSETS_PATH.glob("tile_wall_*.png"))
+
+        if not wall_tile_paths:
+            raise FileNotFoundError(f"No se encontraron imágenes de muros en '{self.ASSETS_PATH}'. "
+                                    f"Asegúrate de ejecutar el script create_wall_asset.py primero.")
+
+        # FIX: Ordenamos la lista de tiles para que el proceso sea 100% determinista
+        # independientemente de cómo el sistema operativo lea los archivos.
+        wall_tile_paths.sort()
+
+        # 2. Se crea un generador aleatorio con la "semilla" (seed) del mapa actual.
+        # Esto asegura que la distribución de tiles y rotaciones sea siempre la misma
+        # para el mismo mapa, pero diferente para mapas distintos.
+        map_hash = hash(frozenset(self.game.walls))
+        seeded_rng = random.Random(map_hash)
+
         self.wall_sprite_list = self.arcade.SpriteList()
         for wall_x, wall_y in self.game.walls:
             cx, cy = self._cell_to_pixel(wall_x, wall_y)
+
+            # 3. Elegir una de las imágenes de muro al azar para cada bloque.
+            random_tile_path = seeded_rng.choice(wall_tile_paths)
+
+            # Elegimos también un ángulo de rotación aleatorio (0, 90, 180, 270).
+            random_angle = seeded_rng.choice([0, 90, 180, 270])
+
+            # 4. Se crea el sprite con el tile y el ángulo elegidos.
             wall_sprite = self.arcade.Sprite(
-                self.WALL_TILE_PATH, center_x=cx, center_y=cy)
+                random_tile_path,
+                center_x=cx,
+                center_y=cy,
+                angle=random_angle
+            )
             self.wall_sprite_list.append(wall_sprite)
 
-    def _draw_floor_texture(self, rng):
-        num = int(self.game.grid_size**2 * 3 * (self.CELL_SIZE / 40.0)**2)
-        for _ in range(num):
-            cx, cy = rng.uniform(0, self.WIDTH), rng.uniform(0, self.HEIGHT)
-            r = rng.uniform(1, 3)
-            shade = rng.integers(-30, 30) if hasattr(rng,
-                                                     'integers') else rng.randint(-30, 30)
-            c = tuple(max(0, min(255, val + shade))
-                      for val in self.COLOR_FLOOR)
-            self.arcade.draw_ellipse_filled(
-                cx, cy, r, r * rng.uniform(0.7, 1.0), c)
-
-    # ... (El resto de las funciones de dibujo y actualización como _draw_pheromones,
-    #      _draw_ant, _update_animations, etc., se mantienen exactamente igual)
-
-    # Pegar aquí el resto de las funciones desde _get_scenario_rng en adelante,
-    # EXCLUYENDO _create_wall_texture y _draw_wall que ya no se necesitan.
-
-    def _get_scenario_rng(self):
-        h = hash(frozenset(self.game.walls) |
-                 frozenset(tuple(self.game.goal_pos)))
-        try:
-            return np.random.default_rng(abs(h) % (2**32))
-        except AttributeError:
-            return np.random.RandomState(abs(h) % (2**32))
+    # ... (El resto del código se mantiene igual, ya que el bucle de dibujo solo llama a self.wall_sprite_list.draw())
+    # ... (Omitido por brevedad)
+    def _pixel_to_cell(self, x_px: float, y_px: float):
+        x_cell = (x_px-self.CELL_SIZE/2)/self.CELL_SIZE
+        y_cell = self.game.grid_size-1-(y_px-self.CELL_SIZE/2)/self.CELL_SIZE
+        return x_cell, y_cell
 
     def start_success_transition(self):
         if not self.in_success_transition:
-            self.in_success_transition = True
-            self.success_transition_time = 0.0
+            self.in_success_transition, self.success_transition_time = True, 0.0
 
-    def is_in_success_transition(self) -> bool:
-        return self.in_success_transition
+    def is_in_success_transition(
+        self) -> bool: return self.in_success_transition
 
     def _update_rotation(self, delta_time, target_angle):
-        diff = target_angle - self.ant_current_angle
+        diff = target_angle-self.ant_current_angle
         while diff < -180:
             diff += 360
         while diff > 180:
             diff -= 360
         if abs(diff) > 0.1:
-            self.ant_current_angle += diff * \
-                (1.0 - math.exp(-delta_time * 25.0))
+            self.ant_current_angle += diff*(1.0-math.exp(-delta_time*25.0))
         else:
             self.ant_current_angle = target_angle
         self.ant_current_angle %= 360
@@ -177,50 +200,58 @@ class MazeRenderer:
         self.success_transition_time += delta_time
         progress = self.success_transition_time / self.SUCCESS_TRANSITION_DURATION
         if progress >= 1.0:
-            self.in_success_transition = False
-            self.ant_scale = 0.0
+            self.in_success_transition, self.ant_scale = False, 0.0
             return
-        if self.anthill_hole_visual_center:
-            target_x_px, target_y_px = self.anthill_hole_visual_center
-            x_cell, y_cell = (target_x_px-self.CELL_SIZE/2)/self.CELL_SIZE, self.game.grid_size - \
-                1-(target_y_px+self.CELL_SIZE*0.38 -
-                   self.CELL_SIZE/2)/self.CELL_SIZE
-            target_pos = [x_cell, y_cell]
-        else:
-            target_pos = list(self.game.goal_pos.astype(float))
-        lerp_factor = 1.0 - math.exp(-delta_time * 10.0)
-        self.ant_display_pos[0] += (target_pos[0] -
-                                    self.ant_display_pos[0]) * lerp_factor
-        self.ant_display_pos[1] += (target_pos[1] -
-                                    self.ant_display_pos[1]) * lerp_factor
-        if self.anthill_hole_visual_center:
-            cx, cy = self._cell_to_pixel(*self.ant_display_pos)
-            self._update_rotation(delta_time, math.degrees(math.atan2(
-                self.anthill_hole_visual_center[1]-cy, self.anthill_hole_visual_center[0]-cx)))
 
-        def easeInOutCubic(t): return 4*t*t * \
-            t if t < 0.5 else 1-pow(-2*t+2, 3)/2
+        if self.anthill_hole_visual_center:
+            # Apuntar directamente al centro visual del agujero sin offsets extra.
+            target_x_px, target_y_px = self.anthill_hole_visual_center
+            target_x_cell, target_y_cell = self._pixel_to_cell(
+                target_x_px, target_y_px-11)  # El 11 es indispensable para alinear bien la pos
+            target_pos = [target_x_cell, target_y_cell]
+        else:
+            # Fallback por si el nido no estuviera dibujado
+            target_pos = list(self.game.goal_pos.astype(float))
+
+        lerp = 1.0 - math.exp(-delta_time * 10.0)
+        self.ant_display_pos[0] += (target_pos[0] -
+                                    self.ant_display_pos[0]) * lerp
+        self.ant_display_pos[1] += (target_pos[1] -
+                                    self.ant_display_pos[1]) * lerp
+
+        def easeInOutCubic(t): return 4 * t * t * \
+            t if t < 0.5 else 1 - pow(-2 * t + 2, 3) / 2
         self.ant_scale = 1.0 - easeInOutCubic(progress)
 
     def _update_animations(self, delta_time: float):
+        # Añadimos una guarda de seguridad. Si la posición de la hormiga
+        # aún no ha sido inicializada (es None), no ejecutamos la animación.
+        # Esto ocurre durante el primer fotograma de un reinicio.
+        if self.ant_display_pos is None:
+            return
+
         if self.in_success_transition:
             self._update_success_transition(delta_time)
             return
+
         target_pos = list(self.game.ant_pos.astype(float))
         if target_pos != self.ant_prev_pos:
             self.ant_prev_pos = list(self.ant_display_pos)
-        dist_x, dist_y = target_pos[0] - \
+
+        dx, dy = target_pos[0] - \
             self.ant_display_pos[0], target_pos[1] - self.ant_display_pos[1]
-        if math.sqrt(dist_x**2 + dist_y**2) > 0.001:
+        if math.sqrt(dx**2 + dy**2) > 0.001:
             lerp = 1.0 - math.exp(-delta_time * 15.0)
-            self.ant_display_pos[0] += dist_x * lerp
-            self.ant_display_pos[1] += dist_y * lerp
+            self.ant_display_pos[0] += dx * lerp
+            self.ant_display_pos[1] += dy * lerp
         else:
             self.ant_display_pos, self.ant_prev_pos = list(
                 target_pos), list(target_pos)
+
         if self.game.last_action in [0, 1, 2, 3]:
             self._update_rotation(
                 delta_time, self._get_angle_from_action(self.game.last_action))
+
         if self.game.collided and not self.was_colliding_last_frame:
             self._spawn_collision_particles()
         self.was_colliding_last_frame = self.game.collided
@@ -247,44 +278,76 @@ class MazeRenderer:
         for _ in range(15):
             s, ao = self.rng_visual.uniform(
                 0.5, 2.5), self.rng_visual.uniform(-0.8, 0.8)
-            self.particles.append(ParticleFX(sx, sy, (iv[0]+ao)*s, (iv[1]+abs(ao))*s, self.rng_visual.uniform(
-                1.5, 3.0), self.rng_visual.uniform(2, 6), self.COLOR_PARTICLE_DUST, gravity=0.1))
+            dx, dy = (iv[0]+ao)*s, (iv[1]+abs(ao))*s
+            p = ParticleFX(sx, sy, dx, dy, self.rng_visual.uniform(
+                1.5, 3.0), self.rng_visual.uniform(2, 6), self.COLOR_PARTICLE_DUST, gravity=0.1)
+            self.particles.append(p)
+
+    def _get_scenario_rng(self):
+        h = hash(frozenset(self.game.walls) |
+                 frozenset(tuple(self.game.goal_pos)))
+        try:
+            return np.random.default_rng(abs(h) % (2**32))
+        except AttributeError:
+            return np.random.RandomState(abs(h) % (2**32))
+
+    def _draw_floor_texture(self, rng):
+        density = (self.CELL_SIZE/40.0)**2
+        num = int(self.game.grid_size**2*3*density)
+        for _ in range(num):
+            cx, cy = rng.uniform(0, self.WIDTH), rng.uniform(0, self.HEIGHT)
+            r = rng.uniform(1, 3)
+            try:
+                shade = rng.integers(-30, 30)
+            except AttributeError:
+                shade = rng.randint(-30, 30)
+            c = tuple(max(0, min(255, v+shade)) for v in self.COLOR_FLOOR)
+            self.arcade.draw_ellipse_filled(
+                cx, cy, r, r*rng.uniform(0.7, 1.0), c)
 
     def _draw_pheromones(self, q_table):
         if not self.debug_mode or q_table is None:
             return
         try:
-            q_mov, max_q, min_q = q_table[:, :4], float(
-                np.max(q_table[:, :4])), float(np.min(q_table[:, :4]))
-            q_range = max_q-min_q
+            q_mov = q_table[:, :4]
+            max_q, min_q = float(np.max(q_mov)), float(np.min(q_mov))
+            q_range = max_q - min_q
             if q_range < 1e-6:
                 return
         except Exception:
             return
-        SQUARE_SIZE = self.CELL_SIZE*0.85
+
+        SQUARE_SIZE = self.CELL_SIZE * 0.85
         for idx in range(self.game.grid_size**2):
-            x, y = idx % self.game.grid_size, idx//self.game.grid_size
+            x, y = idx % self.game.grid_size, idx // self.game.grid_size
             if (x, y) in self.game.walls:
                 continue
             cx, cy = self._cell_to_pixel(x, y)
             try:
                 q_val = float(np.max(q_table[idx, :4]))
-            except:
+            except Exception:
                 continue
-            nq = (q_val-min_q)/q_range
-            r, g, b = 255, int(220*(1-nq)+105*nq), int(230*(1-nq)+180*nq)
-            alpha = int(40+(nq**0.5)*160)
-            self.arcade.draw_lrtb_rectangle_filled(
-                cx-SQUARE_SIZE/2, cx+SQUARE_SIZE/2, cy+SQUARE_SIZE/2, cy-SQUARE_SIZE/2, (r, g, b, alpha))
+            nq = (q_val - min_q) / q_range
+            r, g, b = 255, int(220 * (1 - nq) + 105 *
+                               nq), int(230 * (1 - nq) + 180 * nq)
+            alpha = int(40 + (nq**0.5) * 160)
+
+            # CORRECCIÓN: Nombre de la función y orden de los argumentos (bottom, top)
+            left = cx - SQUARE_SIZE / 2
+            right = cx + SQUARE_SIZE / 2
+            bottom = cy - SQUARE_SIZE / 2
+            top = cy + SQUARE_SIZE / 2
+            self.arcade.draw_lrbt_rectangle_filled(
+                left, right, bottom, top, (r, g, b, alpha))
 
     def _draw_ant_q_values(self, q_table):
-        if not self.debug_mode or q_table is None:
+        if not self.debug_mode or q_table is None or not self.game:
             if self._q_value_text_objects:
                 self._q_value_text_objects = []
             return
         x, y = self.game.ant_pos
         try:
-            state_idx = int(y) * self.game.grid_size + int(x)
+            state_idx = int(y)*self.game.grid_size+int(x)
         except:
             return
         cx, cy = self._cell_to_pixel(*self.ant_display_pos)
@@ -294,20 +357,21 @@ class MazeRenderer:
             return
         font_size = max(6, int(self.CELL_SIZE*0.22))
         if not self._q_value_text_objects:
-            for _ in range(4):
+            font_c, shadow_c = (255, 255, 255, 240), (0, 0, 0, 200)
+            for i in range(4):
                 s = self.arcade.Text(
-                    "", 0, 0, (0, 0, 0, 200), font_size, 'center', 'center')
+                    "", 0, 0, shadow_c, font_size, anchor_x='center', anchor_y='center')
                 m = self.arcade.Text(
-                    "", 0, 0, (255, 255, 255, 240), font_size, 'center', 'center')
+                    "", 0, 0, font_c, font_size, anchor_x='center', anchor_y='center')
                 self._q_value_text_objects.append((s, m))
         offsets = {0: (0, 0.3), 1: (0, -0.4), 2: (-0.3, 0), 3: (0.3, 0)}
         for action, q_val in enumerate(q_values):
             s, m = self._q_value_text_objects[action]
             text = f"{q_val:.1f}"
             if m.text != text:
-                s.text = m.text = text
+                m.text, s.text = text, text
             if m.font_size != font_size:
-                s.font_size = m.font_size = font_size
+                m.font_size, s.font_size = font_size, font_size
             ox, oy = offsets[action]
             m.x, m.y = cx+ox*self.CELL_SIZE, cy+oy*self.CELL_SIZE
             s.x, s.y = m.x+1, m.y-1
@@ -316,10 +380,11 @@ class MazeRenderer:
 
     def _draw_anthill(self, rng):
         cx, cy = self._cell_to_pixel(*self.game.goal_pos)
-        base, hole_color = (168, 139, 108), self.COLOR_GOAL
+        base, hole_c = (168, 139, 108), self.COLOR_GOAL
         rx, ry, max_h = self.CELL_SIZE*1.1, self.CELL_SIZE*0.8, self.CELL_SIZE*0.3
+        shadow_offset = self.CELL_SIZE*0.1
         self.arcade.draw_ellipse_filled(
-            cx+self.CELL_SIZE*0.1, cy-self.CELL_SIZE*0.1, rx, ry, (50, 50, 50, 80))
+            cx+shadow_offset, cy-shadow_offset, rx, ry, (50, 50, 50, 80))
         for i in range(5):
             p, s = i/4, 1.0-(i/4*0.3)
             c = tuple(min(255, v+p*50) for v in base)
@@ -327,68 +392,87 @@ class MazeRenderer:
         for _ in range(60):
             a, d = rng.uniform(0, 2*math.pi), rng.uniform(0, 1)**2
             px, py = cx+math.cos(a)*d*rx*0.8, cy + \
-                math.sin(a)*d*ry*0.8+max_h*(1-d)*0.9
-            shade = rng.integers(-20, 20) if hasattr(rng,
-                                                     'integers') else rng.randint(-20, 20)
-            c = tuple(max(0, min(255, v+shade+40)) for v in base)
-            self.arcade.draw_circle_filled(px, py, rng.uniform(1.5, 3.0), c)
+                math.sin(a)*d*ry*0.8+max_h*(1.0-d)*0.9
+            try:
+                shade = rng.integers(-20, 20)
+            except:
+                shade = np.random.randint(-20, 20)
+            grain_c = tuple(max(0, min(255, c+shade+40)) for c in base)
+            self.arcade.draw_circle_filled(
+                px, py, rng.uniform(1.5, 3.0), grain_c)
         hole_cy = cy+max_h*0.95
         self.arcade.draw_ellipse_filled(
-            cx, hole_cy, self.CELL_SIZE*0.3, self.CELL_SIZE*0.18, hole_color)
+            cx, hole_cy, self.CELL_SIZE*0.3, self.CELL_SIZE*0.18, hole_c)
         self.anthill_hole_visual_center = (cx, hole_cy+self.CELL_SIZE*0.26)
 
     def _draw_ant(self):
+        # Guarda de seguridad. No dibujar la hormiga si su posición aún no está definida.
+        if self.ant_display_pos is None:
+            return
+
         if self.ant_scale <= 0.01:
             return
-        cx, cy = self._cell_to_pixel(*self.ant_display_pos)
-        S, angle = self.ant_scale, self.ant_current_angle
+
+        ax, ay = self.ant_display_pos
+        cx, cy = self._cell_to_pixel(ax, ay)
+        S, angle, t = self.ant_scale, self.ant_current_angle, time.time()
         body_c, leg_c = self.COLOR_ANT, tuple(
-            max(0, c-50) for c in self.COLOR_ANT)
-        shadow_c = tuple(int(c*0.3) for c in body_c)+(180,)
-        hr, trx, try_, arx, ary = self.CELL_SIZE*0.16*S, self.CELL_SIZE*0.21 * \
-            S, self.CELL_SIZE*0.18*S, self.CELL_SIZE*0.28*S, self.CELL_SIZE*0.22*S
+            max(0, c - 50) for c in self.COLOR_ANT)
+        shadow_c = tuple(int(c * 0.3) for c in body_c) + (180,)
+        hr, trx, trya, arx, ary = self.CELL_SIZE * 0.16 * S, self.CELL_SIZE * 0.21 * \
+            S, self.CELL_SIZE * 0.18 * S, self.CELL_SIZE * \
+            0.28 * S, self.CELL_SIZE * 0.22 * S
         rad = math.radians(angle)
-        def r(x, y): return x*math.cos(rad)-y * \
-            math.sin(rad), x*math.sin(rad)+y*math.cos(rad)
-        dist = math.sqrt((self.game.ant_pos[0]-self.ant_display_pos[0])**2+(
-            self.game.ant_pos[1]-self.ant_display_pos[1])**2)
-        moving, anim_s, t = self.in_success_transition or dist > 0.01, self.CELL_SIZE/40.0, time.time()
-        speed, leg_o, ant_o, bounce = (25., 25, 10, abs(
-            math.sin(t*25.))*3*S*anim_s) if moving else (3., 3, 5, 0)
-        cy, osc = cy+bounce, math.sin(t*speed)
-        ll, lt = self.CELL_SIZE*0.28*S, max(1, int(3*S*anim_s))
+
+        def rotate(x, y): return x * math.cos(rad) - y * \
+            math.sin(rad), x * math.sin(rad) + y * math.cos(rad)
+        dist = math.sqrt(
+            (self.game.ant_pos[0] - ax)**2 + (self.game.ant_pos[1] - ay)**2)
+        moving = self.in_success_transition or dist > 0.01
+        anim_s = self.CELL_SIZE / 40.0
+        if moving:
+            speed, leg_o, ant_o, bounce = 25.0, 25, 10, abs(
+                math.sin(t * 25.0)) * 3 * S * anim_s
+        else:
+            speed, leg_o, ant_o, bounce = 3.0, 3, 5, 0
+        cy += bounce
+        osc = math.sin(t * speed)
+        ll, lt = self.CELL_SIZE * 0.28 * S, max(1, int(3 * S * anim_s))
         for side in [-1, 1]:
             for i, off_a in enumerate([-40, 0, 40]):
-                co = osc if (side == 1 and i != 1) or (
-                    side == -1 and i == 1) else -osc
-                end_a = angle+(90+off_a+co*leg_o)*side
+                co = osc if (side == 1 and i != 1) or \
+                    (side == -1 and i == 1) else -osc
+                end_a = angle + (90 + off_a + co * leg_o) * side
                 ex, ey = math.cos(math.radians(end_a)) * \
-                    ll, math.sin(math.radians(end_a))*ll
-                self.arcade.draw_line(cx, cy, cx+ex, cy+ey, leg_c, lt)
-        sx, sy = 3*S*anim_s, -3*S*anim_s
-        ax_r, ay_r = r(-(trx+arx*0.5), 0)
+                    ll, math.sin(math.radians(end_a)) * ll
+                self.arcade.draw_line(cx, cy, cx + ex, cy + ey, leg_c, lt)
+        sx, sy = 3 * S * anim_s, -3 * S * anim_s
+        ax_r, ay_r = rotate(-(trx + arx * 0.5), 0)
         self.arcade.draw_ellipse_filled(
-            cx+ax_r+sx, cy+ay_r+sy, arx, ary, shadow_c, angle)
+            cx + ax_r + sx, cy + ay_r + sy, arx, ary, shadow_c, angle)
         self.arcade.draw_ellipse_filled(
-            cx+ax_r, cy+ay_r, arx, ary, body_c, angle)
+            cx + ax_r, cy + ay_r, arx, ary, body_c, angle)
         self.arcade.draw_ellipse_filled(
-            cx+sx, cy+sy, trx, try_, shadow_c, angle)
-        self.arcade.draw_ellipse_filled(cx, cy, trx, try_, body_c, angle)
-        hx_r, hy_r = r(hr*0.85+trx, 0)
-        self.arcade.draw_circle_filled(cx+hx_r+sx, cy+hy_r+sy, hr, shadow_c)
-        self.arcade.draw_circle_filled(cx+hx_r, cy+hy_r, hr, body_c)
-        er, eox, eoy = hr*0.3, hr*0.4, hr*0.65
+            cx + sx, cy + sy, trx, trya, shadow_c, angle)
+        self.arcade.draw_ellipse_filled(cx, cy, trx, trya, body_c, angle)
+        hx_r, hy_r = rotate(hr * 0.85 + trx, 0)
+        self.arcade.draw_circle_filled(
+            cx + hx_r + sx, cy + hy_r + sy, hr, shadow_c)
+        self.arcade.draw_circle_filled(cx + hx_r, cy + hy_r, hr, body_c)
+        er, eox, eoy = hr * 0.3, hr * 0.4, hr * 0.65
         for side in [-1, 1]:
+            ex_r, ey_r = rotate(eox, eoy * side)
             self.arcade.draw_circle_filled(
-                cx+hx_r+r(eox, eoy*side)[0], cy+hy_r+r(eox, eoy*side)[1], er, (30, 30, 30))
-        al, at, av = hr*1.8, max(1, int(2*S*anim_s)), osc*ant_o
+                cx + hx_r + ex_r, cy + hy_r + ey_r, er, (30, 30, 30))
+        al, at = hr * 1.8, max(1, int(2 * S * anim_s))
+        ant_o_val = osc * ant_o
         for side in [-1, 1]:
-            end_a = angle+(45*side)+av
-            asx_r, asy_r = r(hr*0.9, hr*0.4*side)
-            asx, asy = cx+hx_r+asx_r, cy+hy_r+asy_r
+            end_a = angle + (45 * side) + ant_o_val
+            asx_r, asy_r = rotate(hr * 0.9, hr * 0.4 * side)
+            asx, asy = cx + hx_r + asx_r, cy + hy_r + asy_r
             aex, aey = math.cos(math.radians(end_a)) * \
-                al, math.sin(math.radians(end_a))*al
-            self.arcade.draw_line(asx, asy, asx+aex, asy+aey, leg_c, at)
+                al, math.sin(math.radians(end_a)) * al
+            self.arcade.draw_line(asx, asy, asx + aex, asy + aey, leg_c, at)
 
     def _draw_particles(self):
         if not self.arcade:
@@ -396,10 +480,15 @@ class MazeRenderer:
         for p in self.particles:
             if p.age >= p.lifespan:
                 continue
-            alpha = int(p.color[3]*math.exp(-min(1.0, p.age/p.lifespan)*4))
-            if alpha > 1:
-                self.arcade.draw_circle_filled(
-                    p.x, p.y, p.size*math.exp(-min(1.0, p.age/p.lifespan)*4), p.color[:3]+(alpha,))
+            progress = min(1.0, p.age/p.lifespan)
+            fade = math.exp(-progress*4)
+            alpha = int(p.color[3]*fade)
+            if alpha <= 1:
+                continue
+            color = p.color[:3]+(alpha,)
+            size = p.size*fade
+            if size > 0.1:
+                self.arcade.draw_circle_filled(p.x, p.y, size, color)
 
     def draw(self, game: MazeGame, q_table_to_render, render_mode: str | None, simulation_speed: float = 1.0):
         if render_mode is None:

@@ -86,12 +86,13 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
     while running:
         window.dispatch_events()
 
-        # LÓGICA MODIFICADA PARA LA ANIMACIÓN FINAL ---
+        # LÓGICA MODIFICADA PARA LA ANIMACIÓN FINAL
         if waiting_for_end_scene:
             # 1. Si estamos esperando, comprobamos si la animación ha terminado.
             if env.unwrapped.is_end_scene_animation_finished():
-                # Si estamos jugando a AntScout, queremos un mapa nuevo y fresco.
-                if env_id.startswith("mlv/AntScout"):
+                # MODIFICACIÓN: Añadimos AntMaze a la condición para que genere
+                # un nuevo mapa en cada episodio del modo de juego interactivo.
+                if env_id.startswith("mlv/AntScout") or env_id.startswith("mlv/AntMaze"):
                     # 2. Generamos una nueva semilla aleatoria en cada reseteo.
                     new_seed = random.randint(0, 1_000_000)
                     obs, info = env.reset(seed=new_seed)
@@ -100,7 +101,7 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
                     obs, info = env.reset()
                 # Reseteamos las flags del episodio para el nuevo comienzo.
                 terminated, truncated = False, False
-                # Le decimos al bucle que ya no estamos esperando. ¡Esto rompe el bucle infinito!
+                # Le decimos al bucle que ya no estamos esperando.
                 waiting_for_end_scene = False
         elif terminated or truncated:
             # 3. Si el episodio acaba de terminar, activamos la animación y el modo espera.

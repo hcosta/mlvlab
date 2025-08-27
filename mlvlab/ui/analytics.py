@@ -6,7 +6,7 @@ import time
 import threading
 import asyncio
 import sys
-import secrets  # <<< CAMBIO AÑADIDO: Para generar una clave secreta segura
+import secrets
 from nicegui import ui, app, Client
 from starlette.responses import StreamingResponse
 from starlette.requests import Request
@@ -304,7 +304,7 @@ class AnalyticsView:
             context.register_timer(ui.timer(1/15, render_tick))
 
     def run(self, host='127.0.0.1', port=8181) -> None:
-        # <<< CAMBIO AÑADIDO: Añadir el middleware de sesión a la aplicación FastAPI/NiceGUI
+        # Añadir el middleware de sesión a la aplicación FastAPI/NiceGUI
         # Esto soluciona el error "SessionMiddleware must be installed".
         # Generamos una clave secreta aleatoria en cada inicio.
         secret_key = secrets.token_hex(32)

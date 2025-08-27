@@ -6,7 +6,7 @@ import gymnasium as gym
 from tqdm import tqdm
 from mlvlab.i18n.core import i18n
 from mlvlab.algorithms.registry import register_algorithm
-import sys  # <-- 1. Importar el módulo 'sys'
+import sys  # 1. Importar el módulo 'sys'
 
 
 class RandomAgent:

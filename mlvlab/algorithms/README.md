@@ -128,9 +128,9 @@ from typing import Any, Dict, Optional
 import gymnasium as gym
 
 from mlvlab.algorithms.registry import register_algorithm
-from mlvlab.agents.dqn_agent import DQNAgent # <-- Importas tu nuevo agente
-# from mlvlab.helpers.train import train_with_replay_buffer # <-- Importarías un nuevo helper
-# from mlvlab.helpers.eval import evaluate_with_optional_recording # <-- Reutilizas el helper de eval
+from mlvlab.agents.dqn_agent import DQNAgent # Importas tu nuevo agente
+# from mlvlab.helpers.train import train_with_replay_buffer # Importarías un nuevo helper
+# from mlvlab.helpers.eval import evaluate_with_optional_recording # Reutilizas el helper de eval
 
 class DQNPlugin:
     def key(self) -> str:
@@ -193,7 +193,7 @@ Para usar tu nuevo agente, solo tendrías que ir al config.py de cualquier entor
 
 ```python
 # ...
-ALGORITHM = "dqn" # <-- ¡Listo!
+ALGORITHM = "dqn" # ¡Listo!
 
 BASELINE = {
     "config": {

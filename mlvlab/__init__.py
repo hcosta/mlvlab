@@ -8,10 +8,16 @@ register(
     kwargs={'grid_size': 10}
 )
 
-# Registramos con namespace "mlv" y mantenemos compatibilidad con el ID antiguo
 register(
     id="mlv/AntScout-v1",
     entry_point="mlvlab.envs.ant_scout_v1.env:ScoutAntEnv",
     max_episode_steps=500,
     kwargs={'grid_size': 10}  # Argumentos por defecto
+)
+
+register(
+    id="mlv/AntMaze-v1",
+    entry_point="mlvlab.envs.ant_maze_v1.env:AntMazeEnv",
+    max_episode_steps=500,
+    kwargs={'grid_size': 11}  # Argumentos por defecto
 )

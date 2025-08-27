@@ -36,20 +36,15 @@ def main():
 
     normalized_env_id = normalize_env_id(args.env_id)
 
-    try:
-        config = get_env_config(normalized_env_id)
-        key_map = config.get("KEY_MAP")
+    config = get_env_config(normalized_env_id)
+    key_map = config.get("KEY_MAP")
 
-        if key_map is None:
-            print(i18n.t('cli.entry.no_keymap',
-                  env_id=normalized_env_id), file=sys.stderr)
-            sys.exit(1)
-
-        play_interactive(normalized_env_id, key_map=key_map, seed=args.seed)
-
-    except Exception as e:
-        print(i18n.t('cli.entry.play_error', error=e), file=sys.stderr)
+    if key_map is None:
+        print(i18n.t('cli.entry.no_keymap',
+                     env_id=normalized_env_id), file=sys.stderr)
         sys.exit(1)
+
+    play_interactive(normalized_env_id, key_map=key_map, seed=args.seed)
 
 
 if __name__ == "__main__":
