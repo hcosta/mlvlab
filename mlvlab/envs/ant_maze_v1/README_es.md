@@ -61,7 +61,7 @@ Discrete(4)  # O Discrete(5) si enable_ant_shift=True
 ### Recompensas
 
 *   **`+100`**: Por alcanzar la salida de la mazmorra.
-*   **`-5`**: Por chocar contra un muro.
+*   **`-10`**: Por chocar contra un muro.
 *   **`-1`**: Por cada paso dado.
 
 ### Fin del Episodio

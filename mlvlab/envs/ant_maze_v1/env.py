@@ -116,6 +116,10 @@ class AntMazeEnv(gym.Env):
         self._end_scene_finished_event = threading.Event()
         self._simulation_speed = 1.0
 
+        # CAMBIO: Añadimos seguimiento de pasos (Importado de AntLost)
+        self._elapsed_steps = 0
+        self._max_episode_steps = None
+
         # Estado para AntShift (Punto 7). Controla si el agente debe seguir aprendiendo.
         self.is_q_table_locked = False
         self._sync_game_state()
@@ -140,6 +144,9 @@ class AntMazeEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self._end_scene_state = "IDLE"
+
+        # CAMBIO: Reseteamos el contador de pasos.
+        self._elapsed_steps = 0
 
         # CORRECCIÓN DEFINITIVA Y ROBUSTA:
         # 1. Gymnasium (a través de super().reset()) crea o actualiza self.np_random.
@@ -172,6 +179,21 @@ class AntMazeEnv(gym.Env):
 
     def step(self, action):
 
+        # CAMBIO: Inicializamos _max_episode_steps si es necesario (replicando AntLost).
+        if self._max_episode_steps is None:
+            # Intentamos obtener el límite del spec del entorno (ej. si está envuelto en TimeLimit).
+            try:
+                # Buscamos en el spec actual o en el del entorno sin wrappers.
+                if self.spec and self.spec.max_episode_steps:
+                    self._max_episode_steps = self.spec.max_episode_steps
+                elif hasattr(self.unwrapped, 'spec') and self.unwrapped.spec and self.unwrapped.spec.max_episode_steps:
+                    self._max_episode_steps = self.unwrapped.spec.max_episode_steps
+                else:
+                    # Fallback si no se encuentra límite
+                    self._max_episode_steps = float('inf')
+            except Exception:
+                self._max_episode_steps = float('inf')
+
         # Manejo de la acción especial para AntShift (Punto 7)
         if self.enable_ant_shift and action == self.num_movement_actions:
             self._handle_ant_shift_action()
@@ -190,6 +212,10 @@ class AntMazeEnv(gym.Env):
 
         # Paso normal de la simulación
         obs, reward, terminated, game_info = self._game.step(action)
+
+        # CAMBIO: Incrementamos el contador de pasos.
+        self._elapsed_steps += 1
+
         truncated = False
         info = self._get_info()
         info.update(game_info)
@@ -200,8 +226,12 @@ class AntMazeEnv(gym.Env):
                 self._renderer._spawn_collision_particles()
 
         # Sonidos
+        # CAMBIO: Añadimos la lógica para el sonido de fallo al alcanzar el límite.
         if terminated:
             info['play_sound'] = {'filename': 'success.wav', 'volume': 10}
+        elif self._elapsed_steps >= self._max_episode_steps:
+            # Se alcanzó el límite de pasos (Truncation inminente)
+            info['play_sound'] = {'filename': 'fail.wav', 'volume': 10}
         elif info.get("collided", False):
             # Usamos un sonido para chocar contra muros
             info['play_sound'] = {'filename': 'bump.wav', 'volume': 7}
@@ -209,6 +239,8 @@ class AntMazeEnv(gym.Env):
         self._sync_game_state()
         if self.render_mode == "human":
             self.render()
+
+        # Nota: El wrapper TimeLimit de Gymnasium se encargará de poner truncated=True si se cumple la condición.
         return obs, reward, terminated, truncated, info
 
     def _handle_ant_shift_action(self):
@@ -271,23 +303,63 @@ class AntMazeEnv(gym.Env):
 
     def _render_frame(self):
         if self._renderer is not None:
-            # Lógica de animación de fin de escena
-            if self._end_scene_state == "REQUESTED":
-                self._renderer.start_success_transition()
-                self._end_scene_state = "RUNNING"
-            if self._end_scene_state == "RUNNING":
-                if not self._renderer.is_in_success_transition():
+            # CAMBIO: Máquina de estados expandida para manejar Éxito y Muerte.
+
+            # --- 1. Secuencia de Éxito (Success) ---
+            # (Lógica original de AntMaze)
+            if self._end_scene_state == "SUCCESS_REQUESTED":
+                if hasattr(self._renderer, 'start_success_transition'):
+                    self._renderer.start_success_transition()
+                self._end_scene_state = "SUCCESS_RUNNING"
+
+            elif self._end_scene_state == "SUCCESS_RUNNING":
+                is_running = False
+                if hasattr(self._renderer, 'is_in_success_transition'):
+                    is_running = self._renderer.is_in_success_transition()
+
+                if not is_running:
                     self._end_scene_state = "IDLE"
                     self._end_scene_finished_event.set()
+
+            # --- 2. Secuencia de Muerte (Death) ---
+            # (Lógica importada de AntLost: REQUESTED -> DELAY_FRAME -> RUNNING)
+
+            elif self._end_scene_state == "DEATH_REQUESTED":
+                # Pasamos a un estado de espera (DELAY_FRAME) para asegurar que
+                # el renderer procese el último movimiento antes de iniciar la muerte.
+                self._end_scene_state = "DEATH_DELAY_FRAME"
+
+            elif self._end_scene_state == "DEATH_DELAY_FRAME":
+                # Solicitamos al renderer iniciar la transición de muerte.
+                # Esto requiere que MazeRenderer tenga el método start_death_transition().
+                if hasattr(self._renderer, 'start_death_transition'):
+                    self._renderer.start_death_transition()
+                self._end_scene_state = "DEATH_RUNNING"
+
+            elif self._end_scene_state == "DEATH_RUNNING":
+                # Esperamos a que el renderer nos indique que la animación ha terminado.
+                # Esto requiere que MazeRenderer tenga el método is_in_death_transition().
+                is_running = False
+                if hasattr(self._renderer, 'is_in_death_transition'):
+                    is_running = self._renderer.is_in_death_transition()
+
+                if not is_running:
+                    self._end_scene_state = "IDLE"
+                    # Notificamos que la animación ha terminado.
+                    self._end_scene_finished_event.set()
+
+            # (Se mantiene igual)
             self._renderer.debug_mode = self.debug_mode
 
-        result = self._renderer.draw(
-            self._game, self.q_table_to_render, self.render_mode,
-            simulation_speed=self._simulation_speed
-        )
-
-        if self._renderer is not None:
+        # (Se mantiene igual, pero aseguramos que el renderer exista antes de usarlo)
+        result = None
+        if self._renderer:
+            result = self._renderer.draw(
+                self._game, self.q_table_to_render, self.render_mode,
+                simulation_speed=self._simulation_speed
+            )
             self.window = self._renderer.window
+
         return result
 
     def close(self):
@@ -314,9 +386,24 @@ class AntMazeEnv(gym.Env):
         self._state_store = state_store
 
     def trigger_end_scene(self, terminated: bool, truncated: bool):
-        # Solo activamos la animación si se ha terminado con éxito
-        if self.render_mode in ["human", "rgb_array"] and terminated:
-            self._end_scene_state = "REQUESTED"
+        # CAMBIO: Activamos la animación correspondiente al motivo de finalización.
+        if self.render_mode in ["human", "rgb_array"]:
+
+            # Evitar solicitudes si ya estamos en una animación
+            if self._end_scene_state != "IDLE":
+                return
+
+            if terminated:
+                # Finalización exitosa -> Animación de éxito
+                self._end_scene_state = "SUCCESS_REQUESTED"
+            elif truncated:
+                # Truncamiento (Timeout) -> Animación de muerte
+                self._end_scene_state = "DEATH_REQUESTED"
+
+                # Opcional: Si tu MazeRenderer utiliza el flag 'is_dead' (como AntLostRenderer),
+                # debes añadir este atributo a MazeGame y activarlo aquí.
+                if hasattr(self._game, 'is_dead'):
+                    self._game.is_dead = True
 
     def is_end_scene_animation_finished(self) -> bool:
         if self._renderer is None:

@@ -94,7 +94,7 @@ def main(enable_ant_shift=False):
         learning_rate=0.2,    # Alpha (Moderado)
         discount_factor=0.95,  # Gamma (Alto)
         epsilon=1.0,
-        epsilon_decay=0.999,  # Decae lentamente
+        epsilon_decay=0.99,  # Decae lentamente
         min_epsilon=0.05
     )
     setattr(agent, "GRID_SIZE", grid_size)

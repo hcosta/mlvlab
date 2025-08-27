@@ -39,6 +39,13 @@ class MazeRenderer:
         self.COLOR_GOAL = (40, 25, 10)
         self.COLOR_WALL = (89, 69, 40)
         self.COLOR_PARTICLE_DUST = (210, 180, 140)
+
+        # --- INICIO: NUEVAS PROPIEDADES PARA LA VARIACIÓN DE LA HORMIGA ---
+        self.randomized_ant_color = self.COLOR_ANT
+        self.ant_size_multipliers = {
+            'head': 1.0, 'thorax': 1.0, 'abdomen': 1.0}
+        # --- FIN: NUEVAS PROPIEDADES PARA LA VARIACIÓN DE LA HORMIGA ---
+
         self.ant_prev_pos, self.ant_display_pos = None, None
         self.ant_current_angle, self.ant_scale = 0.0, 1.0
         self.last_time = time.time()
@@ -101,6 +108,30 @@ class MazeRenderer:
             self.initialized = False
             self.wall_sprite_list = None
 
+        # --- INICIO: LÓGICA DE VARIACIÓN DE APARIENCIA DE LA HORMIGA ---
+        # Generar una variación de color sutil para la nueva hormiga.
+        try:
+            r_var = self.rng_visual.integers(-20, 21)
+            g_var = self.rng_visual.integers(-20, 21)
+            b_var = self.rng_visual.integers(-20, 21)
+        except AttributeError:  # Fallback para versiones antiguas de numpy
+            r_var = self.rng_visual.randint(-20, 21)
+            g_var = self.rng_visual.randint(-20, 21)
+            b_var = self.rng_visual.randint(-20, 21)
+
+        r = max(0, min(255, self.COLOR_ANT[0] + r_var))
+        g = max(0, min(255, self.COLOR_ANT[1] + g_var))
+        b = max(0, min(255, self.COLOR_ANT[2] + b_var))
+        self.randomized_ant_color = (r, g, b)
+
+        # Generar multiplicadores de tamaño para las partes del cuerpo (90% a 115%).
+        self.ant_size_multipliers = {
+            'head': self.rng_visual.uniform(0.65, 1.35),
+            'thorax': self.rng_visual.uniform(0.7, 1.35),
+            'abdomen': self.rng_visual.uniform(0.65, 1.35)
+        }
+        # --- FIN: LÓGICA DE VARIACIÓN DE APARIENCIA ---
+
         # Siempre reiniciamos el estado visual de la hormiga
         # al inicio de CADA episodio. Esto asegura que siempre se dibuje
         # desde el principio, incluso si el mapa no ha cambiado.
@@ -132,34 +163,18 @@ class MazeRenderer:
         Crea la SpriteList para los muros, asignando y rotando tiles de
         forma aleatoria pero determinista para cada mapa.
         """
-        # 1. Buscar todos los archivos de tile de muro en la carpeta de assets.
         wall_tile_paths = list(self.ASSETS_PATH.glob("tile_wall_*.png"))
-
         if not wall_tile_paths:
             raise FileNotFoundError(f"No se encontraron imágenes de muros en '{self.ASSETS_PATH}'. "
                                     f"Asegúrate de ejecutar el script create_wall_asset.py primero.")
-
-        # FIX: Ordenamos la lista de tiles para que el proceso sea 100% determinista
-        # independientemente de cómo el sistema operativo lea los archivos.
         wall_tile_paths.sort()
-
-        # 2. Se crea un generador aleatorio con la "semilla" (seed) del mapa actual.
-        # Esto asegura que la distribución de tiles y rotaciones sea siempre la misma
-        # para el mismo mapa, pero diferente para mapas distintos.
         map_hash = hash(frozenset(self.game.walls))
         seeded_rng = random.Random(map_hash)
-
         self.wall_sprite_list = self.arcade.SpriteList()
         for wall_x, wall_y in self.game.walls:
             cx, cy = self._cell_to_pixel(wall_x, wall_y)
-
-            # 3. Elegir una de las imágenes de muro al azar para cada bloque.
             random_tile_path = seeded_rng.choice(wall_tile_paths)
-
-            # Elegimos también un ángulo de rotación aleatorio (0, 90, 180, 270).
             random_angle = seeded_rng.choice([0, 90, 180, 270])
-
-            # 4. Se crea el sprite con el tile y el ángulo elegidos.
             wall_sprite = self.arcade.Sprite(
                 random_tile_path,
                 center_x=cx,
@@ -168,8 +183,6 @@ class MazeRenderer:
             )
             self.wall_sprite_list.append(wall_sprite)
 
-    # ... (El resto del código se mantiene igual, ya que el bucle de dibujo solo llama a self.wall_sprite_list.draw())
-    # ... (Omitido por brevedad)
     def _pixel_to_cell(self, x_px: float, y_px: float):
         x_cell = (x_px-self.CELL_SIZE/2)/self.CELL_SIZE
         y_cell = self.game.grid_size-1-(y_px-self.CELL_SIZE/2)/self.CELL_SIZE
@@ -204,13 +217,11 @@ class MazeRenderer:
             return
 
         if self.anthill_hole_visual_center:
-            # Apuntar directamente al centro visual del agujero sin offsets extra.
             target_x_px, target_y_px = self.anthill_hole_visual_center
             target_x_cell, target_y_cell = self._pixel_to_cell(
-                target_x_px, target_y_px-11)  # El 11 es indispensable para alinear bien la pos
+                target_x_px, target_y_px-11)
             target_pos = [target_x_cell, target_y_cell]
         else:
-            # Fallback por si el nido no estuviera dibujado
             target_pos = list(self.game.goal_pos.astype(float))
 
         lerp = 1.0 - math.exp(-delta_time * 10.0)
@@ -224,20 +235,14 @@ class MazeRenderer:
         self.ant_scale = 1.0 - easeInOutCubic(progress)
 
     def _update_animations(self, delta_time: float):
-        # Añadimos una guarda de seguridad. Si la posición de la hormiga
-        # aún no ha sido inicializada (es None), no ejecutamos la animación.
-        # Esto ocurre durante el primer fotograma de un reinicio.
         if self.ant_display_pos is None:
             return
-
         if self.in_success_transition:
             self._update_success_transition(delta_time)
             return
-
         target_pos = list(self.game.ant_pos.astype(float))
         if target_pos != self.ant_prev_pos:
             self.ant_prev_pos = list(self.ant_display_pos)
-
         dx, dy = target_pos[0] - \
             self.ant_display_pos[0], target_pos[1] - self.ant_display_pos[1]
         if math.sqrt(dx**2 + dy**2) > 0.001:
@@ -247,11 +252,9 @@ class MazeRenderer:
         else:
             self.ant_display_pos, self.ant_prev_pos = list(
                 target_pos), list(target_pos)
-
         if self.game.last_action in [0, 1, 2, 3]:
             self._update_rotation(
                 delta_time, self._get_angle_from_action(self.game.last_action))
-
         if self.game.collided and not self.was_colliding_last_frame:
             self._spawn_collision_particles()
         self.was_colliding_last_frame = self.game.collided
@@ -316,7 +319,6 @@ class MazeRenderer:
                 return
         except Exception:
             return
-
         SQUARE_SIZE = self.CELL_SIZE * 0.85
         for idx in range(self.game.grid_size**2):
             x, y = idx % self.game.grid_size, idx // self.game.grid_size
@@ -331,8 +333,6 @@ class MazeRenderer:
             r, g, b = 255, int(220 * (1 - nq) + 105 *
                                nq), int(230 * (1 - nq) + 180 * nq)
             alpha = int(40 + (nq**0.5) * 160)
-
-            # CORRECCIÓN: Nombre de la función y orden de los argumentos (bottom, top)
             left = cx - SQUARE_SIZE / 2
             right = cx + SQUARE_SIZE / 2
             bottom = cy - SQUARE_SIZE / 2
@@ -406,22 +406,32 @@ class MazeRenderer:
         self.anthill_hole_visual_center = (cx, hole_cy+self.CELL_SIZE*0.26)
 
     def _draw_ant(self):
-        # Guarda de seguridad. No dibujar la hormiga si su posición aún no está definida.
         if self.ant_display_pos is None:
             return
-
         if self.ant_scale <= 0.01:
             return
 
         ax, ay = self.ant_display_pos
         cx, cy = self._cell_to_pixel(ax, ay)
         S, angle, t = self.ant_scale, self.ant_current_angle, time.time()
-        body_c, leg_c = self.COLOR_ANT, tuple(
-            max(0, c - 50) for c in self.COLOR_ANT)
+
+        # --- INICIO: USAR EL COLOR Y TAMAÑO ALEATORIZADOS ---
+        body_c = self.randomized_ant_color
+        leg_c = tuple(max(0, c - 50) for c in body_c)
         shadow_c = tuple(int(c * 0.3) for c in body_c) + (180,)
-        hr, trx, trya, arx, ary = self.CELL_SIZE * 0.16 * S, self.CELL_SIZE * 0.21 * \
-            S, self.CELL_SIZE * 0.18 * S, self.CELL_SIZE * \
-            0.28 * S, self.CELL_SIZE * 0.22 * S
+
+        # Aplicar multiplicadores de tamaño a las partes del cuerpo
+        m_head = self.ant_size_multipliers['head']
+        m_thorax = self.ant_size_multipliers['thorax']
+        m_abdomen = self.ant_size_multipliers['abdomen']
+
+        hr = self.CELL_SIZE * 0.16 * S * m_head
+        trx = self.CELL_SIZE * 0.21 * S * m_thorax
+        trya = self.CELL_SIZE * 0.18 * S * m_thorax
+        arx = self.CELL_SIZE * 0.28 * S * m_abdomen
+        ary = self.CELL_SIZE * 0.22 * S * m_abdomen
+        # --- FIN: USAR EL COLOR Y TAMAÑO ALEATORIZADOS ---
+
         rad = math.radians(angle)
 
         def rotate(x, y): return x * math.cos(rad) - y * \
