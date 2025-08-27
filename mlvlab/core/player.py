@@ -41,7 +41,7 @@ def play_interactive(env_id: str, key_map: dict, seed: Optional[int] = None):
     Ejecuta un entorno en modo interactivo usando Arcade/pyglet.
     """
     if env_id.startswith("mlv/AntScout") or env_id.startswith("mlv/AntMaze"):
-        env = gym.make(env_id, render_mode="human", max_episode_steps=10)
+        env = gym.make(env_id, render_mode="human", max_episode_steps=50)
     else:
         env = gym.make(env_id, render_mode="human")
 

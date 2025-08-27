@@ -4,6 +4,7 @@ import math
 import numpy as np
 import random
 from pathlib import Path
+from PIL import Image
 
 try:
     from .game import MazeGame
@@ -76,6 +77,8 @@ class MazeRenderer:
             self.rng_visual = np.random.RandomState()
         self.arcade, self._headless_mode = None, False
         self.wall_sprite_list: "arcade.SpriteList" | None = None
+        self.wall_sprite_cache: dict[int, "arcade.SpriteList"] = {}
+        self.floor_texture: "arcade.Texture" | None = None
         self.ASSETS_PATH = Path(__file__).parent / "assets"
 
     def _lazy_import_arcade(self):
@@ -121,6 +124,13 @@ class MazeRenderer:
         if full_reset:
             self.initialized = False
             self.wall_sprite_list = None
+            self.wall_sprite_cache = {}
+            # --- NUEVA LÍNEA ---
+            self.floor_texture = None
+        else:
+            self.wall_sprite_list = None
+            # --- NUEVA LÍNEA ---
+            self.floor_texture = None
 
         # --- INICIO: LÓGICA DE VARIACIÓN DE APARIENCIA DE LA HORMIGA ---
         # (Este bloque se mantiene igual que en tu código original)
@@ -133,6 +143,20 @@ class MazeRenderer:
             g_var = self.rng_visual.randint(-20, 21)
             b_var = self.rng_visual.randint(-20, 21)
 
+        # Assegurem que SEMPRE es marqui com a no inicialitzat en un reset,
+        # per forçar la reconstrucció dels murs en la següent crida a draw().
+        self.initialized = False
+        self.wall_sprite_list = None  # Assegurem que la llista vella s'esborri
+
+        # Sempre reiniciamos el estado visual de la hormiga
+        if self.game:
+            self.ant_display_pos = list(self.game.ant_pos.astype(float))
+            self.ant_prev_pos = list(self.game.ant_pos.astype(float))
+            self.ant_current_angle = self._get_angle_from_action(
+                self.game.last_action)
+        else:
+            pass
+
         r = max(0, min(255, self.COLOR_ANT[0] + r_var))
         g = max(0, min(255, self.COLOR_ANT[1] + g_var))
         b = max(0, min(255, self.COLOR_ANT[2] + b_var))
@@ -144,7 +168,6 @@ class MazeRenderer:
             'thorax': self.rng_visual.uniform(0.7, 1.35),
             'abdomen': self.rng_visual.uniform(0.65, 1.35)
         }
-        # --- FIN: LÓGICA DE VARIACIÓN DE APARIENCIA ---
 
         # Siempre reiniciamos el estado visual de la hormiga
         # al inicio de CADA episodio.
@@ -187,28 +210,46 @@ class MazeRenderer:
 
     def _setup_static_elements(self):
         """
-        Crea la SpriteList para los muros, asignando y rotando tiles de
-        forma aleatoria pero determinista para cada mapa.
+        Crea o recupera de la caché la SpriteList para los muros.
         """
+        map_hash = hash(frozenset(self.game.walls))
+
+        # --- LÓGICA DE CACHÉ ---
+        # 1. Comprobar si esta configuración de mapa ya está en la caché.
+        if map_hash in self.wall_sprite_cache:
+            # Si está, la reutilizamos y terminamos. ¡Esto es instantáneo!
+            self.wall_sprite_list = self.wall_sprite_cache[map_hash]
+            return
+
+        # --- Si no está en la caché, la construimos como antes ---
         wall_tile_paths = list(self.ASSETS_PATH.glob("tile_wall_*.png"))
         if not wall_tile_paths:
             raise FileNotFoundError(f"No se encontraron imágenes de muros en '{self.ASSETS_PATH}'. "
                                     f"Asegúrate de ejecutar el script create_wall_asset.py primero.")
         wall_tile_paths.sort()
-        map_hash = hash(frozenset(self.game.walls))
+
+        wall_textures = [self.arcade.load_texture(p) for p in wall_tile_paths]
+
         seeded_rng = random.Random(map_hash)
-        self.wall_sprite_list = self.arcade.SpriteList()
+        # Usamos una variable local temporalmente
+        new_wall_sprite_list = self.arcade.SpriteList()
+
         for wall_x, wall_y in self.game.walls:
             cx, cy = self._cell_to_pixel(wall_x, wall_y)
-            random_tile_path = seeded_rng.choice(wall_tile_paths)
+            random_texture = seeded_rng.choice(wall_textures)
             random_angle = seeded_rng.choice([0, 90, 180, 270])
             wall_sprite = self.arcade.Sprite(
-                random_tile_path,
+                random_texture,
                 center_x=cx,
                 center_y=cy,
                 angle=random_angle
             )
-            self.wall_sprite_list.append(wall_sprite)
+            new_wall_sprite_list.append(wall_sprite)
+
+        # Asignamos la nueva lista a la propiedad de la clase
+        self.wall_sprite_list = new_wall_sprite_list
+        # 2. Guardar la lista recién creada en la caché para usos futuros.
+        self.wall_sprite_cache[map_hash] = self.wall_sprite_list
 
     def _pixel_to_cell(self, x_px: float, y_px: float):
         x_cell = (x_px-self.CELL_SIZE/2)/self.CELL_SIZE
@@ -402,9 +443,22 @@ class MazeRenderer:
         except AttributeError:
             return np.random.RandomState(abs(h) % (2**32))
 
-    def _draw_floor_texture(self, rng):
+    def _create_and_cache_floor_texture(self):
+        """
+        Genera la textura del suelo en la GPU, la convierte a una imagen PIL
+        y la carga como una textura de Arcade final.
+        """
+        gpu_texture = self.window.ctx.texture(
+            (self.WIDTH, self.HEIGHT), components=4)
+        framebuffer = self.window.ctx.framebuffer(
+            color_attachments=[gpu_texture])
+        framebuffer.use()
+        framebuffer.clear(color=self.COLOR_FLOOR + (255,))
+
+        rng = self._get_scenario_rng()
         density = (self.CELL_SIZE/40.0)**2
         num = int(self.game.grid_size**2*3*density)
+
         for _ in range(num):
             cx, cy = rng.uniform(0, self.WIDTH), rng.uniform(0, self.HEIGHT)
             r = rng.uniform(1, 3)
@@ -415,6 +469,27 @@ class MazeRenderer:
             c = tuple(max(0, min(255, v+shade)) for v in self.COLOR_FLOOR)
             self.arcade.draw_ellipse_filled(
                 cx, cy, r, r*rng.uniform(0.7, 1.0), c)
+
+        self.window.use()
+
+        # --- PASOS FINALES Y CRUCIALES ---
+        # 1. Leer los datos de píxeles desde la GPU a la memoria RAM.
+        pixel_data = gpu_texture.read()
+
+        # 2. Crear una imagen PIL a partir de los datos en bruto.
+        #    El formato es RGBA y el tamaño es el de la textura.
+        image = Image.frombytes("RGBA", gpu_texture.size, pixel_data)
+
+        # 3. Voltear la imagen verticalmente (OpenGL vs PIL). ¡MUY IMPORTANTE!
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+
+        # 4. Ahora sí, crear la textura de Arcade a partir de la imagen PIL.
+        self.floor_texture = self.arcade.Texture(
+            image=image, name="floor_baked_texture")
+
+        # 5. Liberar la memoria de la GPU que ya no necesitamos.
+        gpu_texture.delete()
+        framebuffer.delete()
 
     def _draw_pheromones(self, q_table):
         if not self.debug_mode or q_table is None:
@@ -718,8 +793,21 @@ class MazeRenderer:
             self.window.clear()
         except Exception:
             return None
+
+        if self.floor_texture is None:
+            self._create_and_cache_floor_texture()
+
+        # --- LA FORMA CORRECTA I DOCUMENTADA ---
+        # Utilitzem la funció 'factory' LBWH per crear el rectangle.
+        background_rect = self.arcade.LBWH(0, 0, self.WIDTH, self.HEIGHT)
+
+        self.arcade.draw_texture_rect(
+            texture=self.floor_texture,
+            rect=background_rect
+        )
+        # ------------------------------------
+
         scenario_rng = self._get_scenario_rng()
-        self._draw_floor_texture(scenario_rng)
         self._draw_pheromones(q_table_to_render)
         if self.wall_sprite_list:
             self.wall_sprite_list.draw()
@@ -729,6 +817,7 @@ class MazeRenderer:
         self._draw_ant()
         self._draw_particles()
         self._draw_ant_q_values(q_table_to_render)
+
         if render_mode == "rgb_array":
             try:
                 return np.asarray(self.arcade.get_image().convert("RGB"))
