@@ -160,6 +160,13 @@
       },
       "info_panel": {
         "title": "Information Panel"
+      },
+      "action_buttons": {
+        "title": "Environment Actions",
+        "action_requested": "Requesting: {display_title}...",
+        "action_pending": "🐛 Runner: Waiting, another action is in progress.",
+        "action_not_found": "🐛 Runner: Error: Action '{action_name}' not found in the environment.",
+        "action_error": "🐛 Runner: Error executing action '{action_name}': {e}"
       }
     }
   },
@@ -177,8 +184,9 @@
     "antmaze_v1": {
       "name": "🐜 Dungeons & Pheromones",
       "description": "Find the colony through a maze",
-      "baseline_agent": "Q-Learning"
-    }
+      "baseline_agent": "Q-Learning",
+      "action_shift": "🐛 Info: action_shift activated. Changing map, preserving Q-Table, and enabling continued learning."
+    } 
   },
   "helpers": {
     "video": {

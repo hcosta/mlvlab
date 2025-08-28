@@ -21,6 +21,7 @@ from .components.model_persistance import ModelPersistence
 from .components.live_metric import LiveMetric
 from .components.dynamic_table import DynamicTable
 from .components.info_panel import InfoPanel
+from .components.action_buttons import ActionButtons
 
 __all__ = [
     "AnalyticsView",
@@ -34,4 +35,5 @@ __all__ = [
     "LiveMetric",
     "DynamicTable",
     "InfoPanel",
+    "ActionButtons",
 ]

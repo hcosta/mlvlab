@@ -34,7 +34,6 @@ The environment can be customized when creating it:
 *   `grid_size`: The size of the square dungeon (e.g., 15 for 15x15). Default is 15.
 *   If `grid_size >= 10`, a complex maze is generated using Recursive Backtracking and BFS to ensure a challenging but always valid path.
 *   If `grid_size < 10`, a simpler scenario is generated with random walls.
-*   `enable_ant_shift`: (Boolean) If `True`, activates functionality for the `AntShift` simulation, adding a 5th action.
 
 ### Observation Space
 
@@ -47,11 +46,10 @@ Box(0, GRID_SIZE-1, (2,), int32)
 ### Action Space
 
 ```python
-Discrete(4)  # Or Discrete(5) if enable_ant_shift=True
+Discrete(4)
 ```
 
 *   `0`: Up, `1`: Down, `2`: Left, `3`: Right.
-*   `4`: (AntShift only) Activate map change and Q-Table lock (Key 'L').
 
 ---
 
@@ -166,3 +164,30 @@ try:
 except gym.error.NameNotFound:
     print("Error: mlv/AntMaze-v1 not registered.")
 ```
+
+---
+
+## Environment Actions (Optional)
+
+The `AntMaze` environment includes special action functions that can be called directly for testing and experimentation purposes:
+
+### `action_shift()`
+
+This function allows you to change the maze while preserving the learned Q-Table, enabling continuous learning across different environments:
+
+```python
+# In scripts or notebooks
+obs, info = env.action_shift()
+```
+
+**What it does:**
+1. **Blocks Q-Values**: Temporarily locks the Q-Table to prevent updates during the transition
+2. **Changes Map**: Generates a new maze layout while keeping the same grid size
+3. **Unlocks Q-Values**: Re-enables learning, allowing the agent to continue improving with the new maze
+
+**Use Cases:**
+- **Testing Adaptation**: See how well your trained agent adapts to new maze layouts
+- **Continuous Learning**: Maintain learning progress while exploring different environments
+- **Research**: Study transfer learning and generalization capabilities
+
+**Note:** These actions are automatically mapped in the interactive views, so you don't need to implement them manually in your training loops.

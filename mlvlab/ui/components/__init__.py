@@ -6,10 +6,12 @@ from .model_persistance import ModelPersistence
 from .reward_chart import RewardChart
 from .live_metric import LiveMetric
 from .dynamic_table import DynamicTable
+from .action_buttons import ActionButtons
 from .info_panel import InfoPanel
 
 __all__ = [
     "EnvironmentViewer",
+    "ActionButtons",
     "SimulationControls",
     "AgentHyperparameters",
     "MetricsDashboard",

@@ -7,7 +7,9 @@ import time
 from threading import Lock, Thread
 import atexit
 import random
-import os  # <<< CAMBIO: Importamos 'os' para contar los núcleos de la CPU
+import os
+
+from mlvlab.i18n.core import i18n
 
 from .state import StateStore
 from mlvlab.core.trainer import Trainer
@@ -81,6 +83,13 @@ class SimulationRunner:
         steps_since_yield = 0
 
         while not self._stop:
+
+            # NUEVO: Manejo de acciones pendientes (Prioridad Máxima)
+            pending_action = self.state.get(['sim', 'pending_action'])
+            if pending_action:
+                self._handle_pending_action(pending_action)
+                continue  # Reiniciar el loop para procesar el nuevo estado
+
             if self._runner_state == "ENDING_SCENE":
                 is_finished = True
                 if hasattr(self.env.unwrapped, "is_end_scene_animation_finished"):
@@ -114,12 +123,14 @@ class SimulationRunner:
                 time.sleep(0.01)
                 continue
 
-            # ... (código del 'reset' sin cambios)
+            # ... (código del 'reset')
             if cmd == "reset":
                 self._runner_state = "RUNNING"
                 new_seed = random.randint(0, 1_000_000)
                 with self.env_lock:
-                    obs, info = self.env.reset(seed=new_seed)
+                    # Aseguramos que el bloqueo de Q-Table se elimina en un reset normal.
+                    obs, info = self.env.reset(seed=new_seed, options={
+                                               "keep_q_table_locked": False})
                 if hasattr(self.agent, "reset"):
                     self.agent.reset()
 
@@ -127,7 +138,13 @@ class SimulationRunner:
                 self.state.set(['sim', 'total_steps'], 0)
                 self.state.set(['metrics', 'episodes_completed'], 0)
                 self.state.set(['metrics', 'reward_history'], [])
-                self.state.set(['agent', 'epsilon'], 1.0)
+
+                # Reiniciamos epsilon al valor inicial si está disponible en el agente o 1.0
+                initial_epsilon = getattr(self.agent, 'initial_epsilon', 1.0)
+                self.state.set(['agent', 'epsilon'], initial_epsilon)
+                if hasattr(self.agent, 'epsilon'):
+                    self.agent.epsilon = initial_epsilon
+
                 self.state.set(['sim', 'seed'], new_seed)
 
                 # Incrementamos el contador de resets (Nueva generación).
@@ -142,18 +159,8 @@ class SimulationRunner:
                 # Lógica de espera sincronizada robusta
                 turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
                 if not turbo:
-                    target_reset_count = current_reset_count
-                    start_wait = time.time()
-                    while True:
-                        # Esperamos hasta que el renderer confirme que está en la generación actual.
-                        rendered_reset_count = int(self.state.get(
-                            ['ui', 'last_rendered_reset_counter']) or -1)
-                        if rendered_reset_count >= target_reset_count:
-                            break
-                        if time.time() - start_wait > 0.5:  # Timeout 0.5s
-                            break
-                        time.sleep(0.001)  # Ceder ejecución
-                    continue  # Forzar re-evaluación de la UI
+                    # CAMBIO: Usamos el método auxiliar
+                    self._wait_for_renderer_sync()
                 continue
 
             if not self._episode_active:
@@ -171,17 +178,9 @@ class SimulationRunner:
 
                 turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
                 if not turbo:
-                    target_reset_count = current_reset_count
-                    start_wait = time.time()
-                    while True:
-                        rendered_reset_count = int(self.state.get(
-                            ['ui', 'last_rendered_reset_counter']) or -1)
-                        if rendered_reset_count >= target_reset_count:
-                            break
-                        if time.time() - start_wait > 0.5:  # Timeout 0.5s
-                            break
-                        time.sleep(0.001)
-                    continue
+                    # CAMBIO: Usamos el método auxiliar
+                    self._wait_for_renderer_sync()
+                    continue  # CRÍTICO: Asegurar que el bucle se reinicia tras la sincronización
 
             spm = max(1, int(self.state.get(['sim', 'speed_multiplier']) or 1))
             turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
@@ -285,3 +284,103 @@ class SimulationRunner:
                 self.state.set(['metrics', 'steps_per_second'], sps)
                 self._last_check_time = now
                 self._steps_at_last_check = total_steps
+
+    # NUEVOS MÉTODOS AUXILIARES PARA MANEJO DE ACCIONES Y SINCRONIZACIÓN
+
+    def _handle_pending_action(self, pending_action):
+        """Ejecuta la acción solicitada y sincroniza el estado del runner."""
+
+        # 1. Parse action data (Support dictionary format)
+        if isinstance(pending_action, dict):
+            action_name = pending_action.get("name")
+            action_args = pending_action.get("args", [])
+            action_kwargs = pending_action.get("kwargs", {})
+        else:
+            # Fallback for simple string format
+            action_name = str(pending_action)
+            action_args, action_kwargs = [], {}
+
+        if not action_name:
+            self.state.set(['sim', 'pending_action'], None)
+            return
+
+        # 2. Handle Turbo Mode (Usability improvement)
+        # Desactivamos temporalmente el turbo para asegurar que el efecto visual de la acción se renderiza.
+        was_turbo = bool(self.state.get(['sim', 'turbo_mode']) or False)
+        if was_turbo:
+            self.state.set(['sim', 'turbo_mode'], False)
+
+        print("🐛 Runner: " + i18n.t("ui.components.action_buttons.action_requested",
+                                    default="Requesting: {display_title}...").format(display_title=action_name))
+        try:
+            # 3. Execute Action
+            if hasattr(self.env.unwrapped, action_name):
+                method = getattr(self.env.unwrapped, action_name)
+                if callable(method):
+                    # Ejecutamos la acción de forma segura
+                    with self.env_lock:
+                        method(*action_args, **action_kwargs)
+
+                    # 4. Synchronize Runner State
+                    # CRÍTICO: Actualizar el estado interno del runner (_current_state) tras la acción.
+                    self._synchronize_runner_state(action_name)
+
+                else:
+                    print(i18n.t("ui.components.action_buttons.action_not_found",
+                                 default="Action '{action_name}' found but not executable.").format(action_name=action_name))
+            else:
+                print(i18n.t("ui.components.action_buttons.action_not_found",
+                             default="Action '{action_name}' not found in the environment.").format(action_name=action_name))
+        except Exception as e:
+            print(i18n.t("ui.components.action_buttons.action_error",
+                         default="Error executing action '{action_name}': {e}").format(action_name=action_name, e=e))
+
+        # 5. Cleanup and Sync
+        # Limpiamos la acción pendiente
+        self.state.set(['sim', 'pending_action'], None)
+
+        # Esperamos a que el renderer se actualice (el reset_counter fue incrementado por la acción del env).
+        self._wait_for_renderer_sync()
+
+        # Restauramos el modo turbo si estaba activo antes de la acción.
+        if was_turbo:
+            self.state.set(['sim', 'turbo_mode'], True)
+
+    def _synchronize_runner_state(self, action_name=None):
+        """Actualiza el estado interno del runner (_current_state) basándose en la observación actual del entorno."""
+        with self.env_lock:
+            # Obtenemos la observación actual del entorno
+            obs = None
+            if hasattr(self.env.unwrapped, '_get_obs'):
+                obs = self.env.unwrapped._get_obs()
+            elif hasattr(self.env, '_get_obs'):
+                obs = self.env._get_obs()
+
+            if obs is not None:
+                self._current_state = self.logic._obs_to_state(obs)
+                self._episode_active = True  # Aseguramos que el episodio sigue activo
+
+                # Manejo específico para acciones que reinician el progreso del episodio (como cambio de mapa)
+                # Verificamos si la acción implica un reinicio o si el entorno ya ha reiniciado sus pasos.
+                if action_name == "action_shift" or (hasattr(self.env.unwrapped, '_elapsed_steps') and self.env.unwrapped._elapsed_steps == 0):
+                    self.state.set(['sim', 'current_episode_reward'], 0.0)
+                    # Reiniciamos también el contador interno de la lógica
+                    if hasattr(self.logic, 'total_reward'):
+                        self.logic.total_reward = 0.0
+            else:
+                print(
+                    "Warning: Runner state synchronization failed. Could not get observation.")
+
+    def _wait_for_renderer_sync(self):
+        """Espera hasta que el renderer confirme que ha renderizado la generación actual de la simulación."""
+        target_reset_count = int(self.state.get(['sim', 'reset_counter']) or 0)
+        start_wait = time.time()
+        while True:
+            # Esperamos hasta que el renderer confirme que está en la generación actual.
+            rendered_reset_count = int(self.state.get(
+                ['ui', 'last_rendered_reset_counter']) or -1)
+            if rendered_reset_count >= target_reset_count:
+                break
+            if time.time() - start_wait > 1.0:  # Timeout 1.0s (más generoso para acciones)
+                break
+            time.sleep(0.001)  # Ceder ejecución

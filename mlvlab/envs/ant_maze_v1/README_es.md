@@ -34,7 +34,6 @@ El entorno se puede personalizar al crearlo:
 *   `grid_size`: El tamaño de la mazmorra cuadrada (ej. 15 para 15x15). Por defecto es 15.
 *   Si `grid_size >= 10`, se genera un laberinto complejo usando Recursive Backtracking y BFS para asegurar un camino desafiante pero siempre válido.
 *   Si `grid_size < 10`, se genera un escenario más simple con muros aleatorios.
-*   `enable_ant_shift`: (Booleano) Si es `True`, activa la funcionalidad para la simulación `AntShift`, añadiendo una 5ª acción.
 
 ### Espacio de Observación
 
@@ -47,11 +46,10 @@ Box(0, GRID_SIZE-1, (2,), int32)
 ### Espacio de Acción
 
 ```python
-Discrete(4)  # O Discrete(5) si enable_ant_shift=True
+Discrete(4)
 ```
 
 *   `0`: Arriba, `1`: Abajo, `2`: Izquierda, `3`: Derecha.
-*   `4`: (Solo AntShift) Activar cambio de mapa y bloqueo de Q-Table (Tecla 'L').
 
 ---
 
@@ -166,3 +164,30 @@ try:
 except gym.error.NameNotFound:
     print("Error: mlv/AntMaze-v1 no registrado.")
 ```
+
+---
+
+## Acciones del Entorno (Opcional)
+
+El entorno `AntMaze` incluye funciones de acción especiales que se pueden llamar directamente para pruebas y experimentación:
+
+### `action_shift()`
+
+Esta función te permite cambiar el laberinto mientras preservas la Q-Table aprendida, permitiendo el aprendizaje continuo en diferentes entornos:
+
+```python
+# En scripts o notebooks
+obs, info = env.action_shift()
+```
+
+**Qué hace:**
+1. **Bloquea Q-Values**: Bloquea temporalmente la Q-Table para evitar actualizaciones durante la transición
+2. **Cambia el Mapa**: Genera un nuevo diseño de laberinto manteniendo el mismo tamaño de cuadrícula
+3. **Desbloquea Q-Values**: Re-activa el aprendizaje, permitiendo que el agente continúe mejorando con el nuevo laberinto
+
+**Casos de Uso:**
+- **Pruebas de Adaptación**: Ver qué tan bien se adapta tu agente entrenado a nuevos diseños de laberinto
+- **Aprendizaje Continuo**: Mantener el progreso de aprendizaje mientras exploras diferentes entornos
+- **Investigación**: Estudiar capacidades de transferencia de aprendizaje y generalización
+
+**Nota:** Estas acciones se mapean automáticamente en las vistas interactivas, por lo que no necesitas implementarlas manualmente en tus bucles de entrenamiento.

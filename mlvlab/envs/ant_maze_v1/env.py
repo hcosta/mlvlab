@@ -3,12 +3,11 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-import time
 import threading
 import os
 import platform
+from mlvlab.i18n.core import i18n
 
-# Importamos las clases modularizadas
 try:
     from .game import MazeGame
     from .renderer import MazeRenderer
@@ -34,17 +33,18 @@ class _VirtualDisplayManager:
         is_headless = "DISPLAY" not in os.environ
 
         if is_linux and is_headless:
-            print("INFO: Entorno headless detectado. Iniciando display virtual (Xvfb)...")
+            print(
+                "🐛 Info: Headless Environment detected. Starting virtual display (Xvfb)...")
             try:
                 from pyvirtualdisplay import Display
                 cls._display = Display(visible=0, size=(1024, 768))
                 cls._display.start()
                 cls._is_active = True
-                print("INFO: Display virtual iniciado con éxito.")
+                print("🐛 Info: Virtual display started successfully.")
             except ImportError:
-                print("ADVERTENCIA: 'pyvirtualdisplay' no está instalado.")
+                print("🐛 Warning: 'pyvirtualdisplay' not installed.")
             except Exception as e:
-                print(f"ERROR: No se pudo iniciar el display virtual: {e}")
+                print(f"🐛 Error: Failed to start virtual display: {e}")
 
     @classmethod
     def stop(cls):
@@ -63,8 +63,7 @@ class AntMazeEnv(gym.Env):
                  reward_goal=100,
                  reward_wall=-10,  # La penalización por chocar es menor, ya que es esperable
                  reward_move=-1,
-                 # Flag para activar la funcionalidad AntShift (Punto 7)
-                 enable_ant_shift=False
+                 # CAMBIO: Eliminado enable_ant_shift
                  ):
         super().__init__()
 
@@ -76,13 +75,12 @@ class AntMazeEnv(gym.Env):
         self.REWARD_GOAL = reward_goal
         self.REWARD_WALL = reward_wall
         self.REWARD_MOVE = reward_move
-        self.enable_ant_shift = enable_ant_shift
+        # CAMBIO: Eliminado self.enable_ant_shift
 
         # Espacios de acción y observación
-        # Si AntShift está activado (Punto 7), añadimos una acción (4) para el cambio de mapa.
+        # CAMBIO: El espacio de acción ahora es fijo (4 movimientos).
         self.num_movement_actions = 4
-        self.action_space = spaces.Discrete(
-            self.num_movement_actions + (1 if enable_ant_shift else 0))
+        self.action_space = spaces.Discrete(self.num_movement_actions)
         self.observation_space = spaces.Box(
             low=0, high=self.GRID_SIZE - 1, shape=(2,), dtype=np.int32
         )
@@ -120,7 +118,7 @@ class AntMazeEnv(gym.Env):
         self._elapsed_steps = 0
         self._max_episode_steps = None
 
-        # Estado para AntShift (Punto 7). Controla si el agente debe seguir aprendiendo.
+        # Estado para control de aprendizaje. Controla si el agente debe seguir aprendiendo.
         self.is_q_table_locked = False
         self._sync_game_state()
 
@@ -138,7 +136,7 @@ class AntMazeEnv(gym.Env):
         return {
             "goal_pos": np.array(self.goal_pos, dtype=np.int32),
             "start_pos": np.array(self.start_pos, dtype=np.int32),
-            "is_q_table_locked": self.is_q_table_locked  # Info sobre el estado de AntShift
+            "is_q_table_locked": self.is_q_table_locked  # Info sobre el estado de bloqueo
         }
 
     def reset(self, seed=None, options=None):
@@ -156,11 +154,17 @@ class AntMazeEnv(gym.Env):
         map_changed = seed is not None or scenario_not_ready
 
         # LÓGICA DE REINICIO DE Q-TABLE ---
-        if map_changed and not self.enable_ant_shift:
+        # CAMBIO: Simplificado. Reiniciamos si el mapa cambia, a menos que se indique explícitamente mantenerla.
+        keep_q_table = options and options.get("keep_q_table", False)
+
+        if map_changed and not keep_q_table:
             # ... (código para reiniciar la q-table) ...
             self.q_table_to_render = None
             if self._state_store and hasattr(self._state_store, 'q_table'):
-                print("Nuevo mapa detectado: Reiniciando Q-Table...")
+                # Solo imprimimos si la tabla no está ya vacía para evitar spam al inicio.
+                if getattr(self._state_store, 'q_table', None) is None or np.any(self._state_store.q_table):
+                    print(
+                        "Nuevo mapa detectado (Reset estándar): Reiniciando Q-Table...")
                 num_states = self.GRID_SIZE * self.GRID_SIZE
                 num_actions = self.action_space.n
                 self._state_store.q_table = np.zeros((num_states, num_actions))
@@ -204,18 +208,18 @@ class AntMazeEnv(gym.Env):
             except Exception:
                 self._max_episode_steps = float('inf')
 
-        # Manejo de la acción especial para AntShift (Punto 7)
-        if self.enable_ant_shift and action == self.num_movement_actions:
-            self._handle_ant_shift_action()
-            # La acción de shift no cuenta como un paso de movimiento.
+        # CAMBIO: Eliminado el manejo de la acción especial para AntShift.
+
+        # Opcional: Comprobación de acción válida
+        if not self.action_space.contains(action):
+            print(f"Warning: Invalid action {action} received. Ignoring.")
             obs = self._get_obs()
             reward = 0
             terminated = False
             truncated = False
             info = self._get_info()
             info.update({"collided": False, "terminated": False,
-                        "ant_shift_triggered": True})
-
+                        "invalid_action": True})
             if self.render_mode == "human":
                 self.render()
             return obs, reward, terminated, truncated, info
@@ -253,22 +257,30 @@ class AntMazeEnv(gym.Env):
         # Nota: El wrapper TimeLimit de Gymnasium se encargará de poner truncated=True si se cumple la condición.
         return obs, reward, terminated, truncated, info
 
-    def _handle_ant_shift_action(self):
-        """
-        Implementación de la lógica de AntShift (Punto 7).
-        Genera un nuevo mapa en vivo y bloquea la QTable.
-        """
-        print("AntShift Activado: Generando nuevo laberinto y bloqueando Q-Table.")
+    # --- API Extendida: Acciones Personalizadas ---
 
-        # 1. Bloquear la Q-Table
+    def action_shift(self):
+        """
+        Acción personalizada (Trigger): Cambia el mapa por uno nuevo sin reiniciar la Q-Table,
+        permitiendo que el aprendizaje continúe en el nuevo escenario.
+        Llamable via env.action_shift() o por la UI.
+        """
+        # Mensaje actualizado para reflejar que el aprendizaje continúa.
+        print(i18n.t("environments.antmaze_v1.action_shift",
+                     default="🐛 Info: action_shift activated. Changing map, preserving Q-Table, and enabling continued learning."))
+
+        # 1. Bloqueamos temporalmente la Q-Table para asegurar que no haya escrituras
+        #    durante el proceso de reinicio del mapa.
         self.is_q_table_locked = True
 
-        # 2. Generar un nuevo mapa. Usamos la RNG interna (no la de Gymnasium)
+        # 2. Generar un nuevo mapa usando la RNG interna.
+        # Usamos la RNG interna (no la de Gymnasium)
         # para asegurar que el nuevo mapa es diferente e impredecible respecto al entrenamiento.
         self._game.generate_scenario(self._internal_rng)
 
-        # 3. Posicionar la hormiga en el punto de salida del nuevo mapa
-        self._game.place_ant()
+        # 3. Reiniciar el estado del juego para el nuevo mapa.
+        self._game.reset(self._internal_rng, hard=True)
+        self._elapsed_steps = 0  # Reiniciar contador de pasos.
 
         # 4. Reiniciar el estado del renderer para el nuevo mapa
         if self._renderer:
@@ -276,7 +288,21 @@ class AntMazeEnv(gym.Env):
 
         self._sync_game_state()
 
-    # Métodos de Renderizado ---
+        # 5. Sincronización con la UI (StateStore)
+        # Incrementamos el contador de resets para notificar al renderer y sincronizar el runner.
+        if self._state_store:
+            current_reset_count = int(self._state_store.get(
+                ['sim', 'reset_counter']) or 0) + 1
+            self._state_store.set(
+                ['sim', 'reset_counter'], current_reset_count)
+
+        # 6. CAMBIO CLAVE: Desbloqueamos la Q-Table.
+        # Una vez que el nuevo mapa y el estado están listos, permitimos que el agente
+        # vuelva a aprender y adaptar su política al nuevo entorno.
+        self.is_q_table_locked = False
+
+        # Devolvemos la nueva observación para facilitar el uso en notebooks.
+        return self._get_obs(), self._get_info()
 
     def _lazy_init_renderer(self):
         if self._renderer is None:

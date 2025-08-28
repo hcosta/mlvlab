@@ -160,6 +160,13 @@
       },
       "info_panel": {
         "title": "Panel de Información"
+      },
+      "action_buttons": {
+        "title": "Acciones del Entorno",
+        "action_requested": "Solicitando: {display_title}...",
+        "action_pending": "🐛 Runner: Esperando, otra acción está en curso.",
+        "action_not_found": "🐛 Runner: Error: Acción '{action_name}' no encontrada en el entorno.",
+        "action_error": "🐛 Runner: Error ejecutando acción '{action_name}': {e}"
       }
     }
   },
@@ -177,7 +184,8 @@
     "antmaze_v1": {
       "name": "🐜 Feromonas y Mazmorras",
       "description": "Navega por la mazmorra para encontrar la colonia",
-      "baseline_agent": "Q-Learning"
+      "baseline_agent": "Q-Learning",
+      "action_shift": "🐛 Info: action_shift activado. Cambiando mapa, preservando Q-Table, y permitiendo aprendizaje continuo."
     }
   },
   "helpers": {

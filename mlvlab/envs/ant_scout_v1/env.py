@@ -45,14 +45,14 @@ class _VirtualDisplayManager:
         is_headless = "DISPLAY" not in os.environ
 
         if is_linux and is_headless:
-            print("INFO: Entorno headless detectado. Iniciando display virtual (Xvfb)...")
+            print("Info: Entorno headless detectado. Iniciando display virtual (Xvfb)...")
             try:
                 from pyvirtualdisplay import Display
                 # Creamos una instancia de display virtual en memoria
                 cls._display = Display(visible=0, size=(1024, 768))
                 cls._display.start()
                 cls._is_active = True
-                print("INFO: Display virtual iniciado con éxito.")
+                print("Info: Display virtual iniciado con éxito.")
             except ImportError:
                 print(
                     "ADVERTENCIA: 'pyvirtualdisplay' no está instalado. El renderizado puede fallar.")

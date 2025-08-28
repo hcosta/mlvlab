@@ -123,6 +123,9 @@ def main(enable_ant_shift=False):
                          "episodes_completed", "steps_per_second", "seed"],
             ),
             ui.RewardChart(history_size=500),
+            ui.ActionButtons(
+                actions={"action_shift": "Cambiar el mapa (Test)"}
+            ),
         ],
     )
 
