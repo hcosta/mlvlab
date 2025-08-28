@@ -521,7 +521,9 @@ class MazeRenderer:
         for idx in range(self.game.grid_size**2):
             x, y = idx % self.game.grid_size, idx // self.game.grid_size
 
-            if (x, y) not in self.game.visited_cells:
+            # Ahora, esta condición solo se aplica si NO estamos forzando el renderizado.
+            # Si self.force_full_render es True, este 'if' siempre será falso y continuará dibujando.
+            if not self.force_full_render and (x, y) not in self.game.visited_cells:
                 continue
 
             if (x, y) in self.game.walls:
@@ -818,13 +820,16 @@ class MazeRenderer:
             if size > 0.1:
                 self.arcade.draw_circle_filled(p.x, p.y, size, color)
 
-    def draw(self, game: MazeGame, q_table_to_render, render_mode: str | None, simulation_speed: float = 1.0):
+    def draw(self, game: MazeGame, q_table_to_render, render_mode: str | None, simulation_speed: float = 1.0, force_full_render: bool = False):
         if render_mode is None:
             return None
         if not self.initialized:
             self._initialize(game, render_mode)
         if not self.window:
             return None
+
+        # Guardamos el estado para que otros métodos lo usen.
+        self.force_full_render = force_full_render
 
         current_time = time.time()
         delta_time = min(current_time-self.last_time, 0.1)*simulation_speed

@@ -73,7 +73,7 @@ def main(enable_ant_shift=False):
     # Configuración del entorno
     # Asumiendo registro como "mlv/AntMaze-v1"
     env_name = "mlv/AntMaze-v1"
-    grid_size = 11
+    grid_size = 29
 
     try:
         env = gym.make(env_name,
@@ -124,7 +124,8 @@ def main(enable_ant_shift=False):
             ),
             ui.RewardChart(history_size=500),
             ui.ActionButtons(
-                actions={"action_shift": "Cambiar el mapa (Test)"}
+                actions={
+                    "action_shift": "Generar nueva mazmorra", "action_toggle_pheromones": "Modo feromonas globales"}
             ),
         ],
     )

@@ -120,6 +120,8 @@ class AntMazeEnv(gym.Env):
 
         # Estado para control de aprendizaje. Controla si el agente debe seguir aprendiendo.
         self.is_q_table_locked = False
+        # Estado para forzar el renderizado completo de la Q-Table.
+        self.force_full_pheromone_render = False
         self._sync_game_state()
 
     def _sync_game_state(self):
@@ -304,6 +306,37 @@ class AntMazeEnv(gym.Env):
         # Devolvemos la nueva observación para facilitar el uso en notebooks.
         return self._get_obs(), self._get_info()
 
+    def action_toggle_pheromones(self):
+        """
+        Acción personalizada (Trigger): Alterna la visualización de feromonas
+        entre 'descubiertas' y 'global'.
+        Si se activa la vista global, también fuerza la activación del modo debug
+        tanto en el entorno como en el StateStore de la UI.
+        """
+        self.force_full_pheromone_render = not self.force_full_pheromone_render
+
+        if self.force_full_pheromone_render:
+            # Activamos el modo debug a nivel de entorno
+            if not self.debug_mode:
+                self.debug_mode = True
+                print(
+                    "🐛 Info: Modo Debug ACTIVADO automáticamente para mostrar las feromonas.")
+
+            # Actualizamos el StateStore para que el botón de la UI se sincronice.
+            # Esto hará que el icono del botón de debug cambie a 'visibility' (encendido).
+            if self._state_store:
+                self._state_store.set(['ui', 'debug_mode'], True)
+
+            print(i18n.t("environments.antmaze_v1.pheromones_global",
+                         default="🐛 Info: Visualización de feromonas forzada a modo GLOBAL."))
+        else:
+            # Al desactivar, no tocamos el modo debug. Solo restauramos la visualización.
+            print(i18n.t("environments.antmaze_v1.pheromones_discovered",
+                         default="🐛 Info: Visualización de feromonas restaurada a modo DESCUBIERTO."))
+
+        # No necesitamos cambiar el estado del juego, solo devolvemos la obs actual.
+        return self._get_obs(), self._get_info()
+
     def _lazy_init_renderer(self):
         if self._renderer is None:
             try:
@@ -392,7 +425,8 @@ class AntMazeEnv(gym.Env):
         if self._renderer:
             result = self._renderer.draw(
                 self._game, self.q_table_to_render, self.render_mode,
-                simulation_speed=self._simulation_speed
+                simulation_speed=self._simulation_speed,
+                force_full_render=self.force_full_pheromone_render
             )
             self.window = self._renderer.window
 

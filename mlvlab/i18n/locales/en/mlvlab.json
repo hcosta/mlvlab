@@ -163,7 +163,7 @@
       },
       "action_buttons": {
         "title": "Environment Actions",
-        "action_requested": "Requesting: {display_title}...",
+        "action_requested": "{display_title}",
         "action_pending": "🐛 Runner: Waiting, another action is in progress.",
         "action_not_found": "🐛 Runner: Error: Action '{action_name}' not found in the environment.",
         "action_error": "🐛 Runner: Error executing action '{action_name}': {e}"
@@ -185,7 +185,10 @@
       "name": "🐜 Dungeons & Pheromones",
       "description": "Find the colony through a maze",
       "baseline_agent": "Q-Learning",
-      "action_shift": "🐛 Info: action_shift activated. Changing map, preserving Q-Table, and enabling continued learning."
+      "action_shift": "🐛 Info: action_shift activated. Changing map, preserving Q-Table, and enabling continued learning.",
+      "debug_mode_activated": "🐛 Info: Debug mode activated automatically to show pheromones.",
+      "pheromones_global": "🐛 Info: Pheromones forced to global mode.",
+      "pheromones_discovered": "🐛 Info: Pheromones restored to default mode."
     } 
   },
   "helpers": {

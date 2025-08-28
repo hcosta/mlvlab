@@ -1,3 +1,4 @@
+# mlvlab/agents/ql/q_learning.py
 """Entrenamiento y evaluación baseline para mlv/ql/ant-v1 usando Q-Learning genérico.
 
 Implementa `train_agent` y `eval_agent`, que la CLI invoca según la configuración BASELINE

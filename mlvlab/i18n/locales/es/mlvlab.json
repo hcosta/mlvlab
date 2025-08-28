@@ -163,7 +163,7 @@
       },
       "action_buttons": {
         "title": "Acciones del Entorno",
-        "action_requested": "Solicitando: {display_title}...",
+        "action_requested": "{display_title}",
         "action_pending": "🐛 Runner: Esperando, otra acción está en curso.",
         "action_not_found": "🐛 Runner: Error: Acción '{action_name}' no encontrada en el entorno.",
         "action_error": "🐛 Runner: Error ejecutando acción '{action_name}': {e}"
@@ -185,7 +185,10 @@
       "name": "🐜 Feromonas y Mazmorras",
       "description": "Navega por la mazmorra para encontrar la colonia",
       "baseline_agent": "Q-Learning",
-      "action_shift": "🐛 Info: action_shift activado. Cambiando mapa, preservando Q-Table, y permitiendo aprendizaje continuo."
+      "action_shift": "🐛 Info: action_shift activado. Cambiando mapa, preservando Q-Table, y permitiendo aprendizaje continuo.",
+      "debug_mode_activated": "🐛 Info: Modo Debug ACTIVADO automáticamente para mostrar las feromonas.",
+      "pheromones_global": "🐛 Info: Visualización de feromonas forzada a modo GLOBAL.",
+      "pheromones_discovered": "🐛 Info: Visualización de feromonas restaurada a modo DESCUBIERTO."
     }
   },
   "helpers": {
