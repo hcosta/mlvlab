@@ -45,11 +45,11 @@ class ArcadeRenderer:
         self.WIDTH = 0
         self.HEIGHT = 0
 
-        # Paleta de colores
-        self.COLOR_GRASS = (107, 142, 35)
+        # Paleta de colores actualizada para un look de "pradera de verano"
+        self.COLOR_GROUND = (207, 158, 30)  # Amarillo Trigo
         self.COLOR_ANT = (67, 67, 67)
         self.COLOR_OBSTACLE = (100, 100, 100)
-        self.COLOR_PARTICLE_DUST = (210, 180, 140)
+        self.COLOR_PARTICLE_DUST = (188, 164, 93)  # Polvo más acorde
 
         # Estado de animación
         self.ant_display_pos = None
@@ -75,6 +75,25 @@ class ArcadeRenderer:
 
         self.arcade = None
 
+    def _initialize(self, game: AntGame, render_mode: str):
+        self._lazy_import_arcade()
+        self.game = game
+        self.WIDTH = game.grid_size * self.CELL_SIZE
+        self.HEIGHT = game.grid_size * self.CELL_SIZE
+        if self.window is None:
+            title = "Ants Saga - Errant Drone - MLVisual®"
+            visible = render_mode == "human"
+            self.window = self.arcade.Window(
+                self.WIDTH, self.HEIGHT, title, visible=visible)
+            if not visible:
+                self.window.set_visible(False)
+            # Usamos el nuevo color de fondo
+            self.arcade.set_background_color(self.COLOR_GROUND)
+
+        self.ant_display_pos = list(game.ant_pos.astype(float))
+        self.ant_current_angle = 0
+        self.initialized = True
+
     def _lazy_import_arcade(self):
         if self.arcade is None:
             try:
@@ -96,7 +115,8 @@ class ArcadeRenderer:
                 self.WIDTH, self.HEIGHT, title, visible=visible)
             if not visible:
                 self.window.set_visible(False)
-            self.arcade.set_background_color(self.COLOR_GRASS)
+            # Usamos el nuevo color de fondo
+            self.arcade.set_background_color(self.COLOR_GROUND)
 
         self.ant_display_pos = list(game.ant_pos.astype(float))
         self.ant_current_angle = 0
@@ -249,20 +269,34 @@ class ArcadeRenderer:
         except AttributeError:
             rng = np.random.RandomState(abs(current_hash) % (2**32))
 
-        for _ in range(self.game.grid_size * self.game.grid_size * 2):
+        # Dibujamos detalles que parecen hierba seca o trigo
+        for _ in range(self.game.grid_size * self.game.grid_size * 4):  # Aumentamos la densidad
             cx = rng.uniform(0, self.WIDTH)
             cy = rng.uniform(0, self.HEIGHT)
-            r = rng.uniform(1, 4)
-            try:
-                shade = rng.integers(-25, 25)
-            except AttributeError:
-                shade = rng.randint(-25, 25)
+            length = rng.uniform(3, 8)
+            angle_deg = rng.uniform(-10, 10)  # Ligera variación del ángulo
+            angle_rad = math.radians(90 + angle_deg)
 
-            mote_color = (max(0, min(255, self.COLOR_GRASS[0]+shade)),
-                          max(0, min(255, self.COLOR_GRASS[1]+shade)),
-                          max(0, min(255, self.COLOR_GRASS[2]+shade)))
-            self.arcade.draw_ellipse_filled(
-                cx, cy, r, r * rng.uniform(0.5, 1.0), mote_color)
+            end_x = cx + math.cos(angle_rad) * length
+            end_y = cy + math.sin(angle_rad) * length
+
+            try:
+                shade = rng.integers(-35, 35)
+                # AQUÍ ESTÁ LA CORRECCIÓN:
+                # Usamos integers() para el nuevo API
+                alpha = rng.integers(150, 220)
+            except AttributeError:
+                shade = rng.randint(-35, 35)
+                # Y randint() como alternativa para el API antiguo
+                alpha = rng.randint(150, 220)
+
+            mote_color = (max(0, min(255, self.COLOR_GROUND[0]+shade)),
+                          max(0, min(255, self.COLOR_GROUND[1]+shade)),
+                          max(0, min(255, self.COLOR_GROUND[2]+shade)),
+                          alpha)  # Alpha para dar profundidad
+
+            self.arcade.draw_line(cx, cy, end_x, end_y,
+                                  mote_color, line_width=rng.uniform(1.0, 2.0))
 
         for obs_x, obs_y in self.game.obstacles:
             cx, cy = self._cell_to_pixel(obs_x, obs_y)

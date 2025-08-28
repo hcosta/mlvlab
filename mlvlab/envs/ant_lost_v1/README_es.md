@@ -1,4 +1,4 @@
-# AntLost-v1: Guía de Uso
+# AntLost-v1 (Zángano Errante): Guía de Uso
 
 [![en](https://img.shields.io/badge/Lang-EN-lightgrey.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-red.svg)](./README_es.md)

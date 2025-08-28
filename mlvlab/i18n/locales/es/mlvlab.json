@@ -171,7 +171,12 @@
     },
     "antscout_v1": {
       "name": "🐜 Exploradora Vigía",
-      "description": "Encuentra la colonia perdida",
+      "description": "Encuentra la entrada de la colonia perdida",
+      "baseline_agent": "Q-Learning"
+    },
+    "antmaze_v1": {
+      "name": "🐜 Feromonas y Mazmorras",
+      "description": "Navega por la mazmorra para encontrar la colonia",
       "baseline_agent": "Q-Learning"
     }
   },

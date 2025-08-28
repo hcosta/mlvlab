@@ -1,4 +1,4 @@
-# AntScout-v1: Guía de Uso
+# AntScout-v1 (Exploradora Vigía): Guía de Uso
 
 [![en](https://img.shields.io/badge/Lang-EN-lightgrey.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-red.svg)](./README_es.md)

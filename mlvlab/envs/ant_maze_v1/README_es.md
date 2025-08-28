@@ -1,12 +1,11 @@
-# AntMaze-v1 (Dungeons & Pheromones): Guía de Uso
+# AntMaze-v1 (Feromonas y Mazmorras): Guía de Uso
 
 [![en](https://img.shields.io/badge/Lang-EN-lightgrey.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-red.svg)](./README_es.md)
 
 Este archivo documenta el entorno `mlv/AntMaze-v1`, también conocido como **Dungeons & Pheromones**.
 
-<!-- <img src="../../../docs/ant_maze_v1/mode_view_es.jpg" alt="view mode" width="100%"> -->
-*(Imagen de referencia pendiente)*
+<img src="../../../docs/ant_maze_v1/mode_view_es.jpg" alt="view mode" width="100%">
 
 ## Descripción
 
@@ -100,24 +99,6 @@ En el modo view:
 1. Inicia la simulación.
 2. Ajusta los sliders de Alpha, Gamma y Epsilon Decay en tiempo real.
 3. Activa el "Modo Debug" para visualizar el rastro de feromonas y observa cómo los cambios afectan el aprendizaje.
-    
-## Funcionalidad Avanzada
-
-```bash
-# Lanzar la vista en modo AntShift
-view AntMaze-v1 --kwargs '{"enable_ant_shift": true}'
-```
-
-```bash
-# Jugar interactivamente (usando controles de teclado)
-play AntMaze-v1
-
-# Entrenar un agente con parámetros por defecto en una semilla específica
-train AntMaze-v1 --seed 42
-
-# Entrenar en una cuadrícula más grande
-train AntMaze-v1 --kwargs '{"grid_size": 25}'
-```
 
 ## Compatibilidad con Scripts y Notebooks
 

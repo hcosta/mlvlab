@@ -87,8 +87,9 @@ MLV-Lab> exit
 
 | Name | Environment | Saga | Baseline | Details | Preview |
 | -----| ----------- | ---- | -------- | ------- | :-----: |
-| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Errant Drone  | 🐜 Ants | Random | [README.md](/mlvlab/envs/ant_lost_v1/README.md) | <a href="/mlvlab/envs/ant_lost_v1/"><img src="./docs/ant_lost_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
-| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Lookout Scout  | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README.md) | <a href="/mlvlab/envs/ant_scout_v1/"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Errant <br> Drone  | 🐜 Ants | Random | [README.md](/mlvlab/envs/ant_lost_v1/README.md) | <a href="/mlvlab/envs/ant_lost_v1/README.md"><img src="./docs/ant_lost_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Lookout <br> Scout  | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README.md) | <a href="/mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+| `AntMaze-v1`<br><sup>`mlv/AntMaze-v1`</sup> | Dungeons & <br> Pheromones | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_maze_v1/README.md) | <a href="/mlvlab/envs/ant_maze_v1/README.md"><img src="./docs/ant_maze_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
 
 ---
 

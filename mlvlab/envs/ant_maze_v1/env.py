@@ -61,7 +61,7 @@ class AntMazeEnv(gym.Env):
                  render_mode=None,
                  grid_size=15,  # Aumentamos el tamaño por defecto para el laberinto
                  reward_goal=100,
-                 reward_wall=-5,  # La penalización por chocar es menor, ya que es esperable
+                 reward_wall=-10,  # La penalización por chocar es menor, ya que es esperable
                  reward_move=-1,
                  # Flag para activar la funcionalidad AntShift (Punto 7)
                  enable_ant_shift=False

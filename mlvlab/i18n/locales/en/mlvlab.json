@@ -171,7 +171,12 @@
     },
     "antscout_v1": {
       "name": "🐜 Lookout Scout",
-      "description": "Find the lost colony",
+      "description": "Find the lost colony entrance",
+      "baseline_agent": "Q-Learning"
+    },
+    "antmaze_v1": {
+      "name": "🐜 Dungeons & Pheromones",
+      "description": "Find the colony through a maze",
       "baseline_agent": "Q-Learning"
     }
   },

@@ -1,4 +1,4 @@
-# AntLost-v1: Usage Guide
+# AntLost-v1 (Errant Drone): Usage Guide
 
 [![en](https://img.shields.io/badge/Lang-EN-red.svg)](./README.md)
 [![es](https://img.shields.io/badge/Lang-ES-lightgrey.svg)](./README_es.md)

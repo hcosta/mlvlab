@@ -104,7 +104,6 @@ def main(enable_ant_shift=False):
     # Configuración de la vista interactiva (Punto 3)
     view = AnalyticsView(
         trainer=trainer,
-        title="Dungeons & Pheromones (AntMaze)",
         left_panel=[
             ui.SimulationControls(
                 includes=["speed", "turbo"],
