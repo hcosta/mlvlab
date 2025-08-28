@@ -4,8 +4,6 @@ from mlvlab.core.player import play_interactive
 from mlvlab.cli.utils import get_env_config
 import argparse
 import sys
-from pathlib import Path
-from typing import Optional
 
 # Añadimos la raíz del proyecto al path para que los imports funcionen
 # sys.path.insert(0, str(Path(__file__).resolve().parents[2]))

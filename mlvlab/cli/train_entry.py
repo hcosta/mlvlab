@@ -56,13 +56,11 @@ def main():
         run_seed = random.randint(0, 10000)
         print(i18n.t("cli.messages.no_seed_random", seed=run_seed))
 
-    # LÓGICA CORREGIDA PARA EL DIRECTORIO ---
     run_dir = None
     # Solo creamos un directorio si el algoritmo no es 'random'
     if algorithm_key != 'random':
         run_dir = get_run_dir(normalized_env_id, run_seed)
         print(i18n.t("cli.messages.working_dir", run_dir=str(run_dir)))
-    # FIN DE LA LÓGICA CORREGIDA ---
 
     try:
         algo = get_algorithm(algorithm_key)

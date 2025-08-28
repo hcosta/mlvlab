@@ -1,4 +1,4 @@
-# mlvlab/envs/ant/game.py
+# mlvlab/envs/ant_scout_v1/game.py
 import numpy as np
 
 
