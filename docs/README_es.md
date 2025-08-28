@@ -17,6 +17,16 @@ Este proyecto tiene dos audiencias principales:
 
 ---
 
+## 📦 Entornos disponibles
+
+| Nombre | Entorno | Saga | Baseline |Detalles | Vista Previa |
+| -------| --------| ---- | -------- | ------- | :----------: |
+| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Zángano Errante  | 🐜 Hormigas | Aleatorio | [README.md](/mlvlab/envs/ant_lost_v1/README_es.md) | <a href="/mlvlab/envs/ant_lost_v1/README_es.md"><img src="./ant_lost_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Exploradora Vigía | 🐜 Hormigas | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README_es.md) | <a href="/mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="50px"></a> |
+| `AntMaze-v1`<br><sup>`mlv/AntMaze-v1`</sup> | Feromonas y Mazmorras | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_maze_v1/README_es.md) | <a href="/mlvlab/envs/ant_maze_v1/README.md"><img src="./ant_maze_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+
+---
+
 ## 🚀 Uso Rápido (Shell Interactivo)
 
 MLV-Lab se controla a través de un shell interactivo llamado `MLVisual`. El flujo de trabajo está diseñado para ser intuitivo y fácil de usar.
@@ -80,16 +90,6 @@ MLV-Lab> docs AntScout-v1
 # Salimos de la sesión
 MLV-Lab> docs AntScout-v1
 ```
-
----
-
-## 📦 Entornos disponibles
-
-| Nombre | Entorno | Saga | Baseline |Detalles | Vista Previa |
-| -------| --------| ---- | -------- | ------- | :----------: |
-| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Zángano <br> Errante  | 🐜 Hormigas | Aleatorio | [README.md](/mlvlab/envs/ant_lost_v1/README_es.md) | <a href="/mlvlab/envs/ant_lost_v1/README_es.md"><img src="./ant_lost_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
-| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Exploradora <br> Vigía | 🐜 Hormigas | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README_es.md) | <a href="/mlvlab/envs/ant_scout_v1/README_es.md"><img src="./ant_scout_v1/mode_play.jpg" alt="modo play" width="50px"></a> |
-| `AntMaze-v1`<br><sup>`mlv/AntMaze-v1`</sup> | Feromonas y <br> Mazmorras | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_maze_v1/README_es.md) | <a href="/mlvlab/envs/ant_maze_v1/README.md"><img src="./ant_maze_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
 
 ---
 

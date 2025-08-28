@@ -17,6 +17,16 @@ This project has two main audiences:
 
 ---
 
+## 📦 Available Environments
+
+| Name | Environment | Saga | Baseline | Details | Preview |
+| -----| ----------- | ---- | -------- | ------- | :-----: |
+| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Errant Drone  | 🐜 Ants | Random | [README.md](/mlvlab/envs/ant_lost_v1/README.md) | <a href="/mlvlab/envs/ant_lost_v1/README.md"><img src="./docs/ant_lost_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Lookout Scout  | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README.md) | <a href="/mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+| `AntMaze-v1`<br><sup>`mlv/AntMaze-v1`</sup> | Dungeons & Pheromones | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_maze_v1/README.md) | <a href="/mlvlab/envs/ant_maze_v1/README.md"><img src="./docs/ant_maze_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
+
+---
+
 ## 🚀 Quick Start (Interactive Shell)
 
 MLV-Lab is controlled through an interactive shell called `MLVisual`. The workflow is designed to be intuitive and user-friendly.
@@ -80,16 +90,6 @@ MLV-Lab> docs AntScout-v1
 # Exit the session
 MLV-Lab> exit
 ```
-
----
-
-## 📦 Available Environments
-
-| Name | Environment | Saga | Baseline | Details | Preview |
-| -----| ----------- | ---- | -------- | ------- | :-----: |
-| `AntLost-v1`<br><sup>`mlv/AntLost-v1`</sup> | Errant <br> Drone  | 🐜 Ants | Random | [README.md](/mlvlab/envs/ant_lost_v1/README.md) | <a href="/mlvlab/envs/ant_lost_v1/README.md"><img src="./docs/ant_lost_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
-| `AntScout-v1`<br><sup>`mlv/AntScout-v1`</sup> | Lookout <br> Scout  | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_scout_v1/README.md) | <a href="/mlvlab/envs/ant_scout_v1/README.md"><img src="./docs/ant_scout_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
-| `AntMaze-v1`<br><sup>`mlv/AntMaze-v1`</sup> | Dungeons & <br> Pheromones | 🐜 Ants | Q-Learning | [README.md](/mlvlab/envs/ant_maze_v1/README.md) | <a href="/mlvlab/envs/ant_maze_v1/README.md"><img src="./docs/ant_maze_v1/mode_play.jpg" alt="play mode" width="50px"></a> |
 
 ---
 
