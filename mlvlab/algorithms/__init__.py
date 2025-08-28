@@ -9,7 +9,7 @@ try:
 except ImportError:
     pass
 
-# --- Detección automática de plugins ---
+# Detección automática de plugins ---
 # Busca en todas las subcarpetas de este directorio...
 package_dir = Path(__file__).parent
 for subdir in package_dir.iterdir():

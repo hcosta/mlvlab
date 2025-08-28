@@ -66,7 +66,7 @@ class RandomPlugin:
         base_fps = 30.0
         frame_delay = (1.0 / base_fps) / speed if speed > 0 else 0
 
-        # --- 2. LÓGICA DE PROGRESIÓN MODIFICADA ---
+        # 2. LÓGICA DE PROGRESIÓN MODIFICADA ---
         for episode in range(episodes):
             # Construimos el texto que queremos mostrar
             progress_text = f"{i18n.t('common.evaluating_episode')}: {episode + 1}/{episodes}"
@@ -85,7 +85,7 @@ class RandomPlugin:
 
         # 3. Añadimos un print() vacío al final para saltar de línea y no sobreescribir la última
         print()
-        # --- FIN DE LA MODIFICACIÓN ---
+        # FIN DE LA MODIFICACIÓN ---
 
         env.close()
         print(i18n.t("cli.messages.random_eval_end"))

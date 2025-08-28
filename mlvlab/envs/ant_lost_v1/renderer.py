@@ -471,7 +471,7 @@ class ArcadeRenderer:
         antenna_length = head_radius * 1.8
         antenna_thickness = 2 * size_multiplier
 
-        # --- ANTENA IZQUIERDA (side = 1) ---
+        # ANTENA IZQUIERDA (side = 1) ---
         side_L = 1
         local_angle_L = 0.0
         if is_horizontal_death_flag:
@@ -491,7 +491,7 @@ class ArcadeRenderer:
         self.arcade.draw_line(asx_L, asy_L, asx_L + aex_rel_L, asy_L +
                               aey_rel_L * vertical_flip_multiplier, leg_color, antenna_thickness)
 
-        # --- ANTENA DERECHA (side = -1) ---
+        # ANTENA DERECHA (side = -1) ---
         side_R = -1
         local_angle_R = 0.0
         if is_horizontal_death_flag:

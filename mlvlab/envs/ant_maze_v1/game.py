@@ -27,17 +27,33 @@ class MazeGame:
         self.last_action = 3  # Derecha por defecto
         self.collided = False
 
+        # Registras las celdas visitadas
+        self.visited_cells = set()
+
     # Compatibilidad con código que espere 'obstacles'
     @property
     def obstacles(self):
         return self.walls
 
-    def reset(self, np_random) -> None:
-        # En reset, solo reposicionamos la hormiga. La generación ocurre en generate_scenario.
+    def reset(self, np_random, hard: bool = False) -> None:
+        """
+        Reinicia el estado del juego.
+        - hard=False (reintento): Solo reposiciona la hormiga.
+        - hard=True (mapa nuevo): Limpia las celdas visitadas y reposiciona la hormiga.
+        """
         self._np_random = np_random
         self.place_ant()
         self.last_action = 3
         self.collided = False
+
+        # LÓGICA MODIFICADA ---
+        if hard:
+            # En un reinicio "duro", borramos el historial de exploración.
+            self.visited_cells.clear()
+
+        # Siempre añadimos la posición actual (sea la de inicio o la nueva).
+        # Si no se limpió, esto no tiene efecto. Si se limpió, es la primera.
+        self.visited_cells.add(tuple(self.ant_pos))
 
     def generate_scenario(self, np_random) -> None:
         """Genera el laberinto o un escenario simple si el grid es pequeño."""
@@ -192,6 +208,10 @@ class MazeGame:
 
         # Actualizar posición
         self.ant_pos[0], self.ant_pos[1] = ax, ay
+
+        # NUEVA LÍNEA: Registrar la celda visitada ---
+        self.visited_cells.add(tuple(self.ant_pos))
+
         info["collided"] = self.collided
         info["terminated"] = terminated
 

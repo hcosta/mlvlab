@@ -144,38 +144,48 @@ class AntMazeEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self._end_scene_state = "IDLE"
-
-        # CAMBIO: Reseteamos el contador de pasos.
         self._elapsed_steps = 0
 
-        # CORRECCIÓN DEFINITIVA Y ROBUSTA:
-        # 1. Gymnasium (a través de super().reset()) crea o actualiza self.np_random.
-        # 2. Nos aseguramos de que el generador de números aleatorios del juego (`self._game._np_random`)
-        #    esté siempre sincronizado con el del entorno, PERO solo si el del entorno no es None.
         if hasattr(self, 'np_random') and self.np_random is not None:
             self._game._np_random = self.np_random
 
-        # El resto de la lógica se mantiene igual, ya que era correcta.
-        scenario_not_ready = (not np.any(self._game.goal_pos)) or (
-            not self._game.walls)
+        # Un mapa nuevo se genera si:
+        # 1. Se pasa una nueva seed.
+        # 2. O si el escenario no se ha generado nunca (detectado por la falta de una meta).
+        scenario_not_ready = not np.any(self._game.goal_pos)
         map_changed = seed is not None or scenario_not_ready
 
+        # LÓGICA DE REINICIO DE Q-TABLE ---
+        if map_changed and not self.enable_ant_shift:
+            # ... (código para reiniciar la q-table) ...
+            self.q_table_to_render = None
+            if self._state_store and hasattr(self._state_store, 'q_table'):
+                print("Nuevo mapa detectado: Reiniciando Q-Table...")
+                num_states = self.GRID_SIZE * self.GRID_SIZE
+                num_actions = self.action_space.n
+                self._state_store.q_table = np.zeros((num_states, num_actions))
+                self.q_table_to_render = self._state_store.q_table
+
+        # LÓGICA DE GENERACIÓN Y RESETEO DEL JUEGO ---
         if map_changed:
-            # Si el mapa cambia, usamos el RNG del entorno (que acabamos de sincronizar) para generar el escenario.
             self._game.generate_scenario(self.np_random)
             if options is None or not options.get("keep_q_table_locked", False):
                 self.is_q_table_locked = False
+            self._game.reset(self.np_random, hard=True)
+        else:
+            self._game.reset(self.np_random, hard=False)
 
-        self._game.place_ant()
+        # ... (el resto de la función sigue igual) ...
         self._sync_game_state()
-
+        if self.render_mode and self._renderer is None:
+            self._lazy_init_renderer()
         if self._renderer:
             self._renderer.reset(full_reset=map_changed)
-
         if self.render_mode == "human":
             self.render()
-
-        return self._get_obs(), self._get_info()
+        info = self._get_info()
+        info['map_changed'] = map_changed
+        return self._get_obs(), info
 
     def step(self, action):
 
@@ -266,7 +276,7 @@ class AntMazeEnv(gym.Env):
 
         self._sync_game_state()
 
-    # --- Métodos de Renderizado ---
+    # Métodos de Renderizado ---
 
     def _lazy_init_renderer(self):
         if self._renderer is None:
@@ -305,7 +315,7 @@ class AntMazeEnv(gym.Env):
         if self._renderer is not None:
             # CAMBIO: Máquina de estados expandida para manejar Éxito y Muerte.
 
-            # --- 1. Secuencia de Éxito (Success) ---
+            # 1. Secuencia de Éxito (Success) ---
             # (Lógica original de AntMaze)
             if self._end_scene_state == "SUCCESS_REQUESTED":
                 if hasattr(self._renderer, 'start_success_transition'):
@@ -321,7 +331,7 @@ class AntMazeEnv(gym.Env):
                     self._end_scene_state = "IDLE"
                     self._end_scene_finished_event.set()
 
-            # --- 2. Secuencia de Muerte (Death) ---
+            # 2. Secuencia de Muerte (Death) ---
             # (Lógica importada de AntLost: REQUESTED -> DELAY_FRAME -> RUNNING)
 
             elif self._end_scene_state == "DEATH_REQUESTED":

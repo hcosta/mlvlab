@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 # Añadimos la raíz del proyecto al path para que los imports funcionen
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 
 def normalize_env_id(env_id: str) -> str:

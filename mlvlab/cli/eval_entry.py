@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Añadimos la raíz del proyecto al path para que los imports funcionen
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 
 def normalize_env_id(env_id: str) -> str:
@@ -49,7 +49,7 @@ def main():
               env_id=normalized_env_id), file=sys.stderr)
         sys.exit(1)
 
-    # --- LÓGICA MODIFICADA ---
+    # LÓGICA MODIFICADA ---
     run_dir = None
     eval_seed = args.seed
 
@@ -76,7 +76,7 @@ def main():
     else:
         # Si es random, no buscamos directorio, solo usamos la semilla si se proveyó
         print(i18n.t("cli.messages.evaluating_random"))
-    # --- FIN DE LA LÓGICA MODIFICADA ---
+    # FIN DE LA LÓGICA MODIFICADA ---
 
     try:
         algo = get_algorithm(algorithm_key)

@@ -56,7 +56,7 @@ classifiers = [
     "Natural Language :: Spanish",
 ]
 
-# --- Dependencias Principales (Flexibles) ---
+# Dependencias Principales (Flexibles) ---
 # ~=2.0 permite 2.0.2, 2.1, etc., pero no 3.0.
 dependencies = [
     # Core de simulación y ciencia de datos
@@ -95,7 +95,7 @@ dev = [
     "matplotlib>=3.10",
 ]
 
-# --- Metadatos y Scripts ---
+# Metadatos y Scripts ---
 [project.scripts]
 mlv = "mlvlab.cli.main:app"
 

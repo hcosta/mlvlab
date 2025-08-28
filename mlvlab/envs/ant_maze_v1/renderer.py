@@ -41,11 +41,9 @@ class MazeRenderer:
         self.COLOR_WALL = (89, 69, 40)
         self.COLOR_PARTICLE_DUST = (210, 180, 140)
 
-        # --- INICIO: NUEVAS PROPIEDADES PARA LA VARIACIÓN DE LA HORMIGA ---
         self.randomized_ant_color = self.COLOR_ANT
         self.ant_size_multipliers = {
             'head': 1.0, 'thorax': 1.0, 'abdomen': 1.0}
-        # --- FIN: NUEVAS PROPIEDADES PARA LA VARIACIÓN DE LA HORMIGA ---
 
         self.ant_prev_pos, self.ant_display_pos = None, None
         self.ant_current_angle, self.ant_scale = 0.0, 1.0
@@ -54,12 +52,13 @@ class MazeRenderer:
         self.anthill_hole_visual_center = None
         self.was_colliding_last_frame = False
         self._q_value_text_objects: list = []
+        self.visited_cells = set()
 
         # Animación de Éxito (Success)
         self.in_success_transition, self.success_transition_time = False, 0.0
         self.SUCCESS_TRANSITION_DURATION = 1.5
 
-        # CAMBIO: Lógica de animación de Muerte (Importado de AntLost)
+        # Lógica de animación de Muerte (Importado de AntLost)
         self.in_death_transition = False
         # Usado para sincronizar el último movimiento antes de morir
         self.death_pending_completion = False
@@ -122,17 +121,16 @@ class MazeRenderer:
 
     def reset(self, full_reset=False):
         if full_reset:
-            self.initialized = False
-            self.wall_sprite_list = None
+            # En un reinicio completo, borramos también la caché
             self.wall_sprite_cache = {}
-            # --- NUEVA LÍNEA ---
-            self.floor_texture = None
-        else:
-            self.wall_sprite_list = None
-            # --- NUEVA LÍNEA ---
-            self.floor_texture = None
 
-        # --- INICIO: LÓGICA DE VARIACIÓN DE APARIENCIA DE LA HORMIGA ---
+        # En CUALQUIER reinicio (completo o suave), debemos marcar como no inicializado
+        # y borrar las texturas/sprites actuales para forzar su reconstrucción.
+        self.initialized = False
+        self.wall_sprite_list = None
+        self.floor_texture = None
+
+        # INICIO: LÓGICA DE VARIACIÓN DE APARIENCIA DE LA HORMIGA ---
         # (Este bloque se mantiene igual que en tu código original)
         try:
             r_var = self.rng_visual.integers(-20, 21)
@@ -195,7 +193,7 @@ class MazeRenderer:
         self.in_success_transition = False
         self.success_transition_time = 0.0
 
-        # CAMBIO: Reset de Muerte
+        # Reset de Muerte
         self.in_death_transition = False
         self.death_pending_completion = False
         self.death_transition_time = 0.0
@@ -214,14 +212,14 @@ class MazeRenderer:
         """
         map_hash = hash(frozenset(self.game.walls))
 
-        # --- LÓGICA DE CACHÉ ---
+        # LÓGICA DE CACHÉ ---
         # 1. Comprobar si esta configuración de mapa ya está en la caché.
         if map_hash in self.wall_sprite_cache:
             # Si está, la reutilizamos y terminamos. ¡Esto es instantáneo!
             self.wall_sprite_list = self.wall_sprite_cache[map_hash]
             return
 
-        # --- Si no está en la caché, la construimos como antes ---
+        # Si no está en la caché, la construimos como antes ---
         wall_tile_paths = list(self.ASSETS_PATH.glob("tile_wall_*.png"))
         if not wall_tile_paths:
             raise FileNotFoundError(f"No se encontraron imágenes de muros en '{self.ASSETS_PATH}'. "
@@ -257,7 +255,7 @@ class MazeRenderer:
         return x_cell, y_cell
 
     def start_success_transition(self):
-        # CAMBIO: Comprobamos que la animación de muerte no esté activa o pendiente.
+        # Comprobamos que la animación de muerte no esté activa o pendiente.
         if not self.in_success_transition and not self.is_in_death_transition():
             self.in_success_transition, self.success_transition_time = True, 0.0
 
@@ -294,14 +292,14 @@ class MazeRenderer:
         self.success_transition_time += delta_time
         progress = self.success_transition_time / self.SUCCESS_TRANSITION_DURATION
         if progress >= 1.0:
-            # CAMBIO: Aseguramos que desaparezca completamente (scale 0 y alpha 0).
+            # Aseguramos que desaparezca completamente (scale 0 y alpha 0).
             self.in_success_transition, self.ant_scale = False, 0.0
             self.ant_alpha = 0
             return
 
         if self.anthill_hole_visual_center:
             target_x_px, target_y_px = self.anthill_hole_visual_center
-            # CAMBIO: Usamos un ajuste relativo al tamaño de celda en vez de 11px fijos.
+            # Usamos un ajuste relativo al tamaño de celda en vez de 11px fijos.
             vertical_adjustment = self.CELL_SIZE * \
                 0.275  # (11px / 40px = 0.275)
             target_x_cell, target_y_cell = self._pixel_to_cell(
@@ -324,7 +322,7 @@ class MazeRenderer:
         if self.ant_display_pos is None:
             return
 
-        # CAMBIO: 1. Priorizamos las animaciones de fin de escena.
+        # 1. Priorizamos las animaciones de fin de escena.
         if self.in_success_transition:
             self._update_success_transition(delta_time)
             return
@@ -341,7 +339,7 @@ class MazeRenderer:
         dx, dy = target_pos[0] - \
             self.ant_display_pos[0], target_pos[1] - self.ant_display_pos[1]
 
-        # CAMBIO: Calculamos si estamos en el objetivo (necesario para sincronización).
+        # Calculamos si estamos en el objetivo (necesario para sincronización).
         distance = math.sqrt(dx**2 + dy**2)
         is_at_target = distance < 0.001
 
@@ -360,7 +358,7 @@ class MazeRenderer:
             self._update_rotation(
                 delta_time, target_angle)
 
-        # CAMBIO: 3. Sincronización de la muerte pendiente (Importado de AntLost)
+        # 3. Sincronización de la muerte pendiente (Importado de AntLost)
         # Si la muerte está pendiente Y la hormiga ha terminado su último paso (is_at_target).
         if self.death_pending_completion and is_at_target:
             self.death_pending_completion = False
@@ -472,7 +470,7 @@ class MazeRenderer:
 
         self.window.use()
 
-        # --- PASOS FINALES Y CRUCIALES ---
+        # PASOS FINALES Y CRUCIALES ---
         # 1. Leer los datos de píxeles desde la GPU a la memoria RAM.
         pixel_data = gpu_texture.read()
 
@@ -495,16 +493,37 @@ class MazeRenderer:
         if not self.debug_mode or q_table is None:
             return
         try:
+            # Aún necesitamos los Q-values para la transparencia (alpha)
             q_mov = q_table[:, :4]
             max_q, min_q = float(np.max(q_mov)), float(np.min(q_mov))
             q_range = max_q - min_q
             if q_range < 1e-6:
-                return
+                q_range = 1.0  # Evitar división por cero si todos los Q son iguales
         except Exception:
             return
+
+        # INICIO DE CAMBIOS ---
+
+        # 1. ELIMINADO: Ya no necesitamos el umbral, siempre dibujaremos las celdas visitadas.
+        # PHEROMONE_THRESHOLD = 0.0
+
+        color_low = (255, 255, 150)  # Amarillo pálido (lejos del objetivo)
+        color_high = (255, 105, 180)  # Rosa intenso (cerca del objetivo)
+
+        # 2. NUEVO: Calculamos la distancia máxima posible en el mapa para normalizar.
+        # Usamos la distancia Manhattan, que es ideal para grids.
+        goal_x, goal_y = self.game.goal_pos
+        max_dist = self.game.grid_size * 2  # Una sobreestimación segura y simple
+
+        # FIN DE CAMBIOS ---
+
         SQUARE_SIZE = self.CELL_SIZE * 0.85
         for idx in range(self.game.grid_size**2):
             x, y = idx % self.game.grid_size, idx // self.game.grid_size
+
+            if (x, y) not in self.game.visited_cells:
+                continue
+
             if (x, y) in self.game.walls:
                 continue
             cx, cy = self._cell_to_pixel(x, y)
@@ -512,10 +531,32 @@ class MazeRenderer:
                 q_val = float(np.max(q_table[idx, :4]))
             except Exception:
                 continue
+
+            # 3. ELIMINADO: La condición del umbral ya no es necesaria.
+            # if q_val < PHEROMONE_THRESHOLD:
+            #     continue
+
+            # LÓGICA DE COLOR Y ALPHA MODIFICADA ---
+
+            # El color ahora se basa en la distancia, no en el Q-value.
+            dist = abs(x - goal_x) + abs(y - goal_y)
+            # Normalizamos la distancia e invertimos (1.0 cerca, 0.0 lejos)
+            distance_factor = max(0.0, 1.0 - (dist / max_dist))
+
+            r = int(color_low[0] * (1 - distance_factor) +
+                    color_high[0] * distance_factor)
+            g = int(color_low[1] * (1 - distance_factor) +
+                    color_high[1] * distance_factor)
+            b = int(color_low[2] * (1 - distance_factor) +
+                    color_high[2] * distance_factor)
+
+            # La transparencia (alpha) seguirá dependiendo del Q-value.
+            # Así, las celdas importantes brillarán más.
             nq = (q_val - min_q) / q_range
-            r, g, b = 255, int(220 * (1 - nq) + 105 *
-                               nq), int(230 * (1 - nq) + 180 * nq)
             alpha = int(40 + (nq**0.5) * 160)
+
+            # FIN DE LA MODIFICACIÓN ---
+
             left = cx - SQUARE_SIZE / 2
             right = cx + SQUARE_SIZE / 2
             bottom = cy - SQUARE_SIZE / 2
@@ -592,7 +633,7 @@ class MazeRenderer:
         if self.ant_display_pos is None:
             return
 
-        # CAMBIO: Comprobamos visibilidad basada en escala (éxito) Y transparencia (muerte).
+        # Comprobamos visibilidad basada en escala (éxito) Y transparencia (muerte).
         if self.ant_scale <= 0.01 or self.ant_alpha <= 0:
             return
 
@@ -600,7 +641,7 @@ class MazeRenderer:
         base_cx, base_cy = self._cell_to_pixel(ax, ay)
         S, angle, t = self.ant_scale, self.ant_current_angle, time.time()
 
-        # CAMBIO: Variables para gestionar el dibujo durante la muerte (Importado de AntLost).
+        # Variables para gestionar el dibujo durante la muerte (Importado de AntLost).
         draw_cx, draw_cy = base_cx, base_cy
         vertical_flip_multiplier = 1
 
@@ -621,8 +662,8 @@ class MazeRenderer:
             if self.ant_vertical_flip and not is_horizontal_death_flag:
                 vertical_flip_multiplier = -1
 
-        # --- INICIO: USAR EL COLOR Y TAMAÑO ALEATORIZADOS + TRANSPARENCIA ---
-        # CAMBIO: Aplicamos self.ant_alpha a los colores.
+        # INICIO: USAR EL COLOR Y TAMAÑO ALEATORIZADOS + TRANSPARENCIA ---
+        # Aplicamos self.ant_alpha a los colores.
         base_color = self.randomized_ant_color
 
         # Calculamos el alpha final (combina escala para éxito y alpha para muerte)
@@ -646,7 +687,7 @@ class MazeRenderer:
         trya = self.CELL_SIZE * 0.18 * S * m_thorax
         arx = self.CELL_SIZE * 0.28 * S * m_abdomen
         ary = self.CELL_SIZE * 0.22 * S * m_abdomen
-        # --- FIN: USAR EL COLOR Y TAMAÑO ALEATORIZADOS + TRANSPARENCIA ---
+        # FIN: USAR EL COLOR Y TAMAÑO ALEATORIZADOS + TRANSPARENCIA ---
 
         rad = math.radians(angle)
 
@@ -656,12 +697,12 @@ class MazeRenderer:
         dist = math.sqrt(
             (self.game.ant_pos[0] - ax)**2 + (self.game.ant_pos[1] - ay)**2)
 
-        # CAMBIO: Consideramos movimiento si estamos en CUALQUIER transición o si la distancia es > 0.01
+        # Consideramos movimiento si estamos en CUALQUIER transición o si la distancia es > 0.01
         moving = self.in_success_transition or self.in_death_transition or dist > 0.01
 
         anim_s = self.CELL_SIZE / 40.0
 
-        # CAMBIO: Definimos los parámetros de animación (Velocidad, Oscilación, Rebote) según el estado.
+        # Definimos los parámetros de animación (Velocidad, Oscilación, Rebote) según el estado.
         if self.in_death_transition:
             # Muerte: Oscilación lenta, sin rebote (Valores de AntLost)
             speed, leg_o, ant_o, bounce = 3.0, 3, 5, 0
@@ -679,7 +720,7 @@ class MazeRenderer:
 
         osc = math.sin(t * speed)
 
-        # --- DIBUJO ---
+        # DIBUJO ---
 
         # Patas
         ll, lt = self.CELL_SIZE * 0.28 * S, max(1, int(3 * S * anim_s))
@@ -690,7 +731,7 @@ class MazeRenderer:
                 end_a = angle + (90 + off_a + co * leg_o) * side
                 ex, ey = math.cos(math.radians(end_a)) * \
                     ll, math.sin(math.radians(end_a)) * ll
-                # CAMBIO: Aplicamos vertical_flip_multiplier al eje Y. Usamos draw_cx/cy.
+                # Aplicamos vertical_flip_multiplier al eje Y. Usamos draw_cx/cy.
                 self.arcade.draw_line(
                     draw_cx, draw_cy, draw_cx + ex, draw_cy + ey * vertical_flip_multiplier, leg_c, lt)
 
@@ -717,7 +758,7 @@ class MazeRenderer:
         er, eox, eoy = hr * 0.3, hr * 0.4, hr * 0.65
         for side in [-1, 1]:
             ex_r, ey_r = rotate(eox, eoy * side)
-            # CAMBIO: Usamos el color de ojos con alpha (eye_c).
+            # Usamos el color de ojos con alpha (eye_c).
             self.arcade.draw_circle_filled(
                 draw_cx + hx_r + ex_r, draw_cy + hy_r + ey_r, er, eye_c)
 
@@ -725,10 +766,10 @@ class MazeRenderer:
         al, at = hr * 1.8, max(1, int(2 * S * anim_s))
         ant_o_val = osc * ant_o
 
-        # CAMBIO: Lógica de antenas adaptada de AntLost para gestionar el volteo y el plegado horizontal.
+        # Lógica de antenas adaptada de AntLost para gestionar el volteo y el plegado horizontal.
         # Debemos manejar las antenas individualmente para replicar la pose exacta.
 
-        # --- ANTENA IZQUIERDA (side = 1) ---
+        # ANTENA IZQUIERDA (side = 1) ---
         side_L = 1
         # Lógica de AntLost: Plegar antenas si la muerte es horizontal
         if is_horizontal_death_flag:
@@ -745,7 +786,7 @@ class MazeRenderer:
         self.arcade.draw_line(asx_L, asy_L, asx_L + aex_L,
                               asy_L + aey_L * vertical_flip_multiplier, leg_c, at)
 
-        # --- ANTENA DERECHA (side = -1) ---
+        # ANTENA DERECHA (side = -1) ---
         side_R = -1
         if is_horizontal_death_flag:
             local_angle_R = 225.0  # Ángulo para plegar la antena derecha
@@ -797,7 +838,6 @@ class MazeRenderer:
         if self.floor_texture is None:
             self._create_and_cache_floor_texture()
 
-        # --- LA FORMA CORRECTA I DOCUMENTADA ---
         # Utilitzem la funció 'factory' LBWH per crear el rectangle.
         background_rect = self.arcade.LBWH(0, 0, self.WIDTH, self.HEIGHT)
 
@@ -805,7 +845,6 @@ class MazeRenderer:
             texture=self.floor_texture,
             rect=background_rect
         )
-        # ------------------------------------
 
         scenario_rng = self._get_scenario_rng()
         self._draw_pheromones(q_table_to_render)

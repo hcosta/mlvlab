@@ -231,7 +231,7 @@ def list_environments(
         autocompletion=complete_unit_id
     )
 ):
-    # --- Parte 1: Preparación y Lógica General ---
+    # Parte 1: Preparación y Lógica General ---
     command_parts = ["list"]
     if unidad:
         command_parts.append(unidad)
@@ -268,7 +268,7 @@ def list_environments(
         unit = cfg.get("UNIT") or cfg.get("unit") or i18n.t("common.other")
         env_id_to_unit[env_id] = str(unit)
 
-    # --- Parte 2: Si no se especifica unidad, mostrar las unidades disponibles ---
+    # Parte 2: Si no se especifica unidad, mostrar las unidades disponibles ---
     if unidad is None:
         unidades = sorted(set(env_id_to_unit.values()))
         table = Table("", i18n.t("cli.tables.unit_id"), i18n.t(
@@ -284,7 +284,7 @@ def list_environments(
         console.print(i18n.t("cli.messages.use_list_unit"))
         return
 
-    # --- Parte 3: Lógica Unificada y Refactorizada para mostrar entornos de una unidad ---
+    # Parte 3: Lógica Unificada y Refactorizada para mostrar entornos de una unidad ---
     unit_envs = [env_id for env_id, u in env_id_to_unit.items() if u == unidad]
 
     # Define los encabezados de la tabla (con el nombre primero)
@@ -339,16 +339,10 @@ def play_command(
     console.print(i18n.t("cli.messages.launching", env_id=normalized_env_id))
 
     try:
-        # 1. Encontrar la ruta del script auxiliar del player
-        player_entry_script = Path(__file__).parent / "player_entry.py"
-        if not player_entry_script.exists():
-            console.print(
-                f"[red]{i18n.t('cli.errors.player_entry_not_found', path=player_entry_script)}[/red]")
-            raise typer.Exit(code=1)
-
-        # 2. Construir y ejecutar el comando en un subproceso
+        # Encontrar la ruta del script auxiliar del player
         python_executable = sys.executable
-        command = [python_executable, str(player_entry_script), env_id]
+        command = [python_executable, "-m", "mlvlab.cli.player_entry", env_id]
+
         if seed is not None:
             command.extend(["--seed", str(seed)])
 
@@ -432,16 +426,10 @@ def train_command(
 
     clear_screen(command_str)
     try:
-        # 1. Encontrar la ruta del script auxiliar de entrenamiento
-        train_entry_script = Path(__file__).parent / "train_entry.py"
-        if not train_entry_script.exists():
-            console.print(
-                f"[red]{i18n.t('cli.errors.train_entry_not_found', path=train_entry_script)}[/red]")
-            raise typer.Exit(code=1)
-
-        # 2. Construir y ejecutar el comando en un subproceso
+        # Construir el comando para ejecutar como módulo
         python_executable = sys.executable
-        command = [python_executable, str(train_entry_script), env_id]
+        # El comando ahora usa -m para ejecutar el módulo
+        command = [python_executable, "-m", "mlvlab.cli.train_entry", env_id]
 
         # Añadir argumentos opcionales si se proporcionan
         if seed is not None:
@@ -486,23 +474,17 @@ def eval_command(
 
     clear_screen(command_str)
     try:
-        # 1. Encontrar la ruta del script auxiliar de evaluación
-        eval_entry_script = Path(__file__).parent / "eval_entry.py"
-        if not eval_entry_script.exists():
-            console.print(
-                f"[red]{i18n.t('cli.errors.eval_entry_not_found', path=eval_entry_script)}[/red]")
-            raise typer.Exit(code=1)
-
-        # 2. Construir y ejecutar el comando en un subproceso
+        # Construir el comando para ejecutar como módulo
         python_executable = sys.executable
-        command = [python_executable, str(eval_entry_script), env_id]
+        # El comando ahora usa -m para ejecutar el módulo
+        command = [python_executable, "-m", "mlvlab.cli.eval_entry", env_id]
 
         # Añadir argumentos opcionales si se proporcionan
         if seed is not None:
             command.extend(["--seed", str(seed)])
-        if episodes != 5:  # Solo añadir si no es el valor por defecto
+        if episodes != 5:
             command.extend(["--episodes", str(episodes)])
-        if speed != 1.0:  # Solo añadir si no es el valor por defecto
+        if speed != 1.0:
             command.extend(["--speed", str(speed)])
         if record:
             command.append("--record")
@@ -532,7 +514,7 @@ def shell_command():
     console.print(f"[bold green]{i18n.t('cli.repl.welcome')}[/bold green]")
     console.print(i18n.t('cli.repl.exit_tip'))
 
-    # --- 1. Configuración del Autocompletado ---
+    # 1. Configuración del Autocompletado ---
 
     # Obtenemos todos los nombres de los comandos de la app
     command_names = [cmd.name for cmd in app.registered_commands if cmd.name]
@@ -565,7 +547,7 @@ def shell_command():
 
     completer = NestedCompleter.from_nested_dict(completer_map)
 
-    # --- 2. Configuración de la Sesión de Prompt ---
+    # 2. Configuración de la Sesión de Prompt ---
 
     history_file = Path.home() / '.mlvlab' / 'history.txt'
     history_file.parent.mkdir(exist_ok=True)
@@ -576,7 +558,7 @@ def shell_command():
         complete_while_typing=True,
     )
 
-    # --- 3. Bucle Principal (REPL) ---
+    # 3. Bucle Principal (REPL) ---
     while True:
         try:
             text = session.prompt(

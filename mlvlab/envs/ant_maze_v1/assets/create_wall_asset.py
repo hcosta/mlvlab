@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 
-# --- Configuración de los Tiles ---
+# Configuración de los Tiles ---
 CELL_SIZE = 40
 COLOR_WALL = (89, 69, 40)
 # MODIFICACIÓN: Definimos cuántos tiles únicos queremos crear
