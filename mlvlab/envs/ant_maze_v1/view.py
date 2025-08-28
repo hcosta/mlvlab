@@ -73,7 +73,7 @@ def main(enable_ant_shift=False):
     # Configuración del entorno
     # Asumiendo registro como "mlv/AntMaze-v1"
     env_name = "mlv/AntMaze-v1"
-    grid_size = 29
+    grid_size = 25
 
     try:
         env = gym.make(env_name,

@@ -515,8 +515,6 @@ class MazeRenderer:
         goal_x, goal_y = self.game.goal_pos
         max_dist = self.game.grid_size * 2  # Una sobreestimación segura y simple
 
-        # FIN DE CAMBIOS ---
-
         SQUARE_SIZE = self.CELL_SIZE * 0.85
         for idx in range(self.game.grid_size**2):
             x, y = idx % self.game.grid_size, idx // self.game.grid_size
