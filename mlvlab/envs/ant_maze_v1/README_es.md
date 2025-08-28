@@ -190,4 +190,27 @@ obs, info = env.action_shift()
 - **Aprendizaje Continuo**: Mantener el progreso de aprendizaje mientras exploras diferentes entornos
 - **Investigación**: Estudiar capacidades de transferencia de aprendizaje y generalización
 
+### `action_toggle_pheromones()`
+
+Esta función alterna entre diferentes modos de visualización de feromonas para depuración y análisis:
+
+```python
+# En scripts o notebooks
+obs, info = env.action_toggle_pheromones()
+```
+
+**Qué hace:**
+1. **Alterna Visualización**: Cambia entre modos de visualización de feromonas "descubiertas" y "global"
+2. **Modo Debug Automático**: Activa automáticamente el modo debug cuando se habilita la visualización global de feromonas
+3. **Sincronización UI**: Actualiza el estado de la UI para reflejar el modo de visualización actual
+
+**Modos de Visualización:**
+- **Modo Descubierto**: Muestra solo el rastro de feromonas que el agente ha explorado
+- **Modo Global**: Muestra el mapa completo de feromonas en todo el laberinto (requiere modo debug)
+
+**Casos de Uso:**
+- **Análisis de Debug**: Examinar el estado completo de aprendizaje en todo el laberinto
+- **Comparación de Rendimiento**: Comparar patrones de feromonas descubiertas vs. globales
+- **Investigación**: Estudiar patrones de exploración y cobertura de aprendizaje
+
 **Nota:** Estas acciones se mapean automáticamente en las vistas interactivas, por lo que no necesitas implementarlas manualmente en tus bucles de entrenamiento.

@@ -190,4 +190,27 @@ obs, info = env.action_shift()
 - **Continuous Learning**: Maintain learning progress while exploring different environments
 - **Research**: Study transfer learning and generalization capabilities
 
+### `action_toggle_pheromones()`
+
+This function toggles between different pheromone visualization modes for debugging and analysis:
+
+```python
+# In scripts or notebooks
+obs, info = env.action_toggle_pheromones()
+```
+
+**What it does:**
+1. **Toggles Visualization**: Switches between "discovered" and "global" pheromone display modes
+2. **Auto-Debug Mode**: Automatically activates debug mode when global pheromone visualization is enabled
+3. **UI Synchronization**: Updates the UI state to reflect the current visualization mode
+
+**Visualization Modes:**
+- **Discovered Mode**: Shows only the pheromone trail that the agent has explored
+- **Global Mode**: Shows the complete pheromone map across the entire maze (requires debug mode)
+
+**Use Cases:**
+- **Debug Analysis**: Examine the complete learning state across the entire maze
+- **Performance Comparison**: Compare discovered vs. global pheromone patterns
+- **Research**: Study exploration patterns and learning coverage
+
 **Note:** These actions are automatically mapped in the interactive views, so you don't need to implement them manually in your training loops.
