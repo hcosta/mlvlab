@@ -634,16 +634,22 @@ def docs_command(
 
         # Construir URL de documentación basada en el idioma configurado
         base_url = "https://github.com/hcosta/mlvlab/blob/master"
-        env_name = normalized_env_id.replace("mlv/", "").lower()
 
-        # Mapear nombres de entorno a nombres de directorio
-        env_dir_mapping = {
-            "antlost-v1": "ant_lost_v1",
-            "antscout-v1": "ant_scout_v1",
-        }
+        # Obtener automáticamente el directorio del entorno desde el entry_point
+        spec = gym.spec(normalized_env_id)
+        entry_point = spec.entry_point
 
-        # Usar el mapeo si existe, sino convertir a snake_case
-        dir_name = env_dir_mapping.get(env_name, env_name.replace("-", "_"))
+        # Extraer el nombre del módulo del entry_point (ej: mlvlab.envs.ant_lost_v1.env)
+        module_parts = entry_point.split('.')
+
+        # El directorio del entorno está en la posición -2 del entry_point
+        # (mlvlab.envs.ant_lost_v1.env -> ant_lost_v1)
+        if len(module_parts) >= 3:
+            dir_name = module_parts[-2]  # ant_lost_v1
+        else:
+            # Fallback: convertir el nombre del entorno a snake_case
+            env_name = normalized_env_id.replace("mlv/", "").lower()
+            dir_name = env_name.replace("-", "_")
 
         # Determinar el idioma para la documentación
         locale = i18n.current_locale
